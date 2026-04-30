@@ -81,6 +81,7 @@ tr:hover td{background:#f8f9fb}
 .equip-section h4{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
 .tel-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 .tab-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.rec-line{display:grid;grid-template-columns:2fr 1fr 70px auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 
 </style>
 </head>
@@ -102,6 +103,7 @@ tr:hover td{background:#f8f9fb}
   <button class="nav-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
   <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
   <button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
+  <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
   <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
   <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
   <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
@@ -173,6 +175,51 @@ tr:hover td{background:#f8f9fb}
       </div>
     </div>
     <div id="bon-content" class="bon-preview"></div>
+  </div>
+</div>
+
+
+<!-- RECEPTION COMMANDE -->
+<div id="tab-reception" class="panel">
+  <div class="card">
+    <h3>Réception bon de livraison — Groupe RG</h3>
+    <div class="form-row">
+      <div><label>N° bon de livraison</label><input type="text" id="rec-bl" placeholder="BL-XXXXXX"></div>
+      <div><label>Date de réception</label><input type="date" id="rec-date"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Fournisseur</label>
+        <select id="rec-fourn">
+          <option>Groupe RG — Bordeaux</option>
+          <option>Autre fournisseur</option>
+        </select>
+      </div>
+      <div><label>Commentaire</label><input type="text" id="rec-comment" placeholder="Commande suite alerte stock…"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Articles reçus</h3>
+    <div id="rec-lines-container"><div class="empty">Aucun article ajouté — cliquez sur "+ Ajouter un article"</div></div>
+    <button class="btn" style="margin-top:8px" onclick="addRecLine()">+ Ajouter un article</button>
+  </div>
+
+  <div class="card no-print">
+    <h3>Actions</h3>
+    <div class="btn-row">
+      <button class="btn primary" id="btn-rec-valider" onclick="validerReception()">✓ Valider la réception et créditer le stock</button>
+      <button class="btn" onclick="resetReception()">Réinitialiser</button>
+    </div>
+    <div id="rec-msg"></div>
+  </div>
+
+  <div class="card" id="rec-historique-card">
+    <h3>Dernières réceptions</h3>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>Date</th><th>N° BL</th><th>Fournisseur</th><th>Article</th><th>Taille</th><th>Qté reçue</th>
+      </tr></thead><tbody id="rec-histo-body"></tbody></table>
+    </div>
   </div>
 </div>
 
@@ -451,6 +498,7 @@ function goTab(t,btn){
   if(t==='alertes')renderAlertes();
   if(t==='catalogue')renderCatalogue();
   if(t==='parametres')loadConfigIntoForm();
+  if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
 }
 
 // ─── DOTATION ─────────────────────────────────────────────────────────────────
@@ -637,6 +685,117 @@ function genererBon(){
   <div style="margin-top:10px;font-size:9px;color:#aaa;text-align:center">Document généré le ${new Date().toLocaleDateString('fr-FR')} — Domofrance Pôle Facilities</div>`;
   document.getElementById('bon-container').style.display='block';
   document.getElementById('bon-container').scrollIntoView({behavior:'smooth'});
+}
+
+
+// ─── RECEPTION COMMANDE ───────────────────────────────────────────────────────
+let recLines=[];
+
+function addRecLine(prefillRef){
+  recLines.push({id:Date.now()+'r',ref:prefillRef||'',taille:'',qte:1});
+  renderRecLines();
+}
+
+function removeRecLine(id){recLines=recLines.filter(x=>x.id!==id);renderRecLines()}
+
+function updateRecLine(id,field,val){
+  const l=recLines.find(x=>x.id===id);
+  if(!l)return;
+  l[field]=val;
+  if(field==='ref')l.taille='';
+  renderRecLines();
+}
+
+function renderRecLines(){
+  const c=document.getElementById('rec-lines-container');
+  if(!recLines.length){c.innerHTML='<div class="empty">Aucun article ajouté</div>';return}
+  c.innerHTML=recLines.map(line=>{
+    const art=CATALOGUE.find(x=>x.ref===line.ref);
+    const tailles=art?art.tailles:[];
+    const stockActuel=line.ref&&line.taille?getStock(line.ref,line.taille):null;
+    const stockBadge=stockActuel?`<span class="badge ${stockActuel.qte<=stockActuel.seuil?'yellow':'green'}" style="font-size:10px;margin-left:4px">Stock actuel: ${stockActuel.qte}</span>`:'';
+    return `<div class="rec-line">
+      <div>
+        <label>Article</label>
+        <select onchange="updateRecLine('${line.id}','ref',this.value)">
+          <option value="">— Choisir un article —</option>
+          ${CATS.map(cat=>`<optgroup label="${cat}">${CATALOGUE.filter(x=>x.cat===cat).map(x=>`<option value="${x.ref}" ${x.ref===line.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label>Taille ${stockBadge}</label>
+        <select onchange="updateRecLine('${line.id}','taille',this.value)">
+          <option value="">—</option>
+          ${tailles.map(t=>`<option value="${t}" ${t===line.taille?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label>Qté reçue</label>
+        <input type="number" min="1" value="${line.qte}" style="width:70px" onchange="updateRecLine('${line.id}','qte',parseInt(this.value)||1)">
+      </div>
+      <div>
+        <button class="btn danger small" onclick="removeRecLine('${line.id}')" style="margin-top:18px">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function validerReception(){
+  if(!recLines.length){showMsg('rec-msg','Aucun article ajouté.','err');return}
+  const incomplete=recLines.find(l=>!l.ref||!l.taille);
+  if(incomplete){showMsg('rec-msg','Tous les articles doivent avoir une référence et une taille.','err');return}
+
+  const bl=document.getElementById('rec-bl').value.trim()||'BL-'+Date.now();
+  const date=document.getElementById('rec-date').value||new Date().toISOString().slice(0,10);
+  const fourn=document.getElementById('rec-fourn').value;
+  const comment=document.getElementById('rec-comment').value.trim();
+
+  const btn=document.getElementById('btn-rec-valider');
+  btn.disabled=true;btn.textContent='Enregistrement…';
+  showMsg('rec-msg','Mise à jour du stock en cours…','info');
+
+  try{
+    for(const line of recLines){
+      const s=getStock(line.ref,line.taille);
+      const newQte=s.qte+line.qte;
+      await saveStockRow(line.ref,line.taille,{qte:newQte});
+      const art=CATALOGUE.find(x=>x.ref===line.ref);
+      await sbPost('mouvements',{
+        date,type:'reception',nom:fourn,prenom:bl,
+        matricule:'',site:comment,
+        ref:line.ref,designation:art?art.nom:line.ref,
+        taille:line.taille,qte:line.qte,motif:bl
+      });
+    }
+    updateAlerteBadge();
+    showMsg('rec-msg',`✓ ${recLines.length} article(s) crédité(s) au stock. BL : ${bl}`,'ok');
+    renderRecHisto();
+    recLines=[];renderRecLines();
+  }catch(e){
+    showMsg('rec-msg','Erreur : '+e.message,'err');
+  }
+  btn.disabled=false;btn.textContent='✓ Valider la réception et créditer le stock';
+}
+
+function resetReception(){
+  document.getElementById('rec-bl').value='';
+  document.getElementById('rec-comment').value='';
+  recLines=[];renderRecLines();
+  document.getElementById('rec-msg').innerHTML='';
+}
+
+function renderRecHisto(){
+  const rows=mouvementsCache.filter(m=>m.type==='reception').slice(0,20);
+  document.getElementById('rec-histo-body').innerHTML=rows.length
+    ?rows.map(m=>`<tr>
+        <td>${m.date||'—'}</td>
+        <td><code>${m.motif||m.prenom||'—'}</code></td>
+        <td>${m.nom||'—'}</td>
+        <td title="${m.designation}">${(m.designation||'—').length>40?(m.designation||'').slice(0,38)+'…':m.designation||'—'}</td>
+        <td style="text-align:center">${m.taille||'—'}</td>
+        <td style="text-align:center;font-weight:600;color:#276749">+${m.qte}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="6" class="empty">Aucune réception enregistrée</td></tr>';
 }
 
 // ─── STOCK ────────────────────────────────────────────────────────────────────

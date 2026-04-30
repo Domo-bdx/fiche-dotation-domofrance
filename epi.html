@@ -77,6 +77,11 @@ tr:hover td{background:#f8f9fb}
 .msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
 .msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
 @media print{.header,.nav,.no-print{display:none!important}body{background:#fff}}
+.equip-section{background:#f8f9fb;border:1px solid #dde;border-radius:6px;padding:12px;margin-bottom:0}
+.equip-section h4{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.tel-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.tab-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+
 </style>
 </head>
 <body>
@@ -140,6 +145,16 @@ tr:hover td{background:#f8f9fb}
     <h3>EPI attribués</h3>
     <div id="epi-lines-container"></div>
     <button class="btn" onclick="addEpiLine()">+ Ajouter un EPI</button>
+  </div>
+  <div class="card">
+    <h3>Téléphones attribués</h3>
+    <div id="tel-lines-container"><div class="empty">Aucun téléphone ajouté</div></div>
+    <button class="btn" style="margin-top:8px" onclick="addTelLine()">+ Ajouter un téléphone</button>
+  </div>
+  <div class="card">
+    <h3>Tablettes attribuées</h3>
+    <div id="tab-lines-container"><div class="empty">Aucune tablette ajoutée</div></div>
+    <button class="btn" style="margin-top:8px" onclick="addTabLine()">+ Ajouter une tablette</button>
   </div>
   <div class="card no-print">
     <h3>Actions</h3>
@@ -302,6 +317,8 @@ async function sbPatch(table,filter,body){
 let stockCache={};   // clé: ref__taille → objet stock
 let mouvementsCache=[];
 let epiLines=[];
+let telLines=[];
+let tabLines=[];
 let activeStockCat='Tous';
 let activeCatCat='Tous';
 
@@ -437,6 +454,44 @@ function goTab(t,btn){
 }
 
 // ─── DOTATION ─────────────────────────────────────────────────────────────────
+
+function addTelLine(){
+  telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:''});
+  renderTelLines();
+}
+function addTabLine(){
+  tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:''});
+  renderTabLines();
+}
+function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
+function removeTabLine(id){tabLines=tabLines.filter(x=>x.id!==id);renderTabLines()}
+function updateTelLine(id,field,val){const l=telLines.find(x=>x.id===id);if(l)l[field]=val}
+function updateTabLine(id,field,val){const l=tabLines.find(x=>x.id===id);if(l)l[field]=val}
+
+function renderTelLines(){
+  const c=document.getElementById('tel-lines-container');
+  if(!telLines.length){c.innerHTML='<div class="empty">Aucun téléphone ajouté</div>';return}
+  c.innerHTML=telLines.map(l=>`<div class="tel-line">
+    <div><label>Marque</label><input type="text" value="${l.marque}" placeholder="Samsung, Apple…" onchange="updateTelLine('${l.id}','marque',this.value)"></div>
+    <div><label>Modèle</label><input type="text" value="${l.modele}" placeholder="Galaxy A36…" onchange="updateTelLine('${l.id}','modele',this.value)"></div>
+    <div><label>IMEI</label><input type="text" value="${l.imei}" placeholder="IMEI 15 chiffres" onchange="updateTelLine('${l.id}','imei',this.value)"></div>
+    <div><label>Ligne SIM</label><input type="text" value="${l.sim}" placeholder="06 XX XX XX XX" onchange="updateTelLine('${l.id}','sim',this.value)"></div>
+    <div><button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:18px">✕</button></div>
+  </div>`).join('');
+}
+
+function renderTabLines(){
+  const c=document.getElementById('tab-lines-container');
+  if(!tabLines.length){c.innerHTML='<div class="empty">Aucune tablette ajoutée</div>';return}
+  c.innerHTML=tabLines.map(l=>`<div class="tab-line">
+    <div><label>Nom appareil</label><input type="text" value="${l.nom}" placeholder="Tablette.92…" onchange="updateTabLine('${l.id}','nom',this.value)"></div>
+    <div><label>Modèle</label><input type="text" value="${l.modele}" placeholder="Galaxy Tab A9+…" onchange="updateTabLine('${l.id}','modele',this.value)"></div>
+    <div><label>IMEI</label><input type="text" value="${l.imei}" placeholder="IMEI 15 chiffres" onchange="updateTabLine('${l.id}','imei',this.value)"></div>
+    <div><label>Ligne SIM</label><input type="text" value="${l.sim}" placeholder="06 XX XX XX XX" onchange="updateTabLine('${l.id}','sim',this.value)"></div>
+    <div><button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:18px">✕</button></div>
+  </div>`).join('');
+}
+
 function addEpiLine(prefillRef){
   epiLines.push({id:Date.now()+'_'+Math.random(),ref:prefillRef||'',taille:'',qte:1});
   renderEpiLines();
@@ -484,6 +539,8 @@ function resetDotation(){
   document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('d-type').value='dotation';
   epiLines=[];renderEpiLines();
+  telLines=[];renderTelLines();
+  tabLines=[];renderTabLines();
   document.getElementById('dotation-msg').innerHTML='';
   document.getElementById('bon-container').style.display='none';
 }
@@ -542,10 +599,12 @@ function genererBon(){
   const motif=document.getElementById('d-motif').value.trim();
   const dateStr=new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
   const ref='BON-'+date.replace(/-/g,'').slice(2)+'-'+nom.slice(0,3).toUpperCase();
-  const rows=epiLines.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);return`<tr><td>${l.ref}</td><td>${a?a.nom:'—'}</td><td style="text-align:center">${l.taille}</td><td style="text-align:center">${l.qte}</td><td>${a&&a.prix?'€'+a.prix.toFixed(2):'—'}</td></tr>`}).join('');
+  const rows=epiLines.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);return`<tr><td>${l.ref}</td><td>${a?a.nom:'—'}</td><td style="text-align:center">${l.taille}</td><td style="text-align:center">${l.qte}</td></tr>`}).join('');
+  const telRows=telLines.map(l=>`<tr><td>${l.marque||'—'}</td><td>${l.modele||'—'}</td><td>${l.imei||'—'}</td><td>${l.sim||'—'}</td></tr>`).join('');
+  const tabRows=tabLines.map(l=>`<tr><td>${l.nom||'—'}</td><td>${l.modele||'—'}</td><td>${l.imei||'—'}</td><td>${l.sim||'—'}</td></tr>`).join('');
   document.getElementById('bon-content').innerHTML=`
   <div class="bon-header">
-    <div><div class="bon-title">BON DE ${type.toUpperCase()} EPI</div><div class="bon-ref">Réf. ${ref} — ${dateStr}</div></div>
+    <div><div class="bon-title">BON DE ${type.toUpperCase()} — MATÉRIEL DOMOFRANCE</div><div class="bon-ref">Réf. ${ref} — ${dateStr}</div></div>
     <div style="text-align:right;font-size:11px;color:#666"><div style="font-weight:700;font-size:14px;color:#1a3a5c">DOMOFRANCE</div><div>Pôle Facilities</div></div>
   </div>
   <table class="bon-table">
@@ -555,10 +614,22 @@ function genererBon(){
     <tr><td style="color:#666">Site / Agence</td><td>${site||'—'}</td></tr>
     ${motif?`<tr><td style="color:#666">Motif</td><td>${motif}</td></tr>`:''}
   </table>
-  <table class="bon-table" style="margin-top:12px">
-    <tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Qté</th><th>Prix unit.</th></tr>
-    ${rows||'<tr><td colspan="5" style="color:#888">Aucun article</td></tr>'}
-  </table>
+  ${epiLines.length?`<table class="bon-table" style="margin-top:12px">
+    <tr><th colspan="4" style="background:#1a3a5c;color:#fff;padding:6px 8px">EPI attribués</th></tr>
+    <tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Qté</th></tr>
+    ${rows}
+  </table>`:''}
+  ${telLines.length?`<table class="bon-table" style="margin-top:12px">
+    <tr><th colspan="4" style="background:#1a3a5c;color:#fff;padding:6px 8px">Téléphones attribués</th></tr>
+    <tr><th>Marque</th><th>Modèle</th><th>IMEI</th><th>Ligne SIM</th></tr>
+    ${telRows}
+  </table>`:''}
+  ${tabLines.length?`<table class="bon-table" style="margin-top:12px">
+    <tr><th colspan="4" style="background:#1a3a5c;color:#fff;padding:6px 8px">Tablettes attribuées</th></tr>
+    <tr><th>Nom appareil</th><th>Modèle</th><th>IMEI</th><th>Ligne SIM</th></tr>
+    ${tabRows}
+  </table>`:''}
+  ${!epiLines.length&&!telLines.length&&!tabLines.length?'<div style="color:#888;padding:10px">Aucun équipement renseigné</div>':''}
   <div class="sig-zone">
     <div class="sig-box"><div class="sig-label">Remis par (Pôle Facilities)</div><div style="height:55px;border-top:1px solid #ccc;margin-top:8px"></div></div>
     <div class="sig-box"><div class="sig-label">Reçu par le collaborateur</div><div class="sig-name" style="font-size:12px;font-weight:600">${nom.toUpperCase()} ${prenom}</div><div style="height:45px;border-top:1px solid #ccc;margin-top:8px"></div></div>

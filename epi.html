@@ -82,6 +82,7 @@ tr:hover td{background:#f8f9fb}
 .tel-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 .tab-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 .rec-line{display:grid;grid-template-columns:2fr 1fr 70px auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.mob-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 
 </style>
 </head>
@@ -104,6 +105,7 @@ tr:hover td{background:#f8f9fb}
   <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
   <button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
   <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
+  <button class="nav-btn" onclick="goTab('mobilite',this)">Stock Mobilité</button>
   <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
   <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
   <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
@@ -221,6 +223,112 @@ tr:hover td{background:#f8f9fb}
       </tr></thead><tbody id="rec-histo-body"></tbody></table>
     </div>
   </div>
+</div>
+
+
+<!-- STOCK MOBILITÉ -->
+<div id="tab-mobilite" class="panel">
+
+  <div class="mob-stats" id="mob-stats-bar"></div>
+
+  <!-- SOUS-ONGLETS -->
+  <div style="display:flex;gap:8px;margin-bottom:12px" id="mob-subtabs">
+    <button class="cat-btn active" id="msub-tel" onclick="setMobSub('tel',this)">📱 Téléphones</button>
+    <button class="cat-btn" id="msub-tab" onclick="setMobSub('tab',this)">📟 Tablettes</button>
+  </div>
+
+  <!-- PANEL TÉLÉPHONES -->
+  <div id="mob-panel-tel">
+    <div class="card">
+      <h3>Téléphones — Parc</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="mob-tel-search" placeholder="Rechercher IMEI, modèle, collaborateur, site…" oninput="renderMobTel()" style="max-width:340px">
+        <select id="mob-tel-filter-statut" onchange="renderMobTel()" style="width:160px">
+          <option value="">Tous les statuts</option>
+          <option value="attribue">Attribué</option>
+          <option value="disponible">Disponible</option>
+          <option value="en_reparation">En réparation</option>
+          <option value="hors_service">Hors service</option>
+        </select>
+        <button class="btn primary small" onclick="openMobForm('tel')">+ Ajouter un téléphone</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Marque / Modèle</th><th>IMEI</th><th>Ligne SIM</th>
+          <th>Collaborateur</th><th>Site</th><th>Date attr.</th><th>Statut</th><th>Actions</th>
+        </tr></thead><tbody id="mob-tel-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL TABLETTES -->
+  <div id="mob-panel-tab" style="display:none">
+    <div class="card">
+      <h3>Tablettes — Parc</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="mob-tab-search" placeholder="Rechercher nom, IMEI, modèle, collaborateur…" oninput="renderMobTab()" style="max-width:340px">
+        <select id="mob-tab-filter-statut" onchange="renderMobTab()" style="width:160px">
+          <option value="">Tous les statuts</option>
+          <option value="attribue">Attribué</option>
+          <option value="disponible">Disponible</option>
+          <option value="en_reparation">En réparation</option>
+          <option value="hors_service">Hors service</option>
+        </select>
+        <button class="btn primary small" onclick="openMobForm('tab')">+ Ajouter une tablette</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Nom appareil</th><th>Marque / Modèle</th><th>IMEI</th><th>Ligne SIM</th>
+          <th>Collaborateur</th><th>Site</th><th>Date attr.</th><th>Statut</th><th>Actions</th>
+        </tr></thead><tbody id="mob-tab-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULAIRE AJOUT / ÉDITION -->
+  <div id="mob-form-card" class="card" style="display:none">
+    <h3 id="mob-form-title">Ajouter un appareil</h3>
+    <input type="hidden" id="mob-form-type">
+    <input type="hidden" id="mob-form-id">
+    <div class="form-row-3">
+      <div><label>Marque</label><input type="text" id="mob-f-marque" placeholder="Samsung, Apple…"></div>
+      <div><label>Modèle</label><input type="text" id="mob-f-modele" placeholder="Galaxy A36, Tab A9+…"></div>
+      <div id="mob-f-nom-wrap"><label>Nom appareil</label><input type="text" id="mob-f-nom" placeholder="Tablette.92…"></div>
+    </div>
+    <div class="form-row">
+      <div><label>IMEI</label><input type="text" id="mob-f-imei" placeholder="15 chiffres"></div>
+      <div><label>Ligne SIM</label><input type="text" id="mob-f-sim" placeholder="06 XX XX XX XX"></div>
+    </div>
+    <div class="form-row-3">
+      <div><label>Collaborateur</label><input type="text" id="mob-f-collab" placeholder="NOM Prénom"></div>
+      <div><label>Site</label>
+        <select id="mob-f-site">
+          <option value="">— Sélectionner —</option>
+          <option>Pessac</option><option>Bordeaux</option><option>Mérignac</option>
+          <option>Libourne</option><option>Agen</option><option>Pau</option>
+          <option>Mont-de-Marsan</option><option>Bayonne</option><option>Autre</option>
+        </select>
+      </div>
+      <div><label>Date attribution</label><input type="date" id="mob-f-date"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Statut</label>
+        <select id="mob-f-statut">
+          <option value="attribue">Attribué</option>
+          <option value="disponible">Disponible</option>
+          <option value="en_reparation">En réparation</option>
+          <option value="hors_service">Hors service</option>
+        </select>
+      </div>
+      <div><label>Notes</label><input type="text" id="mob-f-notes" placeholder="Observations…"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="saveMobDevice()">Enregistrer</button>
+      <button class="btn" onclick="closeMobForm()">Annuler</button>
+    </div>
+    <div id="mob-form-msg"></div>
+  </div>
+
 </div>
 
 <!-- STOCK -->
@@ -499,6 +607,7 @@ function goTab(t,btn){
   if(t==='catalogue')renderCatalogue();
   if(t==='parametres')loadConfigIntoForm();
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
+  if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab()})}
 }
 
 // ─── DOTATION ─────────────────────────────────────────────────────────────────
@@ -796,6 +905,192 @@ function renderRecHisto(){
         <td style="text-align:center;font-weight:600;color:#276749">+${m.qte}</td>
       </tr>`).join('')
     :'<tr><td colspan="6" class="empty">Aucune réception enregistrée</td></tr>';
+}
+
+
+// ─── STOCK MOBILITÉ ───────────────────────────────────────────────────────────
+let mobCache={tel:[],tab:[]};
+let currentMobSub='tel';
+
+async function loadMobDevices(){
+  setSyncStatus('syncing','Chargement mobilité…');
+  try{
+    const [tels,tabs]=await Promise.all([
+      sbGet('mob_telephones','select=*&order=created_at.desc&limit=500'),
+      sbGet('mob_tablettes','select=*&order=created_at.desc&limit=500')
+    ]);
+    mobCache.tel=tels||[];
+    mobCache.tab=tabs||[];
+    setSyncStatus('ok','Base synchronisée');
+  }catch(e){
+    // Tables may not exist yet — init them
+    if(e.message&&e.message.includes('does not exist')){
+      setSyncStatus('error','Tables manquantes — voir Paramètres');
+    } else {
+      setSyncStatus('error','Erreur connexion');
+    }
+    console.error(e);
+  }
+}
+
+function setMobSub(sub,btn){
+  currentMobSub=sub;
+  document.querySelectorAll('#mob-subtabs .cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mob-panel-tel').style.display=sub==='tel'?'block':'none';
+  document.getElementById('mob-panel-tab').style.display=sub==='tab'?'block':'none';
+  document.getElementById('mob-form-card').style.display='none';
+}
+
+function renderMobStats(){
+  const tels=mobCache.tel;
+  const tabs=mobCache.tab;
+  const telAtt=tels.filter(x=>x.statut==='attribue').length;
+  const tabAtt=tabs.filter(x=>x.statut==='attribue').length;
+  const telDispo=tels.filter(x=>x.statut==='disponible').length;
+  const tabDispo=tabs.filter(x=>x.statut==='disponible').length;
+  document.getElementById('mob-stats-bar').innerHTML=`
+    <div class="stat"><div class="stat-n">${tels.length}</div><div class="stat-l">Téléphones total</div></div>
+    <div class="stat"><div class="stat-n amber" style="color:#c05621">${telAtt}</div><div class="stat-l">Téléphones attribués</div></div>
+    <div class="stat"><div class="stat-n">${tabs.length}</div><div class="stat-l">Tablettes total</div></div>
+    <div class="stat"><div class="stat-n amber" style="color:#c05621">${tabAtt}</div><div class="stat-l">Tablettes attribuées</div></div>`;
+}
+
+function statutBadge(s){
+  const map={attribue:'blue',disponible:'green',en_reparation:'yellow',hors_service:'red'};
+  const labels={attribue:'Attribué',disponible:'Disponible',en_reparation:'En réparation',hors_service:'Hors service'};
+  return `<span class="badge ${map[s]||'gray'}">${labels[s]||s}</span>`;
+}
+
+function renderMobTel(){
+  const q=(document.getElementById('mob-tel-search')?.value||'').toLowerCase();
+  const fs=document.getElementById('mob-tel-filter-statut')?.value||'';
+  let rows=mobCache.tel.filter(d=>(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
+  document.getElementById('mob-tel-body').innerHTML=rows.length
+    ?rows.map(d=>`<tr>
+        <td>${d.marque||'—'} ${d.modele||''}</td>
+        <td><code>${d.imei||'—'}</code></td>
+        <td>${d.sim||'—'}</td>
+        <td>${d.collaborateur||'—'}</td>
+        <td>${d.site||'—'}</td>
+        <td>${d.date_attribution||'—'}</td>
+        <td>${statutBadge(d.statut||'disponible')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn small" onclick="editMobDevice('tel','${d.id}')">✏</button>
+          <button class="btn small danger" onclick="deleteMobDevice('tel','${d.id}')">✕</button>
+        </td>
+      </tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun téléphone enregistré</td></tr>';
+}
+
+function renderMobTab(){
+  const q=(document.getElementById('mob-tab-search')?.value||'').toLowerCase();
+  const fs=document.getElementById('mob-tab-filter-statut')?.value||'';
+  let rows=mobCache.tab.filter(d=>(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
+  document.getElementById('mob-tab-body').innerHTML=rows.length
+    ?rows.map(d=>`<tr>
+        <td><strong>${d.nom||'—'}</strong></td>
+        <td>${d.marque||'—'} ${d.modele||''}</td>
+        <td><code>${d.imei||'—'}</code></td>
+        <td>${d.sim||'—'}</td>
+        <td>${d.collaborateur||'—'}</td>
+        <td>${d.site||'—'}</td>
+        <td>${d.date_attribution||'—'}</td>
+        <td>${statutBadge(d.statut||'disponible')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn small" onclick="editMobDevice('tab','${d.id}')">✏</button>
+          <button class="btn small danger" onclick="deleteMobDevice('tab','${d.id}')">✕</button>
+        </td>
+      </tr>`).join('')
+    :'<tr><td colspan="9" class="empty">Aucune tablette enregistrée</td></tr>';
+}
+
+function openMobForm(type,prefill){
+  document.getElementById('mob-form-type').value=type;
+  document.getElementById('mob-form-id').value='';
+  document.getElementById('mob-form-title').textContent=type==='tel'?'Ajouter un téléphone':'Ajouter une tablette';
+  document.getElementById('mob-f-nom-wrap').style.display=type==='tab'?'block':'none';
+  document.getElementById('mob-f-marque').value='';
+  document.getElementById('mob-f-modele').value='';
+  document.getElementById('mob-f-nom').value='';
+  document.getElementById('mob-f-imei').value='';
+  document.getElementById('mob-f-sim').value='';
+  document.getElementById('mob-f-collab').value='';
+  document.getElementById('mob-f-site').value='';
+  document.getElementById('mob-f-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('mob-f-statut').value='attribue';
+  document.getElementById('mob-f-notes').value='';
+  document.getElementById('mob-form-card').style.display='block';
+  document.getElementById('mob-form-card').scrollIntoView({behavior:'smooth'});
+}
+
+function editMobDevice(type,id){
+  const d=mobCache[type].find(x=>x.id===id);
+  if(!d)return;
+  openMobForm(type);
+  document.getElementById('mob-form-id').value=id;
+  document.getElementById('mob-form-title').textContent=type==='tel'?'Modifier le téléphone':'Modifier la tablette';
+  document.getElementById('mob-f-marque').value=d.marque||'';
+  document.getElementById('mob-f-modele').value=d.modele||'';
+  document.getElementById('mob-f-nom').value=d.nom||'';
+  document.getElementById('mob-f-imei').value=d.imei||'';
+  document.getElementById('mob-f-sim').value=d.sim||'';
+  document.getElementById('mob-f-collab').value=d.collaborateur||'';
+  document.getElementById('mob-f-site').value=d.site||'';
+  document.getElementById('mob-f-date').value=d.date_attribution||'';
+  document.getElementById('mob-f-statut').value=d.statut||'attribue';
+  document.getElementById('mob-f-notes').value=d.notes||'';
+}
+
+function closeMobForm(){
+  document.getElementById('mob-form-card').style.display='none';
+}
+
+async function saveMobDevice(){
+  const type=document.getElementById('mob-form-type').value;
+  const id=document.getElementById('mob-form-id').value;
+  const table=type==='tel'?'mob_telephones':'mob_tablettes';
+  const payload={
+    marque:document.getElementById('mob-f-marque').value.trim(),
+    modele:document.getElementById('mob-f-modele').value.trim(),
+    nom:document.getElementById('mob-f-nom').value.trim(),
+    imei:document.getElementById('mob-f-imei').value.trim(),
+    sim:document.getElementById('mob-f-sim').value.trim(),
+    collaborateur:document.getElementById('mob-f-collab').value.trim(),
+    site:document.getElementById('mob-f-site').value,
+    date_attribution:document.getElementById('mob-f-date').value,
+    statut:document.getElementById('mob-f-statut').value,
+    notes:document.getElementById('mob-f-notes').value.trim()
+  };
+  setSyncStatus('syncing','Sauvegarde…');
+  try{
+    if(id){
+      await sbPatch(table,'id=eq.'+id,payload);
+      const idx=mobCache[type].findIndex(x=>x.id===id);
+      if(idx>=0)mobCache[type][idx]={...mobCache[type][idx],...payload};
+    } else {
+      const res=await sbPost(table,payload);
+      if(res&&res[0])mobCache[type].unshift(res[0]);
+    }
+    setSyncStatus('ok','Sauvegardé');
+    closeMobForm();
+    renderMobStats();
+    if(type==='tel')renderMobTel();else renderMobTab();
+  }catch(e){
+    setSyncStatus('error','Erreur sauvegarde');
+    showMsg('mob-form-msg','Erreur : '+e.message,'err');
+  }
+}
+
+async function deleteMobDevice(type,id){
+  if(!confirm('Supprimer cet appareil définitivement ?'))return;
+  const table=type==='tel'?'mob_telephones':'mob_tablettes';
+  try{
+    await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:'DELETE',headers:SB_HEADERS});
+    mobCache[type]=mobCache[type].filter(x=>x.id!==id);
+    renderMobStats();
+    if(type==='tel')renderMobTel();else renderMobTab();
+  }catch(e){showMsg('mob-form-msg','Erreur suppression : '+e.message,'err')}
 }
 
 // ─── STOCK ────────────────────────────────────────────────────────────────────

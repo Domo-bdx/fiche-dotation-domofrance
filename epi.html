@@ -280,8 +280,7 @@ tr:hover td{background:#f8f9fb}
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Nom appareil</th><th>Marque / Modèle</th><th>IMEI</th><th>Ligne SIM</th>
-          <th>Collaborateur</th><th>Site</th><th>Date attr.</th><th>Statut</th><th>Actions</th>
+          <th>Marque / Modèle</th><th>IMEI</th><th>Statut</th><th>Actions</th>
         </tr></thead><tbody id="mob-tab-body"></tbody></table>
       </div>
     </div>
@@ -295,29 +294,13 @@ tr:hover td{background:#f8f9fb}
     <div class="form-row-3">
       <div><label>Marque</label><input type="text" id="mob-f-marque" placeholder="Samsung, Apple…"></div>
       <div><label>Modèle</label><input type="text" id="mob-f-modele" placeholder="Galaxy A36, Tab A9+…"></div>
-      <div id="mob-f-nom-wrap"><label>Nom appareil</label><input type="text" id="mob-f-nom" placeholder="Tablette.92…"></div>
-    </div>
-    <div class="form-row">
       <div><label>IMEI</label><input type="text" id="mob-f-imei" placeholder="15 chiffres"></div>
-      <div><label>Ligne SIM</label><input type="text" id="mob-f-sim" placeholder="06 XX XX XX XX"></div>
-    </div>
-    <div class="form-row-3">
-      <div><label>Collaborateur</label><input type="text" id="mob-f-collab" placeholder="NOM Prénom"></div>
-      <div><label>Site</label>
-        <select id="mob-f-site">
-          <option value="">— Sélectionner —</option>
-          <option>Pessac</option><option>Bordeaux</option><option>Mérignac</option>
-          <option>Libourne</option><option>Agen</option><option>Pau</option>
-          <option>Mont-de-Marsan</option><option>Bayonne</option><option>Autre</option>
-        </select>
-      </div>
-      <div><label>Date attribution</label><input type="date" id="mob-f-date"></div>
     </div>
     <div class="form-row">
       <div><label>Statut</label>
         <select id="mob-f-statut">
-          <option value="attribue">Attribué</option>
           <option value="disponible">Disponible</option>
+          <option value="attribue">Attribué</option>
           <option value="en_reparation">En réparation</option>
           <option value="hors_service">Hors service</option>
         </select>
@@ -647,8 +630,13 @@ function renderTelLines(){
     const sel=mobCache.tel.find(x=>x.id===l.deviceId);
     const pool=type==='restitution'?attribues:dispos;
     const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
-    const info=sel?`<div style="font-size:11px;color:#555;margin-top:4px;padding:4px 8px;background:#f0f2f5;border-radius:4px">
-      📱 ${sel.marque||''} ${sel.modele||''} &nbsp;|&nbsp; IMEI: <strong>${sel.imei||'—'}</strong> &nbsp;|&nbsp; SIM: ${sel.sim||'—'} &nbsp;|&nbsp; ${sel.collaborateur?'Attribué à: '+sel.collaborateur:'Disponible'}
+    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">
+      📱 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}
+    </div>`:'';
+    const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+      <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTelLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTelLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTelLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
     </div>`:'';
     return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
@@ -656,11 +644,11 @@ function renderTelLines(){
           <select onchange="updateTelLine('${l.id}','deviceId',this.value)">
             <option value="">— Choisir —</option>${opts}
           </select>
-          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'} — vérifiez le stock mobilité</div>`:''}
+          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'} — ajoutez-le dans Stock Mobilité</div>`:''}
         </div>
         <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:18px">✕</button>
       </div>
-      ${info}
+      ${info}${codeFields}
     </div>`;
   }).join('');
 }
@@ -675,8 +663,13 @@ function renderTabLines(){
     const sel=mobCache.tab.find(x=>x.id===l.deviceId);
     const pool=type==='restitution'?attribues:dispos;
     const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.nom||''} — ${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
-    const info=sel?`<div style="font-size:11px;color:#555;margin-top:4px;padding:4px 8px;background:#f0f2f5;border-radius:4px">
-      📟 ${sel.nom||''} &nbsp;|&nbsp; ${sel.marque||''} ${sel.modele||''} &nbsp;|&nbsp; IMEI: <strong>${sel.imei||'—'}</strong> &nbsp;|&nbsp; SIM: ${sel.sim||'—'} &nbsp;|&nbsp; ${sel.collaborateur?'Attribué à: '+sel.collaborateur:'Disponible'}
+    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">
+      📟 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}
+    </div>`:'';
+    const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+      <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTabLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTabLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTabLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
     </div>`:'';
     return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
@@ -684,11 +677,11 @@ function renderTabLines(){
           <select onchange="updateTabLine('${l.id}','deviceId',this.value)">
             <option value="">— Choisir —</option>${opts}
           </select>
-          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'} — vérifiez le stock mobilité</div>`:''}
+          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'} — ajoutez-le dans Stock Mobilité</div>`:''}
         </div>
         <button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:18px">✕</button>
       </div>
-      ${info}
+      ${info}${codeFields}
     </div>`;
   }).join('');
 }
@@ -823,8 +816,8 @@ function genererBon(){
   const dateStr=new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
   const ref='BON-'+date.replace(/-/g,'').slice(2)+'-'+nom.slice(0,3).toUpperCase();
   const rows=epiLines.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);return`<tr><td>${l.ref}</td><td>${a?a.nom:'—'}</td><td style="text-align:center">${l.taille}</td><td style="text-align:center">${l.qte}</td></tr>`}).join('');
-  const telRows=telLines.map(l=>`<tr><td>${l.marque||'—'}</td><td>${l.modele||'—'}</td><td>${l.imei||'—'}</td><td>${l.sim||'—'}</td></tr>`).join('');
-  const tabRows=tabLines.map(l=>`<tr><td>${l.nom||'—'}</td><td>${l.modele||'—'}</td><td>${l.imei||'—'}</td><td>${l.sim||'—'}</td></tr>`).join('');
+  const telRows=telLines.map(l=>{const d=mobCache.tel.find(x=>x.id===l.deviceId)||{};return`<tr><td>${d.marque||l.marque||'—'} ${d.modele||l.modele||''}</td><td>${d.imei||l.imei||'—'}</td><td>${l.pin||'—'}</td><td>${l.deverouillage||'—'}</td><td>${l.puk||'—'}</td></tr>`}).join('');
+  const tabRows=tabLines.map(l=>{const d=mobCache.tab.find(x=>x.id===l.deviceId)||{};return`<tr><td>${d.marque||l.marque||'—'} ${d.modele||l.modele||''}</td><td>${d.imei||l.imei||'—'}</td><td>${l.pin||'—'}</td><td>${l.deverouillage||'—'}</td><td>${l.puk||'—'}</td></tr>`}).join('');
   document.getElementById('bon-content').innerHTML=`
   <div class="bon-header">
     <div><div class="bon-title">BON DE ${type.toUpperCase()} — MATÉRIEL DOMOFRANCE</div><div class="bon-ref">Réf. ${ref} — ${dateStr}</div></div>
@@ -844,12 +837,12 @@ function genererBon(){
   </table>`:''}
   ${telLines.length?`<table class="bon-table" style="margin-top:12px">
     <tr><th colspan="4" style="background:#1a3a5c;color:#fff;padding:6px 8px">Téléphones attribués</th></tr>
-    <tr><th>Marque</th><th>Modèle</th><th>IMEI</th><th>Ligne SIM</th></tr>
+    <tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr>
     ${telRows}
   </table>`:''}
   ${tabLines.length?`<table class="bon-table" style="margin-top:12px">
     <tr><th colspan="4" style="background:#1a3a5c;color:#fff;padding:6px 8px">Tablettes attribuées</th></tr>
-    <tr><th>Nom appareil</th><th>Modèle</th><th>IMEI</th><th>Ligne SIM</th></tr>
+    <tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr>
     ${tabRows}
   </table>`:''}
   ${!epiLines.length&&!telLines.length&&!tabLines.length?'<div style="color:#888;padding:10px">Aucun équipement renseigné</div>':''}
@@ -1036,17 +1029,13 @@ function renderMobTel(){
     ?rows.map(d=>`<tr>
         <td>${d.marque||'—'} ${d.modele||''}</td>
         <td><code>${d.imei||'—'}</code></td>
-        <td>${d.sim||'—'}</td>
-        <td>${d.collaborateur||'—'}</td>
-        <td>${d.site||'—'}</td>
-        <td>${d.date_attribution||'—'}</td>
         <td>${statutBadge(d.statut||'disponible')}</td>
         <td style="white-space:nowrap">
           <button class="btn small" onclick="editMobDevice('tel','${d.id}')">✏</button>
           <button class="btn small danger" onclick="deleteMobDevice('tel','${d.id}')">✕</button>
         </td>
       </tr>`).join('')
-    :'<tr><td colspan="8" class="empty">Aucun téléphone enregistré</td></tr>';
+    :'<tr><td colspan="4" class="empty">Aucun téléphone enregistré</td></tr>';
 }
 
 function renderMobTab(){
@@ -1055,36 +1044,25 @@ function renderMobTab(){
   let rows=mobCache.tab.filter(d=>(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
   document.getElementById('mob-tab-body').innerHTML=rows.length
     ?rows.map(d=>`<tr>
-        <td><strong>${d.nom||'—'}</strong></td>
         <td>${d.marque||'—'} ${d.modele||''}</td>
         <td><code>${d.imei||'—'}</code></td>
-        <td>${d.sim||'—'}</td>
-        <td>${d.collaborateur||'—'}</td>
-        <td>${d.site||'—'}</td>
-        <td>${d.date_attribution||'—'}</td>
         <td>${statutBadge(d.statut||'disponible')}</td>
         <td style="white-space:nowrap">
           <button class="btn small" onclick="editMobDevice('tab','${d.id}')">✏</button>
           <button class="btn small danger" onclick="deleteMobDevice('tab','${d.id}')">✕</button>
         </td>
       </tr>`).join('')
-    :'<tr><td colspan="9" class="empty">Aucune tablette enregistrée</td></tr>';
+    :'<tr><td colspan="4" class="empty">Aucune tablette enregistrée</td></tr>';
 }
 
 function openMobForm(type,prefill){
   document.getElementById('mob-form-type').value=type;
   document.getElementById('mob-form-id').value='';
   document.getElementById('mob-form-title').textContent=type==='tel'?'Ajouter un téléphone':'Ajouter une tablette';
-  document.getElementById('mob-f-nom-wrap').style.display=type==='tab'?'block':'none';
   document.getElementById('mob-f-marque').value='';
   document.getElementById('mob-f-modele').value='';
-  document.getElementById('mob-f-nom').value='';
   document.getElementById('mob-f-imei').value='';
-  document.getElementById('mob-f-sim').value='';
-  document.getElementById('mob-f-collab').value='';
-  document.getElementById('mob-f-site').value='';
-  document.getElementById('mob-f-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('mob-f-statut').value='attribue';
+  document.getElementById('mob-f-statut').value='disponible';
   document.getElementById('mob-f-notes').value='';
   document.getElementById('mob-form-card').style.display='block';
   document.getElementById('mob-form-card').scrollIntoView({behavior:'smooth'});
@@ -1098,13 +1076,8 @@ function editMobDevice(type,id){
   document.getElementById('mob-form-title').textContent=type==='tel'?'Modifier le téléphone':'Modifier la tablette';
   document.getElementById('mob-f-marque').value=d.marque||'';
   document.getElementById('mob-f-modele').value=d.modele||'';
-  document.getElementById('mob-f-nom').value=d.nom||'';
   document.getElementById('mob-f-imei').value=d.imei||'';
-  document.getElementById('mob-f-sim').value=d.sim||'';
-  document.getElementById('mob-f-collab').value=d.collaborateur||'';
-  document.getElementById('mob-f-site').value=d.site||'';
-  document.getElementById('mob-f-date').value=d.date_attribution||'';
-  document.getElementById('mob-f-statut').value=d.statut||'attribue';
+  document.getElementById('mob-f-statut').value=d.statut||'disponible';
   document.getElementById('mob-f-notes').value=d.notes||'';
 }
 
@@ -1119,12 +1092,7 @@ async function saveMobDevice(){
   const payload={
     marque:document.getElementById('mob-f-marque').value.trim(),
     modele:document.getElementById('mob-f-modele').value.trim(),
-    nom:document.getElementById('mob-f-nom').value.trim(),
     imei:document.getElementById('mob-f-imei').value.trim(),
-    sim:document.getElementById('mob-f-sim').value.trim(),
-    collaborateur:document.getElementById('mob-f-collab').value.trim(),
-    site:document.getElementById('mob-f-site').value,
-    date_attribution:document.getElementById('mob-f-date').value,
     statut:document.getElementById('mob-f-statut').value,
     notes:document.getElementById('mob-f-notes').value.trim()
   };

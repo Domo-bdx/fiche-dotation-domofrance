@@ -136,7 +136,7 @@ tr:hover td{background:#f8f9fb}
     </div>
     <div class="form-row">
       <div><label>Type de fiche</label>
-        <select id="d-type">
+        <select id="d-type" onchange="renderTelLines();renderTabLines()">
           <option value="dotation">Dotation (attribution)</option>
           <option value="restitution">Restitution</option>
           <option value="remplacement">Remplacement</option>
@@ -152,11 +152,13 @@ tr:hover td{background:#f8f9fb}
   </div>
   <div class="card">
     <h3>Téléphones attribués</h3>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Seuls les appareils avec le statut <strong>Disponible</strong> dans le stock mobilité sont proposés.</div>
     <div id="tel-lines-container"><div class="empty">Aucun téléphone ajouté</div></div>
     <button class="btn" style="margin-top:8px" onclick="addTelLine()">+ Ajouter un téléphone</button>
   </div>
   <div class="card">
     <h3>Tablettes attribuées</h3>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Seuls les appareils avec le statut <strong>Disponible</strong> dans le stock mobilité sont proposés.</div>
     <div id="tab-lines-container"><div class="empty">Aucune tablette ajoutée</div></div>
     <button class="btn" style="margin-top:8px" onclick="addTabLine()">+ Ajouter une tablette</button>
   </div>
@@ -622,31 +624,73 @@ function addTabLine(){
 }
 function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
 function removeTabLine(id){tabLines=tabLines.filter(x=>x.id!==id);renderTabLines()}
-function updateTelLine(id,field,val){const l=telLines.find(x=>x.id===id);if(l)l[field]=val}
-function updateTabLine(id,field,val){const l=tabLines.find(x=>x.id===id);if(l)l[field]=val}
+function updateTelLine(id,field,val){
+  const l=telLines.find(x=>x.id===id);if(!l)return;
+  l[field]=val;
+  if(field==='deviceId'){const d=mobCache.tel.find(x=>x.id===val);if(d){l.marque=d.marque;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;}}
+  renderTelLines();
+}
+function updateTabLine(id,field,val){
+  const l=tabLines.find(x=>x.id===id);if(!l)return;
+  l[field]=val;
+  if(field==='deviceId'){const d=mobCache.tab.find(x=>x.id===val);if(d){l.nom=d.nom;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;}}
+  renderTabLines();
+}
 
 function renderTelLines(){
   const c=document.getElementById('tel-lines-container');
   if(!telLines.length){c.innerHTML='<div class="empty">Aucun téléphone ajouté</div>';return}
-  c.innerHTML=telLines.map(l=>`<div class="tel-line">
-    <div><label>Marque</label><input type="text" value="${l.marque}" placeholder="Samsung, Apple…" onchange="updateTelLine('${l.id}','marque',this.value)"></div>
-    <div><label>Modèle</label><input type="text" value="${l.modele}" placeholder="Galaxy A36…" onchange="updateTelLine('${l.id}','modele',this.value)"></div>
-    <div><label>IMEI</label><input type="text" value="${l.imei}" placeholder="IMEI 15 chiffres" onchange="updateTelLine('${l.id}','imei',this.value)"></div>
-    <div><label>Ligne SIM</label><input type="text" value="${l.sim}" placeholder="06 XX XX XX XX" onchange="updateTelLine('${l.id}','sim',this.value)"></div>
-    <div><button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:18px">✕</button></div>
-  </div>`).join('');
+  const dispos=mobCache.tel.filter(x=>x.statut==='disponible');
+  const type=document.getElementById('d-type').value;
+  const attribues=mobCache.tel.filter(x=>x.statut==='attribue');
+  c.innerHTML=telLines.map(l=>{
+    const sel=mobCache.tel.find(x=>x.id===l.deviceId);
+    const pool=type==='restitution'?attribues:dispos;
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
+    const info=sel?`<div style="font-size:11px;color:#555;margin-top:4px;padding:4px 8px;background:#f0f2f5;border-radius:4px">
+      📱 ${sel.marque||''} ${sel.modele||''} &nbsp;|&nbsp; IMEI: <strong>${sel.imei||'—'}</strong> &nbsp;|&nbsp; SIM: ${sel.sim||'—'} &nbsp;|&nbsp; ${sel.collaborateur?'Attribué à: '+sel.collaborateur:'Disponible'}
+    </div>`:'';
+    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
+        <div><label>Sélectionner un téléphone ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+          <select onchange="updateTelLine('${l.id}','deviceId',this.value)">
+            <option value="">— Choisir —</option>${opts}
+          </select>
+          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'} — vérifiez le stock mobilité</div>`:''}
+        </div>
+        <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:18px">✕</button>
+      </div>
+      ${info}
+    </div>`;
+  }).join('');
 }
 
 function renderTabLines(){
   const c=document.getElementById('tab-lines-container');
   if(!tabLines.length){c.innerHTML='<div class="empty">Aucune tablette ajoutée</div>';return}
-  c.innerHTML=tabLines.map(l=>`<div class="tab-line">
-    <div><label>Nom appareil</label><input type="text" value="${l.nom}" placeholder="Tablette.92…" onchange="updateTabLine('${l.id}','nom',this.value)"></div>
-    <div><label>Modèle</label><input type="text" value="${l.modele}" placeholder="Galaxy Tab A9+…" onchange="updateTabLine('${l.id}','modele',this.value)"></div>
-    <div><label>IMEI</label><input type="text" value="${l.imei}" placeholder="IMEI 15 chiffres" onchange="updateTabLine('${l.id}','imei',this.value)"></div>
-    <div><label>Ligne SIM</label><input type="text" value="${l.sim}" placeholder="06 XX XX XX XX" onchange="updateTabLine('${l.id}','sim',this.value)"></div>
-    <div><button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:18px">✕</button></div>
-  </div>`).join('');
+  const type=document.getElementById('d-type').value;
+  const dispos=mobCache.tab.filter(x=>x.statut==='disponible');
+  const attribues=mobCache.tab.filter(x=>x.statut==='attribue');
+  c.innerHTML=tabLines.map(l=>{
+    const sel=mobCache.tab.find(x=>x.id===l.deviceId);
+    const pool=type==='restitution'?attribues:dispos;
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.nom||''} — ${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
+    const info=sel?`<div style="font-size:11px;color:#555;margin-top:4px;padding:4px 8px;background:#f0f2f5;border-radius:4px">
+      📟 ${sel.nom||''} &nbsp;|&nbsp; ${sel.marque||''} ${sel.modele||''} &nbsp;|&nbsp; IMEI: <strong>${sel.imei||'—'}</strong> &nbsp;|&nbsp; SIM: ${sel.sim||'—'} &nbsp;|&nbsp; ${sel.collaborateur?'Attribué à: '+sel.collaborateur:'Disponible'}
+    </div>`:'';
+    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
+        <div><label>Sélectionner une tablette ${type==='restitution'?'(attribuées)':'(disponibles)'}</label>
+          <select onchange="updateTabLine('${l.id}','deviceId',this.value)">
+            <option value="">— Choisir —</option>${opts}
+          </select>
+          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'} — vérifiez le stock mobilité</div>`:''}
+        </div>
+        <button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:18px">✕</button>
+      </div>
+      ${info}
+    </div>`;
+  }).join('');
 }
 
 function addEpiLine(prefillRef){
@@ -736,6 +780,28 @@ async function validerDotation(){
       await saveStockRow(line.ref,line.taille,{qte:newQte,attribues:newAtt});
       const art=CATALOGUE.find(x=>x.ref===line.ref);
       await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
+    }
+    // Mise à jour statut téléphones
+    const newTelStatut=type==='restitution'?'disponible':'attribue';
+    const collab=`${prenom} ${nom}`.trim();
+    for(const line of telLines){
+      if(!line.deviceId)continue;
+      const patch={statut:newTelStatut};
+      if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}
+      else{patch.collaborateur='';patch.site='';}
+      await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);
+      const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);
+      if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};
+    }
+    // Mise à jour statut tablettes
+    for(const line of tabLines){
+      if(!line.deviceId)continue;
+      const patch={statut:newTelStatut};
+      if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}
+      else{patch.collaborateur='';patch.site='';}
+      await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);
+      const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);
+      if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};
     }
     updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
@@ -1328,6 +1394,7 @@ renderEpiLines();
 buildCatFilter('cat-filter-stock',activeStockCat,'setStockCat');
 buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
 
+loadMobDevices();
 loadAllStock().then(ok=>{
   if(ok){
     renderStockStats();

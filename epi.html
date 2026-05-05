@@ -442,6 +442,26 @@ tr:hover td{background:#f8f9fb}
 <!-- PARAMETRES -->
 <div id="tab-parametres" class="panel">
   <div class="card">
+    <h3>🔑 Token GitHub — connexion à la base de données</h3>
+    <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.6">
+      Ce token permet à l'outil de lire et écrire les données EPI sur GitHub.<br>
+      Il est stocké <strong>uniquement dans ce navigateur</strong> — jamais envoyé ailleurs.
+    </div>
+    <div class="form-row">
+      <div><label>GitHub Personal Access Token (classic, scope: repo)</label>
+        <input type="password" id="cfg-gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end">
+        <button class="btn primary" onclick="saveGhToken()" style="height:34px">Enregistrer le token</button>
+      </div>
+    </div>
+    <div id="cfg-token-status" style="font-size:11px;margin-top:6px;color:#888"></div>
+    <div style="font-size:11px;color:#888;margin-top:6px">
+      Obtenir un token : <a href="https://github.com/settings/tokens" target="_blank" style="color:#1a3a5c">github.com/settings/tokens</a> → Tokens (classic) → scope <strong>repo</strong>
+    </div>
+  </div>
+
+  <div class="card">
     <h3>Configuration des destinataires — alertes stock</h3>
     <div class="form-row">
       <div><label>Ton adresse mail (Domofrance)</label>
@@ -494,11 +514,11 @@ Pôle Facilities — Domofrance</textarea>
 
 <script>
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
-const GH_TOKEN=atob('Z2hwX1h3QnVIQ0pFR040U2pYOENnV0o4dEI2WHBTR1lrMTJUbUFTYg==');
+function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
 const GH_OWNER='Domo-bdx';
 const GH_REPO='fiche-dotation-domofrance';
 const GH_BRANCH='main';
-const GH_HEADERS={'Authorization':'Bearer '+GH_TOKEN,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+function getGHHeaders(){return {'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
 const _shas={};
 
 function b64enc(str){
@@ -524,7 +544,7 @@ async function fetchWithTimeout(url,opts,ms=15000){
 
 async function ghRead(path){
   const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}&t=${Date.now()}`;
-  const r=await fetchWithTimeout(url,{headers:GH_HEADERS});
+  const r=await fetchWithTimeout(url,{headers:getGHHeaders()});
   if(r.status===404)return null;
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
   const j=await r.json();
@@ -535,14 +555,14 @@ async function ghRead(path){
 async function ghWrite(path,data){
   const body={message:`maj ${path.split('/').pop().replace('.json','')} ${new Date().toISOString().slice(0,10)}`,content:b64enc(JSON.stringify(data)),branch:GH_BRANCH};
   if(_shas[path])body.sha=_shas[path];
-  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:GH_HEADERS,body:JSON.stringify(body)});
+  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
   if(!r.ok){
     const err=await r.text();
     // SHA conflict — refresh and retry once
     if(r.status===409||err.includes('sha')){
       const fresh=await ghRead(path);
       body.sha=_shas[path];
-      const r2=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:GH_HEADERS,body:JSON.stringify(body)});
+      const r2=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
       if(!r2.ok)throw new Error(`GitHub write retry ${r2.status}`);
       const j2=await r2.json();_shas[path]=j2.content.sha;return;
     }
@@ -737,7 +757,7 @@ function goTab(t,btn){
   if(t==='historique'){loadAllMouvements().then(renderHistorique)}
   if(t==='alertes')renderAlertes();
   if(t==='catalogue')renderCatalogue();
-  if(t==='parametres')loadConfigIntoForm();
+  if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
   if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab();renderMobBadge()})}
 }
@@ -1626,14 +1646,37 @@ buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
 // ─── INIT GITHUB ─────────
 setSyncStatus('syncing','Connexion…');
 
+async function saveGhToken(){
+  const t=document.getElementById('cfg-gh-token').value.trim();
+  if(!t){document.getElementById('cfg-token-status').innerHTML='<span style="color:#c53030">Saisis le token avant d\'enregistrer.</span>';return;}
+  localStorage.setItem('domo_gh_token',t);
+  document.getElementById('cfg-gh-token').value='';
+  document.getElementById('cfg-token-status').innerHTML='<span style="color:#276749">✓ Token enregistré — relancement de la connexion…</span>';
+  setTimeout(()=>{initApp();},500);
+}
+
+function loadTokenInForm(){
+  const t=localStorage.getItem('domo_gh_token')||'';
+  const el=document.getElementById('cfg-gh-token');
+  if(el)el.placeholder=t?'Token enregistré (modifiable)':'ghp_xxxxxxxxxxxxxxxxxxxx';
+  if(t&&document.getElementById('cfg-token-status'))
+    document.getElementById('cfg-token-status').innerHTML='<span style="color:#276749">✓ Token configuré dans ce navigateur</span>';
+}
+
 async function initApp(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
   setSyncStatus('syncing','Connexion…');
+  // Vérifier token présent
+  if(!localStorage.getItem('domo_gh_token')){
+    setSyncStatus('error','Token manquant');
+    document.getElementById('conn-detail').innerHTML='<span style="color:#c53030">⚠ Token GitHub non configuré — va dans <strong>⚙ Paramètres</strong> pour le saisir</span>';
+    return;
+  }
   // Test rapide GitHub API
   try{
     const r=await fetchWithTimeout(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,
-      {headers:{'Authorization':'Bearer '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}},
+      {headers:{'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json'}},
       12000
     );
     if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur 401 : Token invalide';return;}

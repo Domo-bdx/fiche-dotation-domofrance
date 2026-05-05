@@ -85,6 +85,8 @@ tr:hover td{background:#f8f9fb}
 .mob-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -112,14 +114,7 @@ tr:hover td{background:#f8f9fb}
 </div>
 
 <div class="content">
-<div id="global-banner"></div><div id="diag-panel" style="margin:12px 20px;padding:12px 16px;background:#f8f9fb;border:1px solid #dde;border-radius:8px;font-size:12px">
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-weight:600;color:#1a3a5c">Diagnostic connexion Supabase</span>
-    <button onclick="testConnection()" style="padding:4px 12px;border-radius:4px;border:1px solid #1a3a5c;background:#1a3a5c;color:#fff;font-size:11px;cursor:pointer">Tester la connexion</button>
-    <button onclick="document.getElementById('diag-panel').style.display='none'" style="padding:4px 10px;border-radius:4px;border:1px solid #ccc;background:#fff;font-size:11px;cursor:pointer">Masquer</button>
-  </div>
-  <div id="diag-result" style="margin-top:8px;font-family:monospace;font-size:11px;color:#555"></div>
-</div>
+<div id="global-banner"></div>
 
 <!-- DOTATION -->
 <div id="tab-dotation" class="panel active">
@@ -481,8 +476,8 @@ Pôle Facilities — Domofrance</textarea>
   <div class="card">
     <h3>Base de données Supabase</h3>
     <div style="font-size:12px;line-height:1.8;color:#444">
-      <p>Projet : <code>cneduflwvzodnmliwlsu.supabase.co</code></p>
-      <p>Tables : <strong>stock</strong> (articles + quantités) · <strong>mouvements</strong> (historique)</p>
+      <p>Projet Firebase : <code>domofrance-epi</code></p>
+      <p>Collections : <strong>stock</strong> · <strong>mouvements</strong> · <strong>mob_telephones</strong> · <strong>mob_tablettes</strong> · <strong>mob_badges</strong></p>
       <p>Accès partagé : toute personne ayant ce fichier HTML accède à la même base en temps réel.</p>
     </div>
     <div class="btn-row" style="margin-top:10px">
@@ -495,58 +490,62 @@ Pôle Facilities — Domofrance</textarea>
 </div><!-- end content -->
 
 <script>
-// ─── CONFIG SUPABASE ──────────────────────────────────────────────────────────
-const SB_URL='https://cneduflwvzodnmliwlsu.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuZWR1Zmx3dnpvZG5tbGl3bHN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzI5MDMsImV4cCI6MjA5MzEwODkwM30.Ly4Le3asQvPCKd19dSu2gIgGM0W19_kPnXGmeI4G1JE';
-const SB_PUB='sb_publishable_yKZy0_lNAUBJRVHwuWEQEQ__-0_v_E4';
-const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
-const SB_HEADERS_PUB={'apikey':SB_PUB,'Authorization':'Bearer '+SB_PUB,'Content-Type':'application/json','Prefer':'return=representation'};
+// ─── CONFIG FIREBASE ──────────────────────────────────────────────────────────
+const firebaseConfig={
+  apiKey:'AIzaSyAUhqJUWNP3hZ2ia_MSoRIWT5k_XQPPJBs',
+  authDomain:'domofrance-epi.firebaseapp.com',
+  projectId:'domofrance-epi',
+  storageBucket:'domofrance-epi.firebasestorage.app',
+  messagingSenderId:'789047720700',
+  appId:'1:789047720700:web:5d3c065d346ea09e397579'
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
 
-async function sbFetch(method,table,params,body,useHeaders){
-  const h={...useHeaders};
-  const url=`${SB_URL}/rest/v1/${table}${params?'?'+params:''}`;
-  const opts={method,headers:h};
-  if(body)opts.body=JSON.stringify(body);
-  const r=await fetch(url,opts);
-  const txt=await r.text();
-  if(!r.ok)throw new Error(`${r.status}: ${txt}`);
-  return txt?JSON.parse(txt):[];
+// ─── HELPERS FIRESTORE ────────────────────────────────────────────────────────
+async function fbGetAll(col,orderField,lim){
+  let q=db.collection(col);
+  if(orderField)q=q.orderBy(orderField,'desc');
+  if(lim)q=q.limit(lim);
+  const snap=await q.get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function fbSet(col,docId,data){
+  await db.collection(col).doc(docId).set(data,{merge:true});
+  return {id:docId,...data};
+}
+async function fbAdd(col,data){
+  const ref=await db.collection(col).add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  return {id:ref.id,...data};
+}
+async function fbUpdate(col,docId,data){
+  await db.collection(col).doc(docId).update({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  return {id:docId,...data};
+}
+async function fbDelete(col,docId){
+  await db.collection(col).doc(docId).delete();
 }
 
+// ─── COMPATIBILITÉ : mappings sbGet/sbPost/sbPatch/sbDelete → Firebase ────────
 async function sbGet(table,params=''){
-  // Try anon key first, fall back to publishable
-  try{return await sbFetch('GET',table,params,null,SB_HEADERS);}
-  catch(e){
-    if(e.message.includes('allowlist')||e.message.includes('403'))
-      return await sbFetch('GET',table,params,null,SB_HEADERS_PUB);
-    throw e;
-  }
+  const lim=params.includes('limit=500')?500:params.includes('limit=1')?1:10000;
+  const order=params.includes('order=created_at.desc')||params.includes('createdAt')?'createdAt':null;
+  try{return await fbGetAll(table,order,lim);}catch(e){throw new Error('fbGetAll: '+e.message)}
 }
 async function sbPost(table,body){
-  try{return await sbFetch('POST',table,null,body,SB_HEADERS);}
-  catch(e){
-    if(e.message.includes('allowlist')||e.message.includes('403'))
-      return await sbFetch('POST',table,null,body,SB_HEADERS_PUB);
-    throw e;
+  if(table==='stock'){
+    const id=(body.ref||'')+'__'+(body.taille||'');
+    return [await fbSet(table,id,body)];
   }
+  return [await fbAdd(table,body)];
 }
 async function sbPatch(table,filter,body){
-  const h={...SB_HEADERS,'Prefer':'return=representation'};
-  try{return await sbFetch('PATCH',table,filter,body,h);}
-  catch(e){
-    const h2={...SB_HEADERS_PUB,'Prefer':'return=representation'};
-    if(e.message.includes('allowlist')||e.message.includes('403'))
-      return await sbFetch('PATCH',table,filter,body,h2);
-    throw e;
-  }
+  const id=filter.replace('id=eq.','');
+  return [await fbUpdate(table,id,body)];
 }
 async function sbDelete(table,filter){
-  try{await sbFetch('DELETE',table,filter,null,SB_HEADERS);}
-  catch(e){
-    if(e.message.includes('allowlist')||e.message.includes('403'))
-      await sbFetch('DELETE',table,filter,null,SB_HEADERS_PUB);
-    else throw e;
-  }
+  const id=filter.replace('id=eq.','');
+  await fbDelete(table,id);
 }
 
 // ─── ÉTAT LOCAL ───────────────────────────────────────────────────────────────
@@ -621,9 +620,12 @@ function setSyncStatus(status,label){
 async function loadAllStock(){
   setSyncStatus('syncing','Chargement…');
   try{
-    const rows=await sbGet('stock','select=*&limit=10000');
+    const rows=await fbGetAll('stock',null,10000);
     stockCache={};
-    rows.forEach(r=>{stockCache[r.ref+'__'+r.taille]=r});
+    rows.forEach(r=>{
+      const k=r.ref&&r.taille?r.ref+'__'+r.taille:r.id;
+      stockCache[k]={...r,id:r.id};
+    });
     setSyncStatus('ok','Base synchronisée');
     return true;
   }catch(e){
@@ -635,7 +637,7 @@ async function loadAllStock(){
 
 async function loadAllMouvements(){
   try{
-    const rows=await sbGet('mouvements','select=*&order=created_at.desc&limit=500');
+    let rows=await fbGetAll('mouvements','createdAt',500);
     mouvementsCache=rows;
   }catch(e){console.error(e)}
 }
@@ -644,6 +646,7 @@ async function forceSyncStock(){
   document.getElementById('sync-msg').innerHTML='<div class="msg info">Synchronisation en cours…</div>';
   await loadAllStock();
   await loadAllMouvements();
+  await loadMobDevices();
   renderStockStats();
   renderStock();
   updateAlerteBadge();
@@ -659,17 +662,13 @@ function getStock(ref,taille){
 
 async function saveStockRow(ref,taille,fields){
   const k=ref+'__'+taille;
-  const existing=stockCache[k];
+  const art=CATALOGUE.find(x=>x.ref===ref);
   setSyncStatus('syncing','Sauvegarde…');
   try{
-    if(existing&&existing.id){
-      const updated=await sbPatch('stock','id=eq.'+existing.id,{...fields,updated_at:new Date().toISOString()});
-      if(updated&&updated[0])stockCache[k]={...stockCache[k],...updated[0]};
-    } else {
-      const art=CATALOGUE.find(x=>x.ref===ref);
-      const created=await sbPost('stock',{ref,taille,designation:art?art.nom:'',categorie:art?art.cat:'',qte:0,seuil:2,attribues:0,...fields});
-      if(created&&created[0])stockCache[k]=created[0];
-    }
+    const data={ref,taille,designation:art?art.nom:'',categorie:art?art.cat:'',...(stockCache[k]||{qte:0,seuil:2,attribues:0}),...fields};
+    delete data.id;
+    const saved=await fbSet('stock',k,data);
+    stockCache[k]={...saved,id:k};
     setSyncStatus('ok','Sauvegardé');
   }catch(e){
     setSyncStatus('error','Erreur sauvegarde');
@@ -909,7 +908,7 @@ async function validerDotation(){
       const newAtt=Math.max(0,(s.attribues||0)-delta);
       await saveStockRow(line.ref,line.taille,{qte:newQte,attribues:newAtt});
       const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
+      await fbAdd('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
     }
     // Mise à jour statut badges
     for(const line of badgeLines){
@@ -917,7 +916,7 @@ async function validerDotation(){
       const patch={statut:newTelStatut};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;}
       else{patch.collaborateur='';patch.site='';}
-      await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);
+      await fbUpdate('mob_badges',line.deviceId,patch);
       const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};
     }
@@ -929,7 +928,7 @@ async function validerDotation(){
       const patch={statut:newTelStatut};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}
       else{patch.collaborateur='';patch.site='';}
-      await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);
+      await fbUpdate('mob_telephones',line.deviceId,patch);
       const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};
     }
@@ -939,7 +938,7 @@ async function validerDotation(){
       const patch={statut:newTelStatut};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}
       else{patch.collaborateur='';patch.site='';}
-      await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);
+      await fbUpdate('mob_tablettes',line.deviceId,patch);
       const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};
     }
@@ -1083,7 +1082,7 @@ async function validerReception(){
       const newQte=s.qte+line.qte;
       await saveStockRow(line.ref,line.taille,{qte:newQte});
       const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{
+      await fbAdd('mouvements',{
         date,type:'reception',nom:fourn,prenom:bl,
         matricule:'',site:comment,
         ref:line.ref,designation:art?art.nom:line.ref,
@@ -1130,9 +1129,9 @@ async function loadMobDevices(){
   setSyncStatus('syncing','Chargement mobilité…');
   try{
     const [tels,tabs,badges]=await Promise.all([
-      sbGet('mob_telephones','select=*&order=created_at.desc&limit=500'),
-      sbGet('mob_tablettes','select=*&order=created_at.desc&limit=500'),
-      sbGet('mob_badges','select=*&order=created_at.desc&limit=500')
+      fbGetAll('mob_telephones','createdAt',500),
+      fbGetAll('mob_tablettes','createdAt',500),
+      fbGetAll('mob_badges','createdAt',500)
     ]);
     mobCache.tel=tels||[];
     mobCache.tab=tabs||[];
@@ -1300,12 +1299,12 @@ async function saveMobDevice(){
   setSyncStatus('syncing','Sauvegarde…');
   try{
     if(id){
-      await sbPatch(table,'id=eq.'+id,payload);
+      await fbUpdate(table,id,payload);
       const idx=mobCache[type].findIndex(x=>x.id===id);
       if(idx>=0)mobCache[type][idx]={...mobCache[type][idx],...payload};
     } else {
-      const res=await sbPost(table,payload);
-      if(res&&res[0])mobCache[type].unshift(res[0]);
+      const res=await fbAdd(table,payload);
+      mobCache[type].unshift(res);
     }
     setSyncStatus('ok','Sauvegardé');
     closeMobForm();
@@ -1321,7 +1320,7 @@ async function deleteMobDevice(type,id){
   if(!confirm('Supprimer cet appareil définitivement ?'))return;
   const table=type==='tel'?'mob_telephones':type==='tab'?'mob_tablettes':'mob_badges';
   try{
-    await sbDelete(table,'id=eq.'+id);
+    await fbDelete(table,id);
     mobCache[type]=mobCache[type].filter(x=>x.id!==id);
     renderMobStats();
     if(type==='tel')renderMobTel();else renderMobTab();
@@ -1557,25 +1556,7 @@ function showMsg(id,msg,type){
 }
 
 
-async function testConnection(){
-  const el=document.getElementById('diag-result');
-  el.innerHTML='<span style="color:#888">Test en cours…</span>';
-  const tests=[
-    {label:'Clé anon JWT',headers:SB_HEADERS},
-    {label:'Clé publishable',headers:SB_HEADERS_PUB}
-  ];
-  let results='';
-  for(const t of tests){
-    try{
-      const r=await fetch(`${SB_URL}/rest/v1/stock?select=id&limit=1`,{headers:t.headers});
-      const txt=await r.text();
-      results+=`<div style="margin:2px 0"><span style="color:${r.ok?'#276749':'#c53030'}">${r.ok?'✓':'✗'} ${t.label} → HTTP ${r.status} : ${txt.slice(0,100)}</span></div>`;
-    }catch(e){
-      results+=`<div style="margin:2px 0"><span style="color:#c53030">✗ ${t.label} → ${e.message}</span></div>`;
-    }
-  }
-  el.innerHTML=results;
-}
+
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.getElementById('header-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});

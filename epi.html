@@ -505,8 +505,7 @@ function b64enc(str){
   return btoa(unescape(encodeURIComponent(str)));
 }
 function b64dec(b64){
-  return decodeURIComponent(escape(atob(b64.replace(/
-/g,''))));
+  return decodeURIComponent(escape(atob(b64.split('\n').join(''))));
 }
 
 async function fetchWithTimeout(url,opts,ms=15000){

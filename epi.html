@@ -489,7 +489,7 @@ Pôle Facilities — Domofrance</textarea>
 
 <script>
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
-const GH_TOKEN='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';
+const GH_TOKEN='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';
 const GH_OWNER='Domo-bdx';
 const GH_REPO='fiche-dotation-domofrance';
 const GH_BRANCH='main';
@@ -1606,18 +1606,43 @@ buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
 
 // ─── INIT GITHUB ─────────
 setSyncStatus('syncing','Connexion…');
-loadMobDevices();
-loadAllStock().then(ok=>{
-  if(ok){
+
+async function initApp(){
+  // Test rapide GitHub API
+  try{
+    const r=await fetch(
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,
+      {headers:{'Authorization':'Bearer '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}}
+    );
+    if(r.status===401){setSyncStatus('error','Token invalide — vérifiez le PAT');return;}
+    if(r.status===403){setSyncStatus('error','Token sans permission Contents');return;}
+    if(r.status===404){setSyncStatus('error','Dépôt introuvable');return;}
+    if(!r.ok){setSyncStatus('error','GitHub erreur '+r.status);return;}
+  }catch(e){
+    setSyncStatus('error','Réseau: '+e.message);return;
+  }
+
+  // Chargement des données
+  try{
+    setSyncStatus('syncing','Chargement stock…');
+    await loadAllStock();
+    setSyncStatus('syncing','Chargement mobilité…');
+    await loadMobDevices();
+    setSyncStatus('syncing','Chargement historique…');
+    await loadAllMouvements();
+    setSyncStatus('ok','Base synchronisée');
     renderStockStats();
     updateAlerteBadge();
     const n=getAlertes().length;
     if(n>0){
       document.getElementById('global-banner').innerHTML=`<div class="banner-alerte"><div style="font-size:16px">📬</div><div style="flex:1"><strong>${n} article(s) en alerte stock</strong></div><button class="btn primary small" onclick="goTab('alertes',document.querySelectorAll('.nav-btn')[3])">Voir les alertes</button></div>`;
     }
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    console.error(e);
   }
-});
-loadAllMouvements();
+}
+initApp();
 </script>
 </body>
 </html>

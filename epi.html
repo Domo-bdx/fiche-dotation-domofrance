@@ -1045,12 +1045,12 @@ function genererBon(){
     ${tabRows}
   </table>
   <div style="margin-top:8px;padding:8px 10px;background:#eef2ff;border-left:3px solid #1a3a5c;border-radius:3px;font-size:10px;color:#444;line-height:1.6"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>`:''}
-  \${badgeLines.filter(l=>l.deviceId).length?`<table class="bon-table" style="margin-top:12px">
+  ${badgeLines.filter(l=>l.deviceId).length?`<table class="bon-table" style="margin-top:12px">
     <tr><th colspan="2" style="background:#1a3a5c;color:#fff;padding:6px 8px">Badges attribués</th></tr>
     <tr><th>N° Badge</th><th>Type</th></tr>
-    \${badgeLines.filter(l=>l.deviceId).map(l=>{const d=mobCache.badge.find(x=>x.id===l.deviceId)||{};const tl={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};return`<tr><td><strong>\${d.numero||'—'}</strong></td><td>\${tl[d.type_badge]||d.type_badge||'—'}</td></tr>`}).join('')}
+    ${badgeLines.filter(l=>l.deviceId).map(l=>{const d=mobCache.badge.find(x=>x.id===l.deviceId)||{};const tl={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};return`<tr><td><strong>${d.numero||'—'}</strong></td><td>${tl[d.type_badge]||d.type_badge||'—'}</td></tr>`}).join('')}
   </table>`:''}
-  \${!epiLines.length&&!telLines.length&&!tabLines.length&&!badgeLines.filter(l=>l.deviceId).length?'<div style="color:#888;padding:10px">Aucun équipement renseigné</div>':''}
+  ${!epiLines.length&&!telLines.length&&!tabLines.length&&!badgeLines.filter(l=>l.deviceId).length?'<div style="color:#888;padding:10px">Aucun équipement renseigné</div>':''}
   <div class="sig-zone">
     <div class="sig-box"><div class="sig-label">Remis par (Pôle Facilities)</div><div style="height:55px;border-top:1px solid #ccc;margin-top:8px"></div></div>
     <div class="sig-box"><div class="sig-label">Reçu par le collaborateur</div><div class="sig-name" style="font-size:12px;font-weight:600">${nom.toUpperCase()} ${prenom}</div><div style="height:45px;border-top:1px solid #ccc;margin-top:8px"></div></div>

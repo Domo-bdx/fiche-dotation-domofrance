@@ -961,7 +961,10 @@ async function validerDotation(){
       const art=CATALOGUE.find(x=>x.ref===line.ref);
       await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
     }
-    // Mise à jour statut badges
+    // Mise à jour statut téléphones / tablettes / badges
+    const newTelStatut=type==='restitution'?'disponible':'attribue';
+    const collab=`${prenom} ${nom}`.trim();
+    // Badges
     for(const line of badgeLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
@@ -971,9 +974,7 @@ async function validerDotation(){
       const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};
     }
-    // Mise à jour statut téléphones
-    const newTelStatut=type==='restitution'?'disponible':'attribue';
-    const collab=`${prenom} ${nom}`.trim();
+    // Téléphones
     for(const line of telLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
@@ -1346,7 +1347,6 @@ async function saveMobDevice(){
     statut:document.getElementById('mob-f-statut').value,
     notes:document.getElementById('mob-f-notes').value.trim()
   };
-  const table=type==='tel'?'mob_telephones':type==='tab'?'mob_tablettes':'mob_badges';
   setSyncStatus('syncing','Sauvegarde…');
   try{
     if(id){

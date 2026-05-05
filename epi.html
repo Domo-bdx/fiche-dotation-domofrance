@@ -113,6 +113,11 @@ tr:hover td{background:#f8f9fb}
 
 <div class="content">
 <div id="global-banner"></div>
+<div id="conn-bar" style="margin:10px 20px 0;padding:10px 14px;background:#f8f9fb;border:1px solid #dde;border-radius:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">
+  <span style="font-weight:600;color:#1a3a5c">Connexion GitHub</span>
+  <button onclick="initApp()" style="padding:4px 12px;border-radius:4px;background:#1a3a5c;color:#fff;border:none;cursor:pointer;font-size:11px;font-weight:600">Relancer</button>
+  <span id="conn-detail" style="font-size:11px;color:#555">En attente…</span>
+</div>
 
 <!-- DOTATION -->
 <div id="tab-dotation" class="panel active">
@@ -504,9 +509,23 @@ function b64dec(b64){
 /g,''))));
 }
 
+async function fetchWithTimeout(url,opts,ms=15000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const r=await fetch(url,{...opts,signal:ctrl.signal});
+    clearTimeout(tid);
+    return r;
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError')throw new Error('Timeout — vérifiez votre connexion réseau');
+    throw e;
+  }
+}
+
 async function ghRead(path){
   const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}&t=${Date.now()}`;
-  const r=await fetch(url,{headers:GH_HEADERS});
+  const r=await fetchWithTimeout(url,{headers:GH_HEADERS});
   if(r.status===404)return null;
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
   const j=await r.json();
@@ -657,6 +676,7 @@ async function loadAllStock(){
     stockCache={};
     Object.entries(obj).forEach(([k,r])=>{stockCache[k]={...r,id:k}});
     setSyncStatus('ok','Base synchronisée');
+    document.getElementById('conn-bar').style.display='none';
     return true;
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);
@@ -1608,18 +1628,23 @@ buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
 setSyncStatus('syncing','Connexion…');
 
 async function initApp(){
+  document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
+  setSyncStatus('syncing','Connexion…');
   // Test rapide GitHub API
   try{
-    const r=await fetch(
+    const r=await fetchWithTimeout(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,
-      {headers:{'Authorization':'Bearer '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}}
+      {headers:{'Authorization':'Bearer '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}},
+      12000
     );
-    if(r.status===401){setSyncStatus('error','Token invalide — vérifiez le PAT');return;}
-    if(r.status===403){setSyncStatus('error','Token sans permission Contents');return;}
-    if(r.status===404){setSyncStatus('error','Dépôt introuvable');return;}
-    if(!r.ok){setSyncStatus('error','GitHub erreur '+r.status);return;}
+    if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur 401 : Token invalide';return;}
+    if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Erreur 403 : Accès refusé — vérifiez les permissions du token';return;}
+    if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Erreur 404 : Dépôt Domo-bdx/fiche-dotation-domofrance introuvable';return;}
+    if(!r.ok){setSyncStatus('error','GitHub erreur '+r.status);document.getElementById('conn-detail').textContent='✗ GitHub erreur '+r.status;return;}
   }catch(e){
-    setSyncStatus('error','Réseau: '+e.message);return;
+    setSyncStatus('error','Réseau: '+e.message);
+    document.getElementById('conn-detail').textContent='✗ Erreur réseau: '+e.message;
+    return;
   }
 
   // Chargement des données

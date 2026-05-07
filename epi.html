@@ -71,6 +71,8 @@ tr:hover td{background:#f8f9fb}
 .cat-btn{padding:4px 12px;border-radius:20px;border:1px solid #ccc;cursor:pointer;font-size:11px;background:#fff;transition:all .12s}
 .cat-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
 .stock-low{background:#fff8f0!important}.stock-zero{background:#fff0f0!important}
+.pe-alert{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;margin-bottom:8px}
+.pe-alert.urgent{background:#fff5f5;border-color:#fc8181}
 .mail-preview{background:#f8f9fb;border:1px solid #dde;border-radius:5px;padding:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;max-height:280px;overflow-y:auto;color:#333;line-height:1.6}
 .banner-alerte{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px}
 .settings-section{border-top:1px solid #eef;margin-top:12px;padding-top:12px}
@@ -150,6 +152,31 @@ tr:hover td{background:#f8f9fb}
       <div><label>Motif</label><input type="text" id="d-motif" placeholder="Embauche, renouvellement…"></div>
     </div>
   </div>
+  <div class="card" style="background:linear-gradient(135deg,#f0f4ff 0%,#fff 100%);border-color:#c5d5f0">
+    <h3 style="color:#1a3a5c">⚡ Packs prédéfinis</h3>
+    <div style="font-size:12px;color:#555;margin-bottom:12px">Cliquez sur un pack pour pré-remplir les EPI — il ne restera qu'à choisir les tailles et les chaussures.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px;border:1.5px solid #1a3a5c;border-radius:8px;padding:12px">
+        <div style="font-weight:700;color:#1a3a5c;margin-bottom:6px">📦 Pack Embauche — Gardien / Employé Immeuble</div>
+        <div style="font-size:11px;color:#555;line-height:1.8;margin-bottom:10px">
+          4× T-shirt · 1× Polo · 1× Sweat<br>
+          2× Pantalon Cordura · 1× Veste Softshell · 1× Parka<br>
+          Gants &amp; Chaussures <em>(à choisir à la dotation)</em>
+        </div>
+        <button class="btn primary" onclick="appliquerPack('embauche')" style="width:100%">Appliquer ce pack</button>
+      </div>
+      <div style="flex:1;min-width:260px;border:1.5px solid #276749;border-radius:8px;padding:12px">
+        <div style="font-weight:700;color:#276749;margin-bottom:6px">📦 Pack Complément — Après période d'essai (3 mois)</div>
+        <div style="font-size:11px;color:#555;line-height:1.8;margin-bottom:10px">
+          2× T-shirt · 1× Polo · 1× Pantalon hiver · 1× Pantalon été<br>
+          1× Casquette <em>ou</em> Bonnet supplémentaire
+        </div>
+        <button class="btn success" onclick="appliquerPack('complement')" style="width:100%">Appliquer ce pack</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:10px">⚠ Appliquer un pack remplace les EPI déjà saisis. Les téléphones, tablettes et badges ne sont pas affectés.</div>
+  </div>
+
   <div class="card">
     <h3>EPI attribués</h3>
     <div id="epi-lines-container"></div>
@@ -408,6 +435,11 @@ tr:hover td{background:#f8f9fb}
 
 <!-- ALERTES -->
 <div id="tab-alertes" class="panel">
+  <div class="card" id="card-pe-alertes">
+    <h3>🎓 Fins de période d'essai — Pack Complément à envoyer</h3>
+    <div id="pe-alertes-list"><div class="empty">Aucune alerte période d'essai</div></div>
+  </div>
+
   <div class="card">
     <h3>Articles en alerte stock bas</h3>
     <div id="alertes-list"></div>
@@ -755,7 +787,7 @@ function goTab(t,btn){
   if(btn)btn.classList.add('active');
   if(t==='stock'){renderStockStats();renderStock()}
   if(t==='historique'){loadAllMouvements().then(renderHistorique)}
-  if(t==='alertes')renderAlertes();
+  if(t==='alertes'){renderAlertes();renderPEAlertes();}
   if(t==='catalogue')renderCatalogue();
   if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
@@ -892,6 +924,185 @@ function renderTabLines(){
   }).join('');
 }
 
+
+
+// ─── SUIVI PÉRIODE D'ESSAI ────────────────────────────────────────────────────
+let collabsCache = [];
+
+async function loadCollabs(){
+  try{
+    const arr = await readData('collaborateurs');
+    collabsCache = arr || [];
+  }catch(e){collabsCache=[];}
+}
+
+async function saveCollabs(){
+  await writeData('collaborateurs', collabsCache);
+}
+
+function addCollab(nom, prenom, matricule, site, dateEmbauche){
+  const existing = collabsCache.findIndex(c =>
+    c.nom===nom && c.prenom===prenom && c.matricule===matricule
+  );
+  const entry = {
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+    nom, prenom, matricule, site,
+    date_embauche: dateEmbauche,
+    complement_envoye: false,
+    date_complement: null
+  };
+  if(existing >= 0){
+    // Mise à jour si réembauche
+    collabsCache[existing] = {...collabsCache[existing], ...entry, id: collabsCache[existing].id};
+  } else {
+    collabsCache.unshift(entry);
+  }
+  saveCollabs();
+}
+
+async function marquerComplementEnvoye(id){
+  const idx = collabsCache.findIndex(c => c.id === id);
+  if(idx >= 0){
+    collabsCache[idx].complement_envoye = true;
+    collabsCache[idx].date_complement = new Date().toISOString().slice(0,10);
+    await saveCollabs();
+    renderPEAlertes();
+    updateAlerteBadge();
+  }
+}
+
+function getPEAlertes(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return collabsCache.filter(co => {
+    if(co.complement_envoye) return false;
+    if(!co.date_embauche) return false;
+    const embauche = new Date(co.date_embauche);
+    const finPE = new Date(embauche);
+    finPE.setMonth(finPE.getMonth() + 3);
+    finPE.setHours(0,0,0,0);
+    return finPE <= today;
+  });
+}
+
+function renderPEAlertes(){
+  const alertes = getPEAlertes();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const el = document.getElementById('pe-alertes-list');
+  if(!el) return;
+
+  if(!alertes.length){
+    el.innerHTML = '<div class="empty">Aucune fin de période d\'essai en attente</div>';
+    return;
+  }
+
+  el.innerHTML = alertes.map(co => {
+    const embauche = new Date(co.date_embauche);
+    const finPE = new Date(embauche); finPE.setMonth(finPE.getMonth()+3);
+    const joursDepuis = Math.floor((today - finPE)/(1000*60*60*24));
+    const urgent = joursDepuis > 7;
+    const dateStr = finPE.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+    return `<div class="pe-alert ${urgent?'urgent':''}">
+      <div style="font-size:18px">${urgent?'🔴':'🟢'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
+        <div style="font-size:11px;color:#555">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}${joursDepuis>0?' · <span style="color:#c53030;font-weight:600">En retard de '+joursDepuis+' jour(s)</span>':' · <span style="color:#276749;font-weight:600">Aujourd\'hui</span>'}</div>
+      </div>
+      <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── PACKS PRÉDÉFINIS ─────────────────────────────────────────────────────────
+const PACKS = {
+  "embauche": [
+    {
+      "ref": "03-006208",
+      "nom": "T-shirt MC Navy",
+      "qte": 4
+    },
+    {
+      "ref": "0TOPRU599MCMAR",
+      "nom": "Polo MC Navy",
+      "qte": 1
+    },
+    {
+      "ref": "03-016334",
+      "nom": "Sweat K4025 Navy",
+      "qte": 1
+    },
+    {
+      "ref": "03-024844",
+      "nom": "Pantalon Cordura WK742",
+      "qte": 2
+    },
+    {
+      "ref": "03-024846",
+      "nom": "Veste Softshell WK450",
+      "qte": 1
+    },
+    {
+      "ref": "0TOPK677",
+      "nom": "Parka Kariban Marine",
+      "qte": 1
+    }
+  ],
+  "complement": [
+    {
+      "ref": "03-006208",
+      "nom": "T-shirt MC Navy",
+      "qte": 2
+    },
+    {
+      "ref": "0TOPRU599MCMAR",
+      "nom": "Polo MC Navy",
+      "qte": 1
+    },
+    {
+      "ref": "03-016334",
+      "nom": "Sweat K4025 Navy",
+      "qte": 1
+    },
+    {
+      "ref": "03-022637",
+      "nom": "Pantalon stretch été Noir",
+      "qte": 1
+    },
+    {
+      "ref": "03-024846",
+      "nom": "Veste Softshell WK450",
+      "qte": 1
+    },
+    {
+      "ref": "03-017207",
+      "nom": "Bodywarmer WK606 (sur demande)",
+      "qte": 1
+    },
+    {
+      "ref": "643100",
+      "nom": "Ensemble pluie Robson 2 (sur demande)",
+      "qte": 1
+    }
+  ]
+};
+
+function appliquerPack(nom){
+  const items = PACKS[nom];
+  if(!items)return;
+  epiLines = items
+    .filter(item => item.qte > 0)
+    .map(item => ({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      ref: item.ref,
+      taille: '',
+      qte: item.qte
+    }));
+  renderEpiLines();
+  // Scroll vers les EPI
+  document.getElementById('epi-lines-container').scrollIntoView({behavior:'smooth', block:'start'});
+  showMsg('dotation-msg', '✓ Pack appliqué — choisissez les tailles pour chaque article.', 'ok');
+}
+
 function addEpiLine(prefillRef){
   epiLines.push({id:Date.now()+'_'+Math.random(),ref:prefillRef||'',taille:'',qte:1});
   renderEpiLines();
@@ -1013,6 +1224,11 @@ async function validerDotation(){
       await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);
       const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};
+    }
+    // Enregistrer collab si Pack Embauche détecté
+    const isPackEmbauche = epiLines.some(l=>l.ref==='0TOPK677'); // Parka = marqueur Pack Embauche
+    if(type==='dotation' && isPackEmbauche && nom){
+      addCollab(nom, prenom, matricule, site, date);
     }
     updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
@@ -1519,7 +1735,7 @@ function renderAlertes(){
 }
 
 function updateAlerteBadge(){
-  const n=getAlertes().length;
+  const n=getAlertes().length + getPEAlertes().length;
   const btn=document.getElementById('btn-alertes');
   if(n>0){btn.setAttribute('data-count',n);btn.classList.add('alert-badge')}
   else{btn.removeAttribute('data-count');btn.classList.remove('alert-badge')}
@@ -1697,13 +1913,16 @@ async function initApp(){
     await loadMobDevices();
     setSyncStatus('syncing','Chargement historique…');
     await loadAllMouvements();
+    await loadCollabs();
     setSyncStatus('ok','Base synchronisée');
     renderStockStats();
     updateAlerteBadge();
     const n=getAlertes().length;
-    if(n>0){
-      document.getElementById('global-banner').innerHTML=`<div class="banner-alerte"><div style="font-size:16px">📬</div><div style="flex:1"><strong>${n} article(s) en alerte stock</strong></div><button class="btn primary small" onclick="goTab('alertes',document.querySelectorAll('.nav-btn')[3])">Voir les alertes</button></div>`;
-    }
+    const nPE=getPEAlertes().length;
+    const banners=[];
+    if(n>0) banners.push(`<div class="banner-alerte"><div style="font-size:16px">📬</div><div style="flex:1"><strong>${n} article(s) en alerte stock</strong></div><button class="btn primary small" onclick="goTab('alertes',document.querySelectorAll('.nav-btn')[3])">Voir les alertes</button></div>`);
+    if(nPE>0) banners.push(`<div class="banner-alerte" style="background:#f0fff4;border-color:#9ae6b4"><div style="font-size:16px">🎓</div><div style="flex:1"><strong>${nPE} complément(s) EPI à envoyer</strong> — fin de période d'essai</div><button class="btn success small" onclick="goTab('alertes',document.querySelectorAll('.nav-btn')[3])">Voir</button></div>`);
+    if(banners.length) document.getElementById('global-banner').innerHTML=banners.join('');
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);
     console.error(e);

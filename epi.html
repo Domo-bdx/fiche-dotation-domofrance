@@ -87,7 +87,7 @@ tr:hover td{background:#f8f9fb}
 .rec-line{display:grid;grid-template-columns:2fr 1fr 70px auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 .mob-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 /* ── PAPETERIE ── */
-.pap-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.pap-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
 .pap-stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:12px;text-align:center;transition:border-color .2s}
 .pap-stat.alert-low{border-color:#fbd38d;background:#fffbf0}
 .pap-stat.alert-empty{border-color:#fc8181;background:#fff5f5}
@@ -1610,12 +1610,40 @@ function showMsg(id,msg,type){const el=document.getElementById(id);if(!el)return
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const PAPETERIE_ARTICLES=[
-  {id:'papier_A4',  designation:'Papier A4',               type:'Papier',     contenu:'5 rames / carton',         icon:'📄'},
-  {id:'papier_A3',  designation:'Papier A3',               type:'Papier',     contenu:'5 rames / carton',         icon:'📄'},
-  {id:'env_A5',     designation:'Enveloppes A5',           type:'Enveloppes', contenu:'500 enveloppes / carton',  icon:'✉️'},
-  {id:'env_A4p3',   designation:'Enveloppes A4 plié en 3', type:'Enveloppes', contenu:'500 enveloppes / carton',  icon:'✉️'},
-  {id:'env_grand',  designation:'Enveloppes grand format', type:'Enveloppes', contenu:'500 enveloppes / carton',  icon:'✉️'},
+  // ── Papier ──
+  {id:'papier_A4',            designation:'Papier A4',                             type:'Papier',     famille:null,        format:'A4',          fenetre:null,  contenu:'5 rames / carton',        icon:'📄'},
+  {id:'papier_A3',            designation:'Papier A3',                             type:'Papier',     famille:null,        format:'A3',          fenetre:null,  contenu:'5 rames / carton',        icon:'📄'},
+  // ── Enveloppes Domofrance ──
+  {id:'env_domo_A5_sf',       designation:'A5 sans fenêtre — Domofrance',          type:'Enveloppes', famille:'Domofrance', format:'A5',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A5_af',       designation:'A5 avec fenêtre — Domofrance',          type:'Enveloppes', famille:'Domofrance', format:'A5',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A4p3_sf',     designation:'A4 plié en 3 sans fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'A4p3',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A4p3_af',     designation:'A4 plié en 3 avec fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'A4p3',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_gf_sf',       designation:'Grand format sans fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Grand format', fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_gf_af',       designation:'Grand format avec fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Grand format', fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Agathe ──
+  {id:'env_agathe_A5_sf',     designation:'A5 sans fenêtre — Agathe',              type:'Enveloppes', famille:'Agathe',     format:'A5',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A5_af',     designation:'A5 avec fenêtre — Agathe',              type:'Enveloppes', famille:'Agathe',     format:'A5',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A4p3_sf',   designation:'A4 plié en 3 sans fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'A4p3',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A4p3_af',   designation:'A4 plié en 3 avec fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'A4p3',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_gf_sf',     designation:'Grand format sans fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Grand format', fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_gf_af',     designation:'Grand format avec fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Grand format', fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Yellome ──
+  {id:'env_yellome_A5_sf',    designation:'A5 sans fenêtre — Yellome',             type:'Enveloppes', famille:'Yellome',    format:'A5',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A5_af',    designation:'A5 avec fenêtre — Yellome',             type:'Enveloppes', famille:'Yellome',    format:'A5',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A4p3_sf',  designation:'A4 plié en 3 sans fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'A4p3',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A4p3_af',  designation:'A4 plié en 3 avec fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'A4p3',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_gf_sf',    designation:'Grand format sans fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Grand format', fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_gf_af',    designation:'Grand format avec fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Grand format', fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Exterra ──
+  {id:'env_exterra_A5_sf',    designation:'A5 sans fenêtre — Exterra',             type:'Enveloppes', famille:'Exterra',    format:'A5',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A5_af',    designation:'A5 avec fenêtre — Exterra',             type:'Enveloppes', famille:'Exterra',    format:'A5',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A4p3_sf',  designation:'A4 plié en 3 sans fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'A4p3',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A4p3_af',  designation:'A4 plié en 3 avec fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'A4p3',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_gf_sf',    designation:'Grand format sans fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Grand format', fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_gf_af',    designation:'Grand format avec fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Grand format', fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
 ];
+// Familles d'enveloppes pour groupage
+const ENV_FAMILLES=['Domofrance','Agathe','Yellome','Exterra'];
 
 let papeterieStockCache={};   // id → { id, stock_cartons, seuil }
 let papeterieMovCache=[];
@@ -1668,10 +1696,11 @@ function setPapSub(sub,btn){
 // ── Stats cards ───────────────────────────────────────────────────────────────
 function renderPapeterieStats(){
   const el=document.getElementById('papeterie-stats');if(!el)return;
-  el.innerHTML=PAPETERIE_ARTICLES.map(a=>{
+  // 2 cartes papier + 4 cartes familles enveloppes
+  const papiers=PAPETERIE_ARTICLES.filter(a=>a.type==='Papier');
+  const papierCards=papiers.map(a=>{
     const s=getPapeterieStock(a.id);
-    const isEmpty=s.stock_cartons===0;
-    const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+    const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
     const cls=isEmpty?'pap-stat alert-empty':isLow?'pap-stat alert-low':'pap-stat';
     return `<div class="${cls}">
       <div style="font-size:20px;margin-bottom:4px">${a.icon}</div>
@@ -1682,31 +1711,48 @@ function renderPapeterieStats(){
       ${isEmpty?`<div style="font-size:9px;font-weight:700;color:#c53030;margin-top:4px">⚠ RUPTURE</div>`:isLow?`<div style="font-size:9px;font-weight:700;color:#92400e;margin-top:4px">↘ Stock bas</div>`:''}
     </div>`;
   }).join('');
+  const familleCards=ENV_FAMILLES.map(fam=>{
+    const arts=PAPETERIE_ARTICLES.filter(a=>a.famille===fam);
+    const total=arts.reduce((s,a)=>s+getPapeterieStock(a.id).stock_cartons,0);
+    const nbRupture=arts.filter(a=>getPapeterieStock(a.id).stock_cartons===0).length;
+    const nbBas=arts.filter(a=>{const s=getPapeterieStock(a.id);return s.stock_cartons>0&&s.stock_cartons<=s.seuil;}).length;
+    const isEmpty=nbRupture===arts.length;const isLow=!isEmpty&&(nbRupture>0||nbBas>0);
+    const cls=isEmpty?'pap-stat alert-empty':isLow?'pap-stat alert-low':'pap-stat';
+    return `<div class="${cls}">
+      <div style="font-size:20px;margin-bottom:4px">✉️</div>
+      <div class="pap-stat-n ${isEmpty?'warn':''}">${total}</div>
+      <div style="font-size:9px;font-weight:700;color:#1a3a5c;margin-top:1px">carton${total>1?'s':''} total</div>
+      <div class="pap-stat-l">${fam}</div>
+      <div class="pap-stat-sub">${arts.length} références</div>
+      ${nbRupture>0?`<div style="font-size:9px;font-weight:700;color:#c53030;margin-top:4px">⚠ ${nbRupture} rupture${nbRupture>1?'s':''}</div>`:nbBas>0?`<div style="font-size:9px;font-weight:700;color:#92400e;margin-top:4px">↘ ${nbBas} stock${nbBas>1?'s':''} bas</div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=papierCards+familleCards;
 }
 
 // ── Table de stock + seuils ───────────────────────────────────────────────────
 function renderPapeterieStockTable(){
   const el=document.getElementById('pap-stock-table-body');if(!el)return;
-  el.innerHTML=PAPETERIE_ARTICLES.map(a=>{
+  let rows='';
+  // Papier
+  rows+='<tr><td colspan="6" style="background:#f0f4ff;font-weight:700;color:#1a3a5c;font-size:11px;padding:6px 8px;letter-spacing:.04em">📄 PAPIER</td></tr>';
+  PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').forEach(a=>{
     const s=getPapeterieStock(a.id);
-    const isEmpty=s.stock_cartons===0;
-    const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+    const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
     const rc=isEmpty?'stock-zero':isLow?'stock-low':'';
-    return `<tr class="${rc}">
-      <td>${a.icon} <strong>${a.designation}</strong></td>
-      <td><span class="badge ${a.type==='Papier'?'blue':'purple'}">${a.type}</span></td>
-      <td style="font-size:11px;color:#666">${a.contenu}</td>
-      <td style="text-align:center">
-        <input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)">
-      </td>
-      <td style="text-align:center">
-        <input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)">
-      </td>
-      <td style="text-align:center">
-        <span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span>
-      </td>
-    </tr>`;
-  }).join('');
+    rows+=`<tr class="${rc}"><td style="padding-left:16px">${a.icon} <strong>${a.designation}</strong></td><td><span class="badge blue">Papier</span></td><td style="font-size:11px;color:#666">${a.contenu}</td><td style="text-align:center"><input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)"></td><td style="text-align:center"><span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span></td></tr>`;
+  });
+  // Enveloppes par famille
+  ENV_FAMILLES.forEach(fam=>{
+    rows+=`<tr><td colspan="6" style="background:#f5f0ff;font-weight:700;color:#6b21a8;font-size:11px;padding:6px 8px;letter-spacing:.04em">✉️ ENVELOPPES — ${fam.toUpperCase()}</td></tr>`;
+    PAPETERIE_ARTICLES.filter(a=>a.famille===fam).forEach(a=>{
+      const s=getPapeterieStock(a.id);
+      const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+      const rc=isEmpty?'stock-zero':isLow?'stock-low':'';
+      rows+=`<tr class="${rc}"><td style="padding-left:16px">${a.icon} <strong>${a.format}</strong> ${a.fenetre?'<span class="badge blue" style="font-size:9px">avec fenêtre</span>':'<span class="badge gray" style="font-size:9px">sans fenêtre</span>'}</td><td><span class="badge purple">${fam}</span></td><td style="font-size:11px;color:#666">${a.contenu}</td><td style="text-align:center"><input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)"></td><td style="text-align:center"><span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span></td></tr>`;
+    });
+  });
+  el.innerHTML=rows;
 }
 
 function updatePapStockManuel(id,val){
@@ -1750,7 +1796,7 @@ function renderPapeterieLines(){
         <select onchange="updatePapeterieLine('${line.id}','articleId',this.value)">
           <option value="">— Choisir —</option>
           <optgroup label="📄 Papier">${PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation} — ${a.contenu}</option>`).join('')}</optgroup>
-          <optgroup label="✉️ Enveloppes">${PAPETERIE_ARTICLES.filter(a=>a.type==='Enveloppes').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation} — ${a.contenu}</option>`).join('')}</optgroup>
+          ${ENV_FAMILLES.map(fam=>`<optgroup label="✉️ Enveloppes — ${fam}">${PAPETERIE_ARTICLES.filter(a=>a.famille===fam).map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.format} ${a.fenetre?'avec fenêtre':'sans fenêtre'} — ${a.contenu}</option>`).join('')}</optgroup>`).join('')}
         </select>
         ${insuffisant?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Stock insuffisant — dispo : ${s.stock_cartons} carton${s.stock_cartons>1?'s':''}</div>`:''}
       </div>
@@ -1859,7 +1905,7 @@ function renderPapRecLines(){
         <select onchange="updatePapRecLine('${line.id}','articleId',this.value)">
           <option value="">— Choisir —</option>
           <optgroup label="📄 Papier">${PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation}</option>`).join('')}</optgroup>
-          <optgroup label="✉️ Enveloppes">${PAPETERIE_ARTICLES.filter(a=>a.type==='Enveloppes').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation}</option>`).join('')}</optgroup>
+          ${ENV_FAMILLES.map(fam=>`<optgroup label="✉️ Enveloppes — ${fam}">${PAPETERIE_ARTICLES.filter(a=>a.famille===fam).map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.format} ${a.fenetre?'avec fenêtre':'sans fenêtre'}</option>`).join('')}</optgroup>`).join('')}
         </select>
       </div>
       <div>

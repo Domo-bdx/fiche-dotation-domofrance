@@ -453,16 +453,16 @@ tr:hover td{background:#f8f9fb}
       <div class="form-row-3">
         <div><label>Nom</label><input type="text" id="pap-nom" placeholder="NOM"></div>
         <div><label>Prénom</label><input type="text" id="pap-prenom" placeholder="Prénom"></div>
+        <div><label>Service / Direction</label><input type="text" id="pap-service" placeholder="ex: RH, Comptabilité, DSI…"></div>
+      </div>
+      <div class="form-row">
         <div><label>Site / Agence</label>
           <select id="pap-site">
             <option value="">— Sélectionner —</option>
             <option>Agen</option><option>Bayonne</option><option>Bordeaux</option><option>Boulazac</option><option>Bruges</option><option>Cenon</option><option>Dax</option><option>La Rochelle</option><option>La Teste</option><option>Langon</option><option>Libourne</option><option>Lormont</option><option>Mérignac</option><option>Mont-de-Marsan</option><option>Pau</option><option>Pessac</option><option>Siège</option><option>Talence</option><option>Villeneuve-sur-Lot</option>
           </select>
         </div>
-      </div>
-      <div class="form-row">
         <div><label>Date de la demande</label><input type="date" id="pap-date"></div>
-        <div></div>
       </div>
     </div>
 
@@ -526,7 +526,7 @@ tr:hover td{background:#f8f9fb}
       <div class="search-bar"><input type="text" id="papeterie-histo-search" placeholder="Rechercher nom, site, article…" oninput="renderPapeterieHisto()"></div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Date</th><th>Type</th><th>Demandeur</th><th>Site</th><th>Article</th><th style="text-align:center">Quantité</th>
+          <th>Date</th><th>Type</th><th>Demandeur</th><th>Service</th><th>Site</th><th>Article</th><th style="text-align:center">Quantité</th>
         </tr></thead>
         <tbody id="papeterie-histo-body"></tbody>
         </table>
@@ -1767,6 +1767,7 @@ function renderPapeterieLines(){
 async function validerDemandePapeterie(){
   const nom=document.getElementById('pap-nom').value.trim();
   const prenom=document.getElementById('pap-prenom').value.trim();
+  const service=document.getElementById('pap-service').value.trim();
   const site=document.getElementById('pap-site').value;
   const date=document.getElementById('pap-date').value||new Date().toISOString().slice(0,10);
 
@@ -1802,7 +1803,7 @@ async function validerDemandePapeterie(){
       const art=PAPETERIE_ARTICLES.find(x=>x.id===line.articleId);
       freshMov.unshift({
         id:Date.now().toString(36)+Math.random().toString(36).slice(2),
-        date,type:'sortie',nom,prenom,site,
+        date,type:'sortie',nom,prenom,service,site,
         articleId:line.articleId,
         designation:art?art.designation:line.articleId,
         qte_cartons:line.qte,
@@ -1817,13 +1818,14 @@ async function validerDemandePapeterie(){
     papeterieLines=[];renderPapeterieLines();
     document.getElementById('pap-nom').value='';
     document.getElementById('pap-prenom').value='';
+    document.getElementById('pap-service').value='';
     document.getElementById('pap-site').value='';
   }catch(e){showMsg('pap-msg','Erreur : '+e.message,'err');}
   btn.disabled=false;btn.textContent='✓ Valider et déduire du stock';
 }
 
 function resetDemandePapeterie(){
-  ['pap-nom','pap-prenom'].forEach(id=>document.getElementById(id).value='');
+  ['pap-nom','pap-prenom','pap-service'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pap-site').value='';
   document.getElementById('pap-date').value=new Date().toISOString().slice(0,10);
   papeterieLines=[];renderPapeterieLines();
@@ -1919,13 +1921,14 @@ function renderPapeterieHisto(){
         <td>${m.date||'—'}</td>
         <td><span class="badge ${m.type==='sortie'?'blue':'green'}">${m.type==='sortie'?'Demande':'Réception'}</span></td>
         <td>${[m.prenom,m.nom].filter(Boolean).join(' ')||'—'}</td>
+        <td>${m.service||'—'}</td>
         <td>${m.site||'—'}</td>
         <td>${m.designation||'—'}</td>
         <td style="text-align:center;font-weight:600;${m.type==='sortie'?'color:#c05621':'color:#276749'}">
           ${m.type==='sortie'?'−':'+'}${m.qte_cartons} carton${m.qte_cartons>1?'s':''}
         </td>
       </tr>`).join('')
-    :'<tr><td colspan="6" class="empty">Aucun mouvement papeterie</td></tr>';
+    :'<tr><td colspan="7" class="empty">Aucun mouvement papeterie</td></tr>';
 }
 
 // ── Alertes papeterie ─────────────────────────────────────────────────────────

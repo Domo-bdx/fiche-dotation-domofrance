@@ -543,6 +543,14 @@ tr:hover td{background:#f8f9fb}
 
 <!-- ALERTES -->
 <div id="tab-alertes" class="panel">
+
+  <!-- ATTENTES -->
+  <div class="card" id="card-attentes">
+    <h3>⏳ EPI en attente — stock reconstitué</h3>
+    <div style="font-size:11px;color:#555;margin-bottom:10px">Articles commandés lors d'une dotation mais non disponibles au moment de l'attribution. Le stock est maintenant suffisant pour les envoyer.</div>
+    <div id="attentes-list"><div class="empty">✓ Aucun article en attente de livraison</div></div>
+  </div>
+
   <div class="card" id="card-pe-alertes">
     <h3>🎓 Fins de période d'essai — Pack Complément à envoyer</h3>
     <div id="pe-alertes-list"><div class="empty">Aucune alerte période d'essai</div></div>
@@ -553,7 +561,6 @@ tr:hover td{background:#f8f9fb}
     <div id="alertes-list"></div>
   </div>
 
-  <!-- NOUVEAU : alertes papeterie -->
   <div class="card" id="card-pap-alertes">
     <h3>📄 Papeterie — stock bas</h3>
     <div id="pap-alertes-list"><div class="empty">✓ Aucune alerte papeterie</div></div>
@@ -647,7 +654,7 @@ Pôle Facilities — Domofrance</textarea>
     <h3>Base de données GitHub</h3>
     <div style="font-size:12px;line-height:1.8;color:#444">
       <p>Stockage : <code>GitHub — Domo-bdx/fiche-dotation-domofrance/data/</code></p>
-      <p>Fichiers EPI : <strong>stock.json</strong> · <strong>mouvements.json</strong> · <strong>mob_telephones.json</strong> · <strong>mob_tablettes.json</strong> · <strong>mob_badges.json</strong></p>
+      <p>Fichiers EPI : <strong>stock.json</strong> · <strong>mouvements.json</strong> · <strong>mob_telephones.json</strong> · <strong>mob_tablettes.json</strong> · <strong>mob_badges.json</strong> · <strong>attentes.json</strong></p>
       <p>Fichiers Papeterie : <strong>papeterie_stock.json</strong> · <strong>papeterie_mouvements.json</strong></p>
       <p>Accès partagé : toute personne ayant ce fichier HTML accède à la même base en temps réel.</p>
     </div>
@@ -849,6 +856,7 @@ async function forceSyncStock(){
   await loadMobDevices();
   await loadPapeterieStock();
   await loadPapeterieMovements();
+  await loadAttentes();
   renderStockStats();
   renderStock();
   renderPapeterieStats();
@@ -889,7 +897,7 @@ function goTab(t,btn){
   if(btn)btn.classList.add('active');
   if(t==='stock'){renderStockStats();renderStock()}
   if(t==='historique'){loadAllMouvements().then(renderHistorique)}
-  if(t==='alertes'){renderAlertes();renderPEAlertes();}
+  if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();}
   if(t==='catalogue')renderCatalogue();
   if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
@@ -1136,8 +1144,20 @@ async function validerDotation(){
   const matricule=document.getElementById('d-matricule').value.trim();
   const motif=document.getElementById('d-motif').value.trim();
   if(type==='dotation'){
-    const err=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte});
-    if(err.length){showMsg('dotation-msg',err.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);return`Stock insuffisant : ${a?a.nom:l.ref} T.${l.taille} (dispo: ${getStock(l.ref,l.taille).qte})`}).join('<br>'),'err');return;}
+    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte});
+    if(manquants.length){
+      const listHtml=manquants.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);const s=getStock(l.ref,l.taille);return`<li style="margin:3px 0"><strong>${a?a.nom:l.ref}</strong> — Taille ${l.taille} <span style="color:#c53030">(stock: ${s.qte}, demandé: ${l.qte})</span></li>`;}).join('');
+      document.getElementById('dotation-msg').innerHTML=`<div class="msg err">
+        <div style="font-weight:600;margin-bottom:6px">⚠ Stock insuffisant pour ${manquants.length} article(s) :</div>
+        <ul style="margin:0 0 10px 16px;font-size:11px">${listHtml}</ul>
+        <div style="font-size:11px;color:#555;margin-bottom:8px">Souhaitez-vous valider les articles disponibles et mettre les articles manquants <strong>en attente</strong> ? Une alerte sera déclenchée dès que le stock sera reconstitué.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary small" onclick="_confirmerDotationPartielle()">✓ Valider + mettre en attente</button>
+          <button class="btn small" onclick="document.getElementById('dotation-msg').innerHTML=''">Annuler</button>
+        </div>
+      </div>`;
+      return;
+    }
   }
   const btn=document.getElementById('btn-valider');
   btn.disabled=true;btn.textContent='Enregistrement…';showMsg('dotation-msg','Enregistrement en cours…','info');
@@ -1182,6 +1202,50 @@ async function validerDotation(){
     updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
+  btn.disabled=false;btn.textContent='Valider et déduire du stock';
+}
+
+// Appelé depuis le bouton inline dans le message d'erreur
+async function _confirmerDotationPartielle(){
+  document.getElementById('dotation-msg').innerHTML='';
+  const nom=document.getElementById('d-nom').value.trim();
+  const prenom=document.getElementById('d-prenom').value.trim();
+  const type=document.getElementById('d-type').value;
+  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
+  const site=document.getElementById('d-site').value;
+  const matricule=document.getElementById('d-matricule').value.trim();
+  const motif=document.getElementById('d-motif').value.trim();
+  const btn=document.getElementById('btn-valider');
+  btn.disabled=true;btn.textContent='Enregistrement…';
+  showMsg('dotation-msg','Enregistrement en cours…','info');
+  try{
+    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
+    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
+    // Valider les articles disponibles
+    for(const line of dispos){
+      const s=getStock(line.ref,line.taille);
+      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
+      const art=CATALOGUE.find(x=>x.ref===line.ref);
+      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
+    }
+    // Enregistrer les articles manquants en attente
+    for(const line of manquants){
+      const art=CATALOGUE.find(x=>x.ref===line.ref);
+      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
+    }
+    // Mobilité / badges (toujours traités)
+    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
+    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
+    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
+    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
+    const msg=dispos.length>0
+      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
+      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
+    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
+  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
 }
 
@@ -1470,7 +1534,7 @@ function updateStockField(ref,taille,field,val){
   const s=getStock(ref,taille);s[field]=val;
   const k=ref+'__'+taille;
   clearTimeout(_saveTimer[k]);
-  _saveTimer[k]=setTimeout(()=>{saveStockRow(ref,taille,{[field]:val});updateAlerteBadge();renderStockStats()},800);
+  _saveTimer[k]=setTimeout(()=>{saveStockRow(ref,taille,{[field]:val});updateAlerteBadge();renderStockStats();renderAttentesAlertes();},800);
 }
 
 function entreeStock(ref,taille){
@@ -1480,7 +1544,7 @@ function entreeStock(ref,taille){
   if(v===null||v==='')return;
   const n=parseInt(v);
   if(isNaN(n)||n<=0){alert('Quantité invalide');return}
-  saveStockRow(ref,taille,{qte:s.qte+n}).then(()=>{renderStockStats();renderStock();updateAlerteBadge()});
+  saveStockRow(ref,taille,{qte:s.qte+n}).then(()=>{renderStockStats();renderStock();updateAlerteBadge();renderAttentesAlertes();});
 }
 
 // ─── HISTORIQUE EPI ───────────────────────────────────────────────────────────
@@ -1511,10 +1575,11 @@ function renderAlertes(){
     ?alertes.map(a=>`<div class="alert-item"><div style="font-size:16px">${a.qte===0?'🔴':'🟡'}</div><div style="flex:1"><div style="font-weight:600">${a.nom}</div><div style="font-size:11px;color:#666">Réf. ${a.ref} — Taille ${a.taille}</div></div><span class="badge ${a.qte===0?'red':'yellow'}">Stock: ${a.qte} / Seuil: ${a.seuil}</span></div>`).join('')
     :'<div class="empty">✓ Aucune alerte EPI — tout le stock est au-dessus des seuils.</div>';
   renderPapeterieAlertes();
+  renderAttentesAlertes();
 }
 
 function updateAlerteBadge(){
-  const n=getAlertes().length+getPEAlertes().length+getPapeterieAlertes().length;
+  const n=getAlertes().length+getPEAlertes().length+getPapeterieAlertes().length+getAttentesDisponibles().length;
   const btn=document.getElementById('btn-alertes');
   if(n>0){btn.setAttribute('data-count',n);btn.classList.add('alert-badge')}
   else{btn.removeAttribute('data-count');btn.classList.remove('alert-badge')}
@@ -2007,6 +2072,116 @@ function renderPapeterieAlertes(){
 // ═══════════════════════════════════════════════════════════════════════════════
 
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MODULE ATTENTES ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let attentesCache = [];
+
+async function loadAttentes(){
+  try{ attentesCache = (await ghRead('data/attentes.json') || []).filter(a=>a.statut==='en_attente'); }
+  catch(e){ attentesCache = []; }
+}
+
+async function saveAttentes(){
+  // Relire pour ne pas écraser d'autres entrées (ex: déjà envoyées)
+  try{
+    const all = await ghRead('data/attentes.json') || [];
+    // Mettre à jour les entrées existantes du cache
+    attentesCache.forEach(a=>{
+      const idx = all.findIndex(x=>x.id===a.id);
+      if(idx>=0) all[idx]=a; else all.unshift(a);
+    });
+    await ghWrite('data/attentes.json', all);
+  }catch(e){ console.error('saveAttentes:', e); throw e; }
+}
+
+async function ajouterAttente(data){
+  const entry = {
+    ...data,
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+    statut: 'en_attente',
+    createdAt: new Date().toISOString()
+  };
+  attentesCache.unshift(entry);
+  // Écrire directement dans le fichier
+  try{
+    const all = await ghRead('data/attentes.json') || [];
+    all.unshift(entry);
+    await ghWrite('data/attentes.json', all);
+  }catch(e){ console.error('ajouterAttente:', e); throw e; }
+}
+
+async function marquerAttenteEnvoyee(id){
+  try{
+    const all = await ghRead('data/attentes.json') || [];
+    const idx = all.findIndex(x=>x.id===id);
+    if(idx>=0){
+      all[idx].statut = 'envoye';
+      all[idx].date_envoi = new Date().toISOString().slice(0,10);
+      await ghWrite('data/attentes.json', all);
+    }
+    attentesCache = attentesCache.filter(x=>x.id!==id);
+    renderAttentesAlertes();
+    updateAlerteBadge();
+    showMsg('attentes-msg-'+id, '', 'ok'); // cleanup
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+// Retourne les attentes dont le stock est désormais suffisant
+function getAttentesDisponibles(){
+  return attentesCache.filter(a=>{
+    if(a.statut!=='en_attente') return false;
+    const s = getStock(a.ref, a.taille);
+    return s.qte >= a.qte;
+  });
+}
+
+// Retourne toutes les attentes en cours (stock insuffisant ou suffisant)
+function getToutesAttentes(){
+  return attentesCache.filter(a=>a.statut==='en_attente');
+}
+
+function renderAttentesAlertes(){
+  const el = document.getElementById('attentes-list');
+  if(!el) return;
+  const toutes = getToutesAttentes();
+  const dispos = getAttentesDisponibles();
+  if(!toutes.length){
+    el.innerHTML='<div class="empty">✓ Aucun article en attente de livraison</div>';
+    document.getElementById('card-attentes').style.borderColor='';
+    return;
+  }
+  // Surligner la carte si des articles sont disponibles
+  document.getElementById('card-attentes').style.borderColor = dispos.length>0?'#276749':'';
+
+  el.innerHTML = toutes.map(a=>{
+    const s = getStock(a.ref, a.taille);
+    const stockOk = s.qte >= a.qte;
+    const dateStr = a.date ? new Date(a.date+'T12:00:00').toLocaleDateString('fr-FR') : '—';
+    const createdStr = new Date(a.createdAt).toLocaleDateString('fr-FR');
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:${stockOk?'#f0fff4':'#f8f9fb'};border:1px solid ${stockOk?'#9ae6b4':'#dde'};border-radius:6px;margin-bottom:8px">
+      <div style="font-size:18px;flex-shrink:0;margin-top:2px">${stockOk?'🟢':'⏳'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12px">${a.designation||a.ref} — Taille ${a.taille} × ${a.qte}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">
+          👤 <strong>${a.prenom||''} ${a.nom||''}</strong>${a.matricule?' ('+a.matricule+')':''} — ${a.site||'—'}
+          &nbsp;·&nbsp; Dotation du ${dateStr}
+          &nbsp;·&nbsp; Mis en attente le ${createdStr}
+        </div>
+        ${stockOk
+          ? `<div style="font-size:11px;color:#276749;font-weight:600;margin-top:4px">✅ Stock disponible (${s.qte} en stock) — prêt à envoyer</div>`
+          : `<div style="font-size:11px;color:#c05621;margin-top:4px">Stock actuel : ${s.qte} / ${a.qte} nécessaire${s.qte>0?' — stock partiel':' — rupture'}</div>`
+        }
+      </div>
+      ${stockOk?`<button class="btn success small" style="flex-shrink:0" onclick="marquerAttenteEnvoyee('${a.id}')">✓ Envoyé</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.getElementById('header-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
@@ -2067,6 +2242,8 @@ async function initApp(){
     setSyncStatus('syncing','Chargement papeterie…');
     await loadPapeterieStock();
     await loadPapeterieMovements();
+    setSyncStatus('syncing','Chargement attentes…');
+    await loadAttentes();
     setSyncStatus('ok','Base synchronisée');
     renderStockStats();
     renderPapeterieStats();
@@ -2075,7 +2252,9 @@ async function initApp(){
     const n=getAlertes().length;
     const nPE=getPEAlertes().length;
     const nPap=getPapeterieAlertes().length;
+    const nAtt=getAttentesDisponibles().length;
     const banners=[];
+    if(nAtt>0) banners.push(`<div class="banner-alerte" style="background:#f0fff4;border-color:#9ae6b4"><div style="font-size:16px">⏳</div><div style="flex:1"><strong>${nAtt} article(s) en attente prêt(s) à envoyer</strong> — stock reconstitué</div><button class="btn success small" onclick="goTab('alertes',document.getElementById('btn-alertes'))">Voir</button></div>`);
     if(n>0) banners.push(`<div class="banner-alerte"><div style="font-size:16px">📬</div><div style="flex:1"><strong>${n} article(s) EPI en alerte stock</strong></div><button class="btn primary small" onclick="goTab('alertes',document.getElementById('btn-alertes'))">Voir les alertes</button></div>`);
     if(nPE>0) banners.push(`<div class="banner-alerte" style="background:#f0fff4;border-color:#9ae6b4"><div style="font-size:16px">🎓</div><div style="flex:1"><strong>${nPE} complément(s) EPI à envoyer</strong> — fin de période d'essai</div><button class="btn success small" onclick="goTab('alertes',document.getElementById('btn-alertes'))">Voir</button></div>`);
     if(nPap>0) banners.push(`<div class="banner-alerte papeterie"><div style="font-size:16px">📄</div><div style="flex:1"><strong>${nPap} article(s) papeterie en alerte stock</strong></div><button class="btn primary small" onclick="goTab('papeterie',document.getElementById('btn-papeterie'))">Voir papeterie</button></div>`);

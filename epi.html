@@ -1200,8 +1200,13 @@ async function validerDotation(){
   const nom=document.getElementById('d-nom').value.trim();
   const prenom=document.getElementById('d-prenom').value.trim();
   if(!nom){showMsg('dotation-msg','Saisissez le nom du collaborateur.','err');return}
-  if(!epiLines.length){showMsg('dotation-msg','Aucun EPI ajouté.','err');return}
-  if(epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
+  // Au moins un élément renseigné (EPI, téléphone, tablette ou badge)
+  const aBadge=badgeLines.some(l=>l.deviceId);
+  const aTel=telLines.some(l=>l.deviceId);
+  const aTab=tabLines.some(l=>l.deviceId);
+  const aEpi=epiLines.length>0;
+  if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
+  if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
   const type=document.getElementById('d-type').value;
   const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
   const site=document.getElementById('d-site').value;

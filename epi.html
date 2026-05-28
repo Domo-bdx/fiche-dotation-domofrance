@@ -663,6 +663,40 @@ Pôle Facilities — Domofrance</textarea>
     </div>
     <div id="sync-msg"></div>
   </div>
+
+  <div class="card">
+    <h3>🪪 Import badges Intratone — Aquitanis Libourne</h3>
+    <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.6">
+      Ajoute les <strong>15 badges Intratone Aquitanis Libourne</strong> dans le stock mobilité (statut : Disponible).<br>
+      Les badges déjà présents (même numéro) ne seront pas dupliqués.
+    </div>
+    <div class="tbl-wrap" style="margin-bottom:10px">
+      <table style="font-size:11px">
+        <thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>23007546</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007518</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007526</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007542</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007532</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007548</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007534</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007516</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007538</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007536</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007528</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007544</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>23007524</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>810362267</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+          <tr><td>810362263</td><td>Accès</td><td>Intratone — Aquitanis Libourne</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="importerBadgesIntratone()">⬆ Importer les 15 badges dans le stock</button>
+    </div>
+    <div id="import-badges-msg"></div>
+  </div>
 </div>
 
 </div><!-- end content -->
@@ -2193,6 +2227,55 @@ buildCatFilter('cat-filter-stock',activeStockCat,'setStockCat');
 buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
 
 setSyncStatus('syncing','Connexion…');
+
+// ─── IMPORT BADGES INTRATONE AQUITANIS ───────────────────────────────────────
+const BADGES_INTRATONE_AQUITANIS = [
+  {numero:'23007546'},{numero:'23007518'},{numero:'23007526'},{numero:'23007542'},
+  {numero:'23007532'},{numero:'23007548'},{numero:'23007534'},{numero:'23007516'},
+  {numero:'23007538'},{numero:'23007536'},{numero:'23007528'},{numero:'23007544'},
+  {numero:'23007524'},{numero:'810362267'},{numero:'810362263'}
+];
+
+async function importerBadgesIntratone(){
+  const btn = document.querySelector('[onclick="importerBadgesIntratone()"]');
+  btn.disabled = true; btn.textContent = 'Import en cours…';
+  showMsg('import-badges-msg','Lecture du stock badges…','info');
+  try{
+    const existing = await readData('mob_badges');
+    const existingNums = new Set(existing.map(b=>String(b.numero)));
+    const toAdd = BADGES_INTRATONE_AQUITANIS.filter(b=>!existingNums.has(String(b.numero)));
+
+    if(!toAdd.length){
+      showMsg('import-badges-msg','✓ Tous les badges sont déjà présents dans le stock — aucun doublon ajouté.','ok');
+      btn.disabled=false; btn.textContent='⬆ Importer les 15 badges dans le stock';
+      return;
+    }
+
+    const newEntries = toAdd.map(b=>({
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+      numero: b.numero,
+      type_badge: 'acces',
+      statut: 'disponible',
+      notes: 'Intratone — Aquitanis Libourne',
+      createdAt: new Date().toISOString()
+    }));
+
+    const updated = [...newEntries, ...existing];
+    await writeData('mob_badges', updated);
+    mobCache.badge = updated;
+
+    const skipped = BADGES_INTRATONE_AQUITANIS.length - toAdd.length;
+    showMsg('import-badges-msg',
+      `✅ ${toAdd.length} badge(s) importé(s) avec succès.${skipped>0?' '+skipped+' badge(s) ignoré(s) (déjà présent).':''}`,
+      'ok');
+    renderMobStats();
+    renderMobBadge();
+  }catch(e){
+    showMsg('import-badges-msg','Erreur : '+e.message,'err');
+  }
+  btn.disabled=false; btn.textContent='⬆ Importer les 15 badges dans le stock';
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function saveGhToken(){
   const t=document.getElementById('cfg-gh-token').value.trim();

@@ -980,7 +980,7 @@ function goTab(t,btn){
 
 // ─── DOTATION ─────────────────────────────────────────────────────────────────
 function addBadgeLine(){
-  badgeLines.push({id:Date.now()+'bg',deviceId:''});
+  badgeLines.push({id:Date.now()+'bg',deviceId:'',search:''});
   renderBadgeLines();
 }
 function removeBadgeLine(id){badgeLines=badgeLines.filter(x=>x.id!==id);renderBadgeLines()}
@@ -998,23 +998,31 @@ function renderBadgeLines(){
   const typeLabel={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};
   c.innerHTML=badgeLines.map(l=>{
     const sel=mobCache.badge.find(x=>x.id===l.deviceId);
-    const pool=type==='restitution'?attribues:dispos;
-    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>N° ${d.numero||'?'} — ${typeLabel[d.type_badge]||d.type_badge||'?'}</option>`).join('');
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>N° ${d.numero||'?'} — ${typeLabel[d.type_badge]||d.type_badge||'?'} ${d.notes?'('+d.notes+')':''}</option>`).join('');
     const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">🪪 Badge N° ${sel.numero||'—'} — ${typeLabel[sel.type_badge]||sel.type_badge||'—'}</div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
     return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
-        <div><label>Sélectionner un badge ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner un badge ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher N° badge, type, notes…" value="${l.search||''}"
+            oninput="searchMobLine('badge','${l.id}',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
           <select onchange="updateBadgeLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
-          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun badge ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} badge${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun badge ${type==='restitution'?'attribué':'disponible'}</div>`:''}
         </div>
-        <button class="btn danger small" onclick="removeBadgeLine('${l.id}')" style="margin-top:18px">✕</button>
+        <button class="btn danger small" onclick="removeBadgeLine('${l.id}')" style="margin-top:20px">✕</button>
       </div>${info}
     </div>`;
   }).join('');
 }
 
-function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:''});renderTelLines();}
-function addTabLine(){tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:''});renderTabLines();}
+function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:'',search:''});renderTelLines();}
+function addTabLine(){tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:'',search:''});renderTabLines();}
 function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
 function removeTabLine(id){tabLines=tabLines.filter(x=>x.id!==id);renderTabLines()}
 function updateTelLine(id,field,val){
@@ -1038,7 +1046,9 @@ function renderTelLines(){
   const attribues=mobCache.tel.filter(x=>x.statut==='attribue');
   c.innerHTML=telLines.map(l=>{
     const sel=mobCache.tel.find(x=>x.id===l.deviceId);
-    const pool=type==='restitution'?attribues:dispos;
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
     const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
     const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📱 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
     const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
@@ -1046,13 +1056,19 @@ function renderTelLines(){
       <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTelLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
       <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTelLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
     </div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
     return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
-        <div><label>Sélectionner un téléphone ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner un téléphone ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher marque, modèle, IMEI, collaborateur…" value="${l.search||''}"
+            oninput="searchMobLine('tel','${l.id}',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
           <select onchange="updateTelLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
-          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} appareil${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
         </div>
-        <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:18px">✕</button>
+        <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:20px">✕</button>
       </div>${info}${codeFields}
     </div>`;
   }).join('');
@@ -1066,7 +1082,9 @@ function renderTabLines(){
   const attribues=mobCache.tab.filter(x=>x.statut==='attribue');
   c.innerHTML=tabLines.map(l=>{
     const sel=mobCache.tab.find(x=>x.id===l.deviceId);
-    const pool=type==='restitution'?attribues:dispos;
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
     const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.nom||''} — ${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
     const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📟 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
     const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
@@ -1074,13 +1092,19 @@ function renderTabLines(){
       <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTabLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
       <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTabLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
     </div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
     return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
-        <div><label>Sélectionner une tablette ${type==='restitution'?'(attribuées)':'(disponibles)'}</label>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner une tablette ${type==='restitution'?'(attribuées)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher marque, modèle, IMEI, utilisateur…" value="${l.search||''}"
+            oninput="searchMobLine('tab','${l.id}',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
           <select onchange="updateTabLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
-          ${pool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} tablette${nbMatch>1?'s':''} trouvée${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
         </div>
-        <button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:18px">✕</button>
+        <button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:20px">✕</button>
       </div>${info}${codeFields}
     </div>`;
   }).join('');
@@ -1160,7 +1184,7 @@ function appliquerPack(nom){
 }
 
 function addEpiLine(prefillRef){
-  epiLines.push({id:Date.now()+'_'+Math.random(),ref:prefillRef||'',taille:'',qte:1});
+  epiLines.push({id:Date.now()+'_'+Math.random(),ref:prefillRef||'',taille:'',qte:1,search:''});
   renderEpiLines();
 }
 
@@ -1172,12 +1196,26 @@ function renderEpiLines(){
     const tailles=art?art.tailles:[];
     const s=line.ref&&line.taille?getStock(line.ref,line.taille):null;
     const badge=s?`<span class="badge ${s.qte<=0?'red':s.qte<=s.seuil?'yellow':'green'}" style="margin-left:4px">Stock: ${s.qte}</span>`:'';
+    const q=(line.search||'').toLowerCase();
+    const filteredOpts=CATS.map(cat=>{
+      const items=CATALOGUE.filter(x=>x.cat===cat&&(!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)||cat.toLowerCase().includes(q)));
+      if(!items.length)return '';
+      return `<optgroup label="${cat}">${items.map(x=>`<option value="${x.ref}" ${x.ref===line.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`;
+    }).join('');
+    const countMatch=CATALOGUE.filter(x=>!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)).length;
     return `<div class="epi-line">
-      <div><label>Article</label>
-        <select onchange="updateLine('${line.id}','ref',this.value)">
+      <div>
+        <label>Article</label>
+        <input type="text" placeholder="🔍 Rechercher un article…" value="${line.search||''}"
+          oninput="searchEpiLine('${line.id}',this.value)"
+          style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff"
+          autocomplete="off">
+        <select id="epi-sel-${line.id}" onchange="updateLine('${line.id}','ref',this.value)">
           <option value="">— Choisir —</option>
-          ${CATS.map(cat=>`<optgroup label="${cat}">${CATALOGUE.filter(x=>x.cat===cat).map(x=>`<option value="${x.ref}" ${x.ref===line.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`).join('')}
+          ${filteredOpts}
         </select>
+        ${q&&countMatch===0?`<div style="font-size:11px;color:#c53030;margin-top:3px">Aucun article trouvé pour "${line.search}"</div>`:''}
+        ${q&&countMatch>0?`<div style="font-size:10px;color:#555;margin-top:3px">${countMatch} article${countMatch>1?'s':''} trouvé${countMatch>1?'s':''}</div>`:''}
       </div>
       <div><label>Taille ${badge}</label>
         <select onchange="updateLine('${line.id}','taille',this.value)">
@@ -1190,6 +1228,57 @@ function renderEpiLines(){
       <div><button class="btn danger small" onclick="removeLine('${line.id}')" style="margin-top:18px">✕</button></div>
     </div>`;
   }).join('');
+}
+
+function searchEpiLine(id, val){
+  const l=epiLines.find(x=>x.id===id);if(!l)return;
+  l.search=val;
+  // Rebuild only the select options (no full re-render → no focus loss)
+  const sel=document.getElementById('epi-sel-'+id);
+  if(!sel)return;
+  const q=val.toLowerCase();
+  const filteredOpts=CATS.map(cat=>{
+    const items=CATALOGUE.filter(x=>x.cat===cat&&(!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)||cat.toLowerCase().includes(q)));
+    if(!items.length)return '';
+    return `<optgroup label="${cat}">${items.map(x=>`<option value="${x.ref}" ${x.ref===l.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`;
+  }).join('');
+  sel.innerHTML=`<option value="">— Choisir —</option>${filteredOpts}`;
+  // Feedback sous le champ
+  const countMatch=CATALOGUE.filter(x=>!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)).length;
+  const hint=sel.nextElementSibling;
+  if(hint&&hint.tagName!=='SELECT'){
+    if(q&&countMatch===0)hint.textContent=`Aucun article trouvé pour "${val}"`;
+    else if(q&&countMatch>0)hint.textContent=`${countMatch} article${countMatch>1?'s':''} trouvé${countMatch>1?'s':''}`;
+    else hint.textContent='';
+  }
+}
+
+function searchMobLine(type, id, val){
+  // Met à jour le champ search et refiltre le select sans re-render complet
+  let lines, renderFn, selLookup;
+  if(type==='tel'){
+    lines=telLines; renderFn=renderTelLines;
+    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  } else if(type==='tab'){
+    lines=tabLines; renderFn=renderTabLines;
+    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  } else {
+    lines=badgeLines; renderFn=renderBadgeLines;
+    const tl={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};
+    selLookup=(pool,q)=>pool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
+  }
+  const l=lines.find(x=>x.id===id);
+  if(!l)return;
+  l.search=val;
+  // Re-render complet pour le type (focus sur l'input de recherche, pas sur le select)
+  renderFn();
+  // Redonner le focus sur le bon champ de recherche après re-render
+  const inputs=document.querySelectorAll(`input[oninput*="searchMobLine('${type}','${id}"]`);
+  if(inputs.length){
+    const inp=inputs[0];
+    inp.focus();
+    inp.setSelectionRange(val.length,val.length);
+  }
 }
 
 function updateLine(id,field,val){const l=epiLines.find(x=>x.id===id);if(!l)return;l[field]=val;if(field==='ref')l.taille='';renderEpiLines();}
@@ -1449,8 +1538,6 @@ function genererBon(){
 
   document.getElementById('bon-container').style.display='block';
   document.getElementById('bon-container').scrollIntoView({behavior:'smooth'});
-}
-
 }
 
 // Appelé depuis le bouton inline dans le message d'erreur

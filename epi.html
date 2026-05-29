@@ -94,7 +94,7 @@ tr:hover td{background:#f8f9fb}
 .tel-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 .tab-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
 .rec-line{display:grid;grid-template-columns:2fr 1fr 70px auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
-.mob-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.mob-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px}
 /* ── PAPETERIE ── */
 .pap-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
 .pap-stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:12px;text-align:center;transition:border-color .2s}
@@ -353,6 +353,7 @@ tr:hover td{background:#f8f9fb}
           <option value="">Tous les types</option>
           <option value="acces">Accès</option>
           <option value="watchdoc">WatchDoc</option>
+          <option value="alarme">Alarme</option>
           <option value="autre">Autre</option>
         </select>
         <select id="mob-badge-filter-statut" onchange="renderMobBadge()" style="width:160px">
@@ -390,6 +391,7 @@ tr:hover td{background:#f8f9fb}
           <select id="mob-f-type-badge">
             <option value="acces">Accès</option>
             <option value="watchdoc">WatchDoc</option>
+            <option value="alarme">Alarme</option>
             <option value="autre">Autre</option>
           </select>
         </div>
@@ -1057,7 +1059,7 @@ function renderBadgeLines(){
   const type=document.getElementById('d-type').value;
   const dispos=mobCache.badge.filter(x=>x.statut==='disponible');
   const attribues=mobCache.badge.filter(x=>x.statut==='attribue');
-  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};
+  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Alarme',autre:'Autre'};
   c.innerHTML=badgeLines.map(l=>{
     const sel=mobCache.badge.find(x=>x.id===l.deviceId);
     const basePool=type==='restitution'?attribues:dispos;
@@ -1532,7 +1534,7 @@ function genererBon(){
   // ── Badges ───────────────────────────────────────────────────────────────────
   const badgesOk = badgeLines.filter(l=>l.deviceId);
   const hasBadge = badgesOk.length > 0;
-  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};
+  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Alarme',autre:'Autre'};
   const badgeSection = !hasBadge ? '' : `
     <div class="bon-section-title">🪪 Badges attribués</div>
     <table class="bon-data-table">
@@ -1779,16 +1781,50 @@ function setMobSub(sub,btn){
   document.getElementById('mob-form-card').style.display='none';
 }
 
+function getBadgeCat(b){
+  const notes=(b.notes||'').toLowerCase();
+  const type=b.type_badge||'';
+  if(notes.includes('libourne')||notes.includes('aquitanis'))return'libourne';
+  if(notes.includes('siège')||notes.includes('siege'))return'siege';
+  if(type==='alarme'||notes.includes('alarme'))return'alarme';
+  if(type==='watchdoc')return'watchdoc';
+  return'autre';
+}
+
 function renderMobStats(){
   const tels=mobCache.tel,tabs=mobCache.tab,badges=mobCache.badge;
-  const telAtt=tels.filter(x=>x.statut==='attribue').length,tabAtt=tabs.filter(x=>x.statut==='attribue').length,badgeAtt=badges.filter(x=>x.statut==='attribue').length;
+  const telAtt=tels.filter(x=>x.statut==='attribue').length;
+  const tabAtt=tabs.filter(x=>x.statut==='attribue').length;
+  const badgeAtt=badges.filter(x=>x.statut==='attribue').length;
+
+  // Compteurs par catégorie badge
+  const cats={libourne:0,siege:0,watchdoc:0,alarme:0,autre:0};
+  const catsAtt={libourne:0,siege:0,watchdoc:0,alarme:0,autre:0};
+  badges.forEach(b=>{
+    const c=getBadgeCat(b);
+    cats[c]++;
+    if(b.statut==='attribue')catsAtt[c]++;
+  });
+
+  const badgeStat=(label,icon,cat,color)=>{
+    const total=cats[cat], att=catsAtt[cat], dispo=total-att;
+    return `<div class="stat" style="border-left:3px solid ${color}">
+      <div style="font-size:14px;margin-bottom:2px">${icon}</div>
+      <div class="stat-n" style="font-size:18px">${total}</div>
+      <div class="stat-l">${label}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
+    </div>`;
+  };
+
   document.getElementById('mob-stats-bar').innerHTML=`
-    <div class="stat"><div class="stat-n">${tels.length}</div><div class="stat-l">Téléphones total</div></div>
-    <div class="stat"><div class="stat-n" style="color:#c05621">${telAtt}</div><div class="stat-l">Téléphones attribués</div></div>
-    <div class="stat"><div class="stat-n">${tabs.length}</div><div class="stat-l">Tablettes total</div></div>
-    <div class="stat"><div class="stat-n" style="color:#c05621">${tabAtt}</div><div class="stat-l">Tablettes attribuées</div></div>
-    <div class="stat"><div class="stat-n">${badges.length}</div><div class="stat-l">Badges total</div></div>
-    <div class="stat"><div class="stat-n" style="color:#c05621">${badgeAtt}</div><div class="stat-l">Badges attribués</div></div>`;
+    <div class="stat"><div class="stat-n">${tels.length}</div><div class="stat-l">Téléphones</div><div style="font-size:10px;color:#888;margin-top:2px">${tels.length-telAtt} dispo · <span style="color:#c05621">${telAtt} attrib.</span></div></div>
+    <div class="stat"><div class="stat-n">${tabs.length}</div><div class="stat-l">Tablettes</div><div style="font-size:10px;color:#888;margin-top:2px">${tabs.length-tabAtt} dispo · <span style="color:#c05621">${tabAtt} attrib.</span></div></div>
+    <div class="stat" style="border-left:3px solid #1a3a5c"><div class="stat-n" style="font-size:18px">${badges.length}</div><div class="stat-l">Badges total</div><div style="font-size:10px;color:#888;margin-top:2px">${badges.length-badgeAtt} dispo · <span style="color:#c05621">${badgeAtt} attrib.</span></div></div>
+    ${badgeStat('Libourne','🏠','libourne','#276749')}
+    ${badgeStat('Siège','🏢','siege','#1a3a5c')}
+    ${badgeStat('WatchDoc','🖨','watchdoc','#6b21a8')}
+    ${badgeStat('Alarme','🚨','alarme','#c53030')}
+    ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
 }
 
 function statutBadge(s){
@@ -1819,10 +1855,10 @@ function renderMobBadge(){
   const q=(document.getElementById('mob-badge-search')?.value||'').toLowerCase();
   const ft=document.getElementById('mob-badge-filter-type')?.value||'';
   const fs=document.getElementById('mob-badge-filter-statut')?.value||'';
-  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};
+  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Alarme',autre:'Autre'};
   let rows=mobCache.badge.filter(d=>(!ft||d.type_badge===ft)&&(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
   document.getElementById('mob-badge-body').innerHTML=rows.length
-    ?rows.map(d=>`<tr><td><strong>${d.numero||'—'}</strong></td><td><span class="badge ${d.type_badge==='watchdoc'?'blue':d.type_badge==='acces'?'green':'gray'}">${typeLabel[d.type_badge]||d.type_badge||'—'}</span></td><td>${statutBadge(d.statut||'disponible')}</td><td style="font-size:11px;color:#666">${d.notes||'—'}</td><td style="white-space:nowrap"><button class="btn small" onclick="editMobDevice('badge','${d.id}')">✏</button><button class="btn small danger" onclick="deleteMobDevice('badge','${d.id}')">✕</button></td></tr>`).join('')
+    ?rows.map(d=>`<tr><td><strong>${d.numero||'—'}</strong></td><td><span class="badge ${d.type_badge==='watchdoc'?'blue':d.type_badge==='acces'?'green':d.type_badge==='alarme'?'red':'gray'}">${typeLabel[d.type_badge]||d.type_badge||'—'}</span></td><td>${statutBadge(d.statut||'disponible')}</td><td style="font-size:11px;color:#666">${d.notes||'—'}</td><td style="white-space:nowrap"><button class="btn small" onclick="editMobDevice('badge','${d.id}')">✏</button><button class="btn small danger" onclick="deleteMobDevice('badge','${d.id}')">✕</button></td></tr>`).join('')
     :'<tr><td colspan="5" class="empty">Aucun badge enregistré</td></tr>';
 }
 

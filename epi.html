@@ -577,8 +577,8 @@ tr:hover td{background:#f8f9fb}
     <div id="pap-alertes-list"><div class="empty">✓ Aucune alerte papeterie</div></div>
   </div>
 
-  <div class="card" id="card-mail-alerte" style="display:none">
-    <h3>Récapitulatif commande EPI — aperçu du mail</h3>
+  <div class="card" id="card-mail-alerte">
+    <h3>📧 Récapitulatif commande — EPI &amp; Papeterie</h3>
     <div style="margin-bottom:8px;font-size:11px;color:#555" id="mail-to-preview"></div>
     <div id="mail-body-preview" class="mail-preview"></div>
     <div class="btn-row" style="margin-top:10px">
@@ -1034,7 +1034,7 @@ function goTab(t,btn){
   if(btn)btn.classList.add('active');
   if(t==='stock'){renderStockStats();renderStock()}
   if(t==='historique'){loadAllMouvements().then(renderHistorique)}
-  if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();}
+  if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();buildMailPreview(getAlertes());}
   if(t==='catalogue')renderCatalogue();
   if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
@@ -1822,7 +1822,6 @@ function renderMobStats(){
     <div class="stat" style="border-left:3px solid #1a3a5c"><div class="stat-n" style="font-size:18px">${badges.length}</div><div class="stat-l">Badges total</div><div style="font-size:10px;color:#888;margin-top:2px">${badges.length-badgeAtt} dispo · <span style="color:#c05621">${badgeAtt} attrib.</span></div></div>
     ${badgeStat('Libourne','🏠','libourne','#276749')}
     ${badgeStat('Siège','🏢','siege','#1a3a5c')}
-    ${badgeStat('WatchDoc','🖨','watchdoc','#6b21a8')}
     ${badgeStat('Alarme','🚨','alarme','#c53030')}
     ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
 }
@@ -2001,9 +2000,8 @@ function getAlertes(){
 
 function renderAlertes(){
   const alertes=getAlertes();
-  const cardMail=document.getElementById('card-mail-alerte');
-  if(alertes.length){cardMail.style.display='block';buildMailPreview(alertes)}
-  else cardMail.style.display='none';
+  // Toujours afficher la carte mail (prévisualisation et envoi)
+  buildMailPreview(alertes);
   document.getElementById('alertes-list').innerHTML=alertes.length
     ?alertes.map(a=>`<div class="alert-item"><div style="font-size:16px">${a.qte===0?'🔴':'🟡'}</div><div style="flex:1"><div style="font-weight:600">${a.nom}</div><div style="font-size:11px;color:#666">Réf. ${a.ref} — Taille ${a.taille}</div></div><span class="badge ${a.qte===0?'red':'yellow'}">Stock: ${a.qte} / Seuil: ${a.seuil}</span></div>`).join('')
     :'<div class="empty">✓ Aucune alerte EPI — tout le stock est au-dessus des seuils.</div>';
@@ -2018,31 +2016,69 @@ function updateAlerteBadge(){
   else{btn.removeAttribute('data-count');btn.classList.remove('alert-badge')}
 }
 
-function buildMailPreview(alertes){
+function buildMailPreview(alertesEpi){
   const cfg=loadConfig();
   const date=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const sujet=cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities';
-  const intro=cfg.intro||'Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif des EPI dont le stock est passé sous le seuil d\'alerte.';
   const sign=cfg.signature||'Cordialement,\nPôle Facilities — Domofrance';
-  const byCat={};alertes.forEach(a=>{if(!byCat[a.cat])byCat[a.cat]=[];byCat[a.cat].push(a)});
-  let lignes=`RÉCAPITULATIF STOCK EPI — ${date}\n${'─'.repeat(52)}\n\n`;
-  Object.entries(byCat).forEach(([cat,items])=>{
-    lignes+=`${cat.toUpperCase()}\n`;
-    items.forEach(a=>{lignes+=`  • ${a.ref} — ${a.nom}\n    Taille ${a.taille} | Stock: ${a.qte} | Seuil: ${a.seuil} | ${a.qte===0?'⚠ RUPTURE':'↘ Stock bas'}\n`});
-    lignes+='\n';
-  });
-  lignes+=`${'─'.repeat(52)}\nNombre d'articles concernés : ${alertes.length}`;
-  const corps=`${intro}\n\n${lignes}\n\n${sign}`;
+  const intro=cfg.intro||'Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif des articles dont le stock est passé sous le seuil d\'alerte.';
+
+  const alertesPap = getPapeterieAlertes();
+  const hasEpi = alertesEpi&&alertesEpi.length>0;
+  const hasPap = alertesPap&&alertesPap.length>0;
+
+  if(!hasEpi&&!hasPap){
+    document.getElementById('mail-body-preview').textContent='✓ Aucune alerte EPI ni papeterie — aucun mail à envoyer pour le moment.';
+    document.getElementById('mail-to-preview').innerHTML='';
+    window._mailCorps='';
+    window._mailSujet=cfg.sujet||'ALERTE STOCK — Domofrance Pôle Facilities';
+    return;
+  }
+
+  const sujet = hasEpi&&hasPap
+    ? 'ALERTE STOCK EPI & PAPETERIE — Domofrance Pôle Facilities'
+    : hasEpi
+      ? (cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities')
+      : 'ALERTE STOCK PAPETERIE — Domofrance Pôle Facilities';
+
+  let corps = intro + '\n\n';
+
+  // ── Section EPI ──────────────────────────────────────────────────────────────
+  if(hasEpi){
+    const byCat={};alertesEpi.forEach(a=>{if(!byCat[a.cat])byCat[a.cat]=[];byCat[a.cat].push(a)});
+    corps+=`ÉQUIPEMENTS DE PROTECTION INDIVIDUELLE (EPI)\n${'─'.repeat(52)}\n`;
+    Object.entries(byCat).forEach(([cat,items])=>{
+      corps+=`\n${cat.toUpperCase()}\n`;
+      items.forEach(a=>{corps+=`  • ${a.ref} — ${a.nom}\n    Taille ${a.taille} | Stock: ${a.qte} | Seuil: ${a.seuil} | ${a.qte===0?'⚠ RUPTURE':'↘ Stock bas'}\n`});
+    });
+    corps+=`\nNombre d'articles EPI concernés : ${alertesEpi.length}\n`;
+  }
+
+  // ── Section Papeterie ─────────────────────────────────────────────────────────
+  if(hasPap){
+    if(hasEpi) corps+='\n';
+    corps+=`PAPETERIE\n${'─'.repeat(52)}\n`;
+    alertesPap.forEach(a=>{
+      const s=getPapeterieStock(a.id);
+      corps+=`  • ${a.designation}\n    Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} | Seuil: ${s.seuil} | ${s.stock_cartons===0?'⚠ RUPTURE':'↘ Stock bas'}\n`;
+    });
+    corps+=`\nNombre d'articles papeterie concernés : ${alertesPap.length}\n`;
+  }
+
+  corps += `\n${'─'.repeat(52)}\nRécapitulatif généré le ${date}\n\n${sign}`;
+
   document.getElementById('mail-body-preview').textContent=corps;
   const ccParts=[cfg.cc,cfg.rg].filter(Boolean);
   document.getElementById('mail-to-preview').innerHTML=`<strong>À :</strong> ${cfg.moi||'[Non configuré]'}${ccParts.length?' &nbsp;|&nbsp; <strong>Cc :</strong> '+ccParts.join(', '):''}`;
-  window._mailCorps=corps;window._mailSujet=sujet;
+  window._mailCorps=corps;
+  window._mailSujet=sujet;
 }
 
 function ouvrirMailAlerte(){
-  const cfg=loadConfig();const alertes=getAlertes();
-  if(!alertes.length){showMsg('mail-msg','Aucune alerte.','ok');return}
-  buildMailPreview(alertes);
+  const cfg=loadConfig();
+  const alertesEpi=getAlertes();
+  const alertesPap=getPapeterieAlertes();
+  if(!alertesEpi.length&&!alertesPap.length){showMsg('mail-msg','✓ Aucune alerte EPI ni papeterie en ce moment.','ok');return}
+  buildMailPreview(alertesEpi);
   navigator.clipboard.writeText(window._mailCorps||'').catch(()=>{});
   _openOutlook(cfg,window._mailSujet);
   showMsg('mail-msg','✓ Texte copié — Outlook s\'ouvre, collez avec Ctrl+V.','ok');

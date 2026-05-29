@@ -152,7 +152,7 @@ tr:hover td{background:#f8f9fb}
     <div class="form-row-3">
       <div><label>Nom</label><input type="text" id="d-nom" placeholder="NOM"></div>
       <div><label>Prénom</label><input type="text" id="d-prenom" placeholder="Prénom"></div>
-      <div><label>Matricule</label><input type="text" id="d-matricule" placeholder="ex: ept"></div>
+      <div><label>Identifiant</label><input type="text" id="d-matricule" placeholder="ex: jdupont"></div>
     </div>
     <div class="form-row">
       <div><label>Site / Agence</label>
@@ -1503,7 +1503,7 @@ function genererBon(){
       <div style="font-size:10px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Informations collaborateur</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:12px">
         <div><span style="color:#888;font-size:10px">Nom / Prénom</span><br><strong>${nom.toUpperCase()} ${prenom}</strong></div>
-        ${matricule?`<div><span style="color:#888;font-size:10px">Matricule</span><br>${matricule}</div>`:'<div></div>'}
+        ${matricule?`<div><span style="color:#888;font-size:10px">Identifiant</span><br>${matricule}</div>`:'<div></div>'}
         <div><span style="color:#888;font-size:10px">Site / Agence</span><br>${site||'—'}</div>
         ${motif?`<div><span style="color:#888;font-size:10px">Motif</span><br>${motif}</div>`:'<div></div>'}
       </div>
@@ -1605,7 +1605,7 @@ function genererBon(){
   </div>
   <table class="bon-table"><tr><th colspan="2">Informations collaborateur</th></tr>
     <tr><td style="width:40%;color:#666">Nom / Prénom</td><td><strong>${nom.toUpperCase()} ${prenom}</strong></td></tr>
-    <tr><td style="color:#666">Matricule</td><td>${matricule||'—'}</td></tr>
+    <tr><td style="color:#666">Identifiant</td><td>${matricule||'—'}</td></tr>
     <tr><td style="color:#666">Site / Agence</td><td>${site||'—'}</td></tr>
     ${motif?`<tr><td style="color:#666">Motif</td><td>${motif}</td></tr>`:''}
   </table>
@@ -2699,6 +2699,29 @@ async function initApp(){
   }
 }
 initApp();
+</script>
+
+<!-- Bouton retour en haut -->
+<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
+
+<style>
+#btn-top{
+  position:fixed;bottom:24px;right:24px;
+  width:42px;height:42px;border-radius:50%;
+  background:#1a3a5c;color:#fff;border:none;
+  font-size:20px;font-weight:700;cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
+  opacity:0;transition:opacity .25s;
+  z-index:999;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+#btn-top:hover{background:#2a4f7a;}
+#btn-top.visible{opacity:1;}
+</style>
+<script>
+window.addEventListener('scroll',function(){
+  document.getElementById('btn-top').classList.toggle('visible', window.scrollY > 300);
+});
 </script>
 </body>
 </html>

@@ -1756,13 +1756,20 @@ ${!hasEpi&&!hasTel&&!hasTab&&!hasBadge?'<p style="color:#888;text-align:center;p
   };
   try{
     localStorage.setItem('domo_bon_data', JSON.stringify(bonData));
-    var bonWin = window.open('bon_dotation.html', '_blank');
-    if(bonWin){
-      // Succès — la page bon_dotation.html lira les données depuis localStorage
-      return; // Ne pas afficher l'overlay, la page dédiée s'en charge
-    }
+    // Afficher un bouton lien direct (jamais bloqué car c'est l'utilisateur qui clique)
+    document.getElementById('bon-overlay-content').innerHTML =
+      '<div style="text-align:center;padding:40px 20px">'
+      + '<div style="font-size:48px;margin-bottom:16px">✅</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#1a3a5c;margin-bottom:8px">Bon prêt !</div>'
+      + '<div style="font-size:13px;color:#555;margin-bottom:24px">Cliquez sur le bouton ci-dessous pour ouvrir le bon dans une nouvelle page propre.</div>'
+      + '<a href="bon_dotation.html" target="_blank" '
+      + 'style="display:inline-block;background:#1a3a5c;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none">🖨 Ouvrir le bon de dotation</a>'
+      + '<div style="font-size:11px;color:#888;margin-top:16px">La page s\'ouvrira dans un nouvel onglet — utilisez Ctrl+P depuis cet onglet pour imprimer.</div>'
+      + '</div>';
+    document.getElementById('bon-overlay').classList.add('open');
+    return;
   }catch(e){ /* fallback sur overlay */ }
-  // === FALLBACK : overlay si window.open bloqué ===
+  // === FALLBACK : overlay si localStorage non disponible ===
 
   // Afficher la prévisualisation dans l'overlay
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
@@ -2099,13 +2106,20 @@ ${!hasEpi&&!hasTel&&!hasTab&&!hasBadge?'<p style="color:#888;text-align:center;p
   };
   try{
     localStorage.setItem('domo_bon_data', JSON.stringify(bonData));
-    var bonWin = window.open('bon_dotation.html', '_blank');
-    if(bonWin){
-      // Succès — la page bon_dotation.html lira les données depuis localStorage
-      return; // Ne pas afficher l'overlay, la page dédiée s'en charge
-    }
+    // Afficher un bouton lien direct (jamais bloqué car c'est l'utilisateur qui clique)
+    document.getElementById('bon-overlay-content').innerHTML =
+      '<div style="text-align:center;padding:40px 20px">'
+      + '<div style="font-size:48px;margin-bottom:16px">✅</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#1a3a5c;margin-bottom:8px">Bon prêt !</div>'
+      + '<div style="font-size:13px;color:#555;margin-bottom:24px">Cliquez sur le bouton ci-dessous pour ouvrir le bon dans une nouvelle page propre.</div>'
+      + '<a href="bon_dotation.html" target="_blank" '
+      + 'style="display:inline-block;background:#1a3a5c;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none">🖨 Ouvrir le bon de dotation</a>'
+      + '<div style="font-size:11px;color:#888;margin-top:16px">La page s\'ouvrira dans un nouvel onglet — utilisez Ctrl+P depuis cet onglet pour imprimer.</div>'
+      + '</div>';
+    document.getElementById('bon-overlay').classList.add('open');
+    return;
   }catch(e){ /* fallback sur overlay */ }
-  // === FALLBACK : overlay si window.open bloqué ===
+  // === FALLBACK : overlay si localStorage non disponible ===
 
   // Afficher la prévisualisation dans l'overlay
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);

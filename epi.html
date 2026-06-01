@@ -1433,26 +1433,32 @@ async function validerDotation(){
     for(const line of badgeLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
+      const bDev=mobCache.badge.find(x=>x.id===line.deviceId)||{};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;}else{patch.collaborateur='';patch.site='';}
       await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);
       const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};
+      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_badge':'attribution_badge',nom,prenom,matricule,site,motif,designation:`Badge N° ${bDev.numero||line.deviceId}`,numero:bDev.numero||'',ref:line.deviceId,taille:null,qte:null});
     }
     for(const line of telLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
+      const tDev=mobCache.tel.find(x=>x.id===line.deviceId)||{};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}else{patch.collaborateur='';patch.site='';}
       await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);
       const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};
+      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_tel':'attribution_tel',nom,prenom,matricule,site,motif,designation:`${tDev.marque||''} ${tDev.modele||''}`.trim()||'Téléphone',imei:tDev.imei||'',ref:line.deviceId,taille:null,qte:null});
     }
     for(const line of tabLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
+      const tabDev=mobCache.tab.find(x=>x.id===line.deviceId)||{};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}else{patch.collaborateur='';patch.site='';}
       await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);
       const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};
+      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_tab':'attribution_tab',nom,prenom,matricule,site,motif,designation:`${tabDev.marque||''} ${tabDev.modele||''}`.trim()||'Tablette',imei:tabDev.imei||'',ref:line.deviceId,taille:null,qte:null});
     }
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche&&nom){addCollab(nom,prenom,matricule,site,date);}
@@ -2166,7 +2172,7 @@ function renderMobBadge(){
   const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Alarme',autre:'Autre'};
   let rows=mobCache.badge.filter(d=>(!ft||d.type_badge===ft)&&(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
   document.getElementById('mob-badge-body').innerHTML=rows.length
-    ?rows.map(d=>`<tr><td><strong>${d.numero||'—'}</strong></td><td><span class="badge ${d.type_badge==='watchdoc'?'blue':d.type_badge==='acces'?'green':d.type_badge==='alarme'?'red':'gray'}">${typeLabel[d.type_badge]||d.type_badge||'—'}</span></td><td>${statutBadge(d.statut||'disponible')}</td><td style="font-size:11px;color:#666">${d.notes||'—'}</td><td style="white-space:nowrap"><button class="btn small" onclick="editMobDevice('badge','${d.id}')">✏</button><button class="btn small danger" onclick="deleteMobDevice('badge','${d.id}')">✕</button></td></tr>`).join('')
+    ?rows.map(d=>`<tr><td><strong>${d.numero||'—'}</strong></td><td><span class="badge ${d.type_badge==='watchdoc'?'blue':d.type_badge==='acces'?'green':d.type_badge==='alarme'?'red':'gray'}">${typeLabel[d.type_badge]||d.type_badge||'—'}</span></td><td>${statutSelectMob('badge',d.id,d.statut||'disponible')}</td><td style="font-size:11px;color:#666">${d.notes||'—'}</td><td style="white-space:nowrap"><button class="btn small" onclick="editMobDevice('badge','${d.id}')">✏</button><button class="btn small danger" onclick="deleteMobDevice('badge','${d.id}')">✕</button></td></tr>`).join('')
     :'<tr><td colspan="5" class="empty">Aucun badge enregistré</td></tr>';
 }
 
@@ -2299,8 +2305,35 @@ function entreeStock(ref,taille){
 function renderHistorique(){
   const q=(document.getElementById('histo-search')?.value||'').toLowerCase();
   const rows=mouvementsCache.filter(m=>!q||JSON.stringify(m).toLowerCase().includes(q));
+  const typeBadge={
+    dotation:'blue', restitution:'green', remplacement:'yellow', reception:'purple',
+    attribution_tel:'blue', restitution_tel:'green',
+    attribution_tab:'blue', restitution_tab:'green',
+    attribution_badge:'blue', restitution_badge:'green'
+  };
+  const typeLabel={
+    dotation:'Dotation EPI', restitution:'Restitution EPI', remplacement:'Remplacement', reception:'Réception',
+    attribution_tel:'📱 Attribution tél.', restitution_tel:'📱 Restitution tél.',
+    attribution_tab:'📟 Attribution tab.', restitution_tab:'📟 Restitution tab.',
+    attribution_badge:'🪪 Attribution badge', restitution_badge:'🪪 Restitution badge'
+  };
   document.getElementById('histo-body').innerHTML=rows.length
-    ?rows.map(m=>`<tr><td>${m.date||'—'}</td><td><span class="badge ${m.type==='dotation'?'blue':m.type==='restitution'?'green':'yellow'}">${m.type}</span></td><td>${(m.prenom||'')+' '+(m.nom||'')}</td><td>${m.site||'—'}</td><td title="${m.designation}">${(m.designation||'—').length>45?(m.designation||'—').slice(0,43)+'…':m.designation||'—'}</td><td style="text-align:center">${m.taille||'—'}</td><td style="text-align:center">${m.qte}</td></tr>`).join('')
+    ?rows.map(m=>{
+      const label=typeLabel[m.type]||m.type;
+      const badgeCls=typeBadge[m.type]||'gray';
+      const desig=(m.designation||m.ref||'—');
+      const detail=m.taille||m.imei||m.numero||'—';
+      const qteInfo=m.qte!=null?m.qte:(m.imei||m.numero||'—');
+      return `<tr>
+        <td>${m.date||'—'}</td>
+        <td><span class="badge ${badgeCls}" style="white-space:nowrap">${label}</span></td>
+        <td>${[m.prenom,m.nom].filter(Boolean).join(' ')||'—'}</td>
+        <td>${m.site||'—'}</td>
+        <td title="${desig}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${desig.length>45?desig.slice(0,43)+'…':desig}</td>
+        <td style="font-size:11px;color:#666">${detail}</td>
+        <td style="text-align:center">${qteInfo}</td>
+      </tr>`;
+    }).join('')
     :'<tr><td colspan="7" class="empty">Aucun mouvement</td></tr>';
 }
 

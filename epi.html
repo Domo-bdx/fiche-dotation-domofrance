@@ -79,14 +79,7 @@ tr:hover td{background:#f8f9fb}
 .settings-section{border-top:1px solid #eef;margin-top:12px;padding-top:12px}
 .msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
 .msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
-@media print{
-  /* Masquer tout sauf l'overlay bon de dotation */
-  body > *:not(#bon-overlay){display:none!important}
-  #bon-overlay{position:static!important;background:#fff!important;padding:0!important}
-  #bon-overlay-inner{box-shadow:none!important;border:none!important;padding:16px 24px!important;max-width:100%!important}
-  .bon-print-actions{display:none!important}
-  @page{margin:12mm}
-}
+@media print{.header,.nav,.no-print{display:none!important}body{background:#fff}}
 /* Overlay bon de dotation */
 #bon-overlay{display:none;position:fixed;inset:0;background:#0005;z-index:9999;overflow-y:auto;padding:24px}
 #bon-overlay.open{display:flex;align-items:flex-start;justify-content:center}
@@ -1737,10 +1730,42 @@ ${!hasEpi&&!hasTel&&!hasTab&&!hasBadge?'<p style="color:#888;text-align:center;p
 </body>
 </html>`;
 
-  // Ouvrir dans une nouvelle fenêtre propre
-  const win = window.open('', '_blank', 'width=900,height=750,scrollbars=yes');
-  win.document.write(html);
-  win.document.close();
+  // Stocker le HTML pour impression iframe
+  window.__bonHtml = html;
+
+  // Afficher la prévisualisation dans l'overlay
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  const bodyContent = bodyMatch ? bodyMatch[1] : html;
+  const cleanContent = bodyContent.replace(/<button[^>]*class="print-btn"[^>]*>[\s\S]*?<\/button>/g, '');
+  document.getElementById('bon-overlay-content').innerHTML = cleanContent;
+  document.getElementById('bon-overlay').classList.add('open');
+}
+
+function fermerBon(){
+  document.getElementById('bon-overlay').classList.remove('open');
+  document.getElementById('bon-overlay-content').innerHTML = '';
+  window.__bonHtml = '';
+}
+
+function fermerBonOverlay(e){
+  if(e.target === document.getElementById('bon-overlay')) fermerBon();
+}
+
+function imprimerBon(){
+  if(!window.__bonHtml) return;
+  const old = document.getElementById('__bon_iframe');
+  if(old) old.remove();
+  const iframe = document.createElement('iframe');
+  iframe.id = '__bon_iframe';
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;opacity:0;pointer-events:none';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open(); doc.write(window.__bonHtml); doc.close();
+  setTimeout(function(){
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(function(){ iframe.remove(); }, 3000);
+  }, 400);
 }
 
 // Appelé depuis le bouton inline dans le message d'erreur
@@ -3317,8 +3342,8 @@ initApp();
 <!-- Overlay bon de dotation -->
 <div id="bon-overlay" onclick="fermerBonOverlay(event)">
   <div id="bon-overlay-inner">
-    <div class="bon-print-actions">
-      <button class="btn primary" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
+    <div class="bon-print-actions no-print">
+      <button class="btn primary" onclick="imprimerBon()">🖨 Imprimer / Exporter PDF</button>
       <button class="btn" onclick="fermerBon()">✕ Fermer</button>
     </div>
     <div id="bon-overlay-content"></div>

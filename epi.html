@@ -1754,42 +1754,56 @@ function fermerBonOverlay(e){
 function imprimerBon(){
   if(!window.__bonHtml) return;
 
-  // Extraire le contenu <body> + les <style> du bon
+  // Extraire contenu et styles du bon
   const styleMatch = window.__bonHtml.match(/<style>([\s\S]*?)<\/style>/i);
   const bonStyle = styleMatch ? styleMatch[1] : '';
   const bodyMatch = window.__bonHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  const bonBody = bodyMatch ? bodyMatch[1].replace(/<button[^>]*class="print-btn"[^>]*>[\s\S]*?<\/button>/g,'') : '';
+  const bonBody = bodyMatch
+    ? bodyMatch[1].replace(/<button[^>]*class="print-btn"[^>]*>[\s\S]*?<\/button>/g,'')
+    : '';
 
-  // Nettoyer les anciens éléments d'impression si existants
-  ['__ps','__pb'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
+  // Nettoyer les anciens éléments si existants
+  ['__ps','__pb'].forEach(function(id){var e=document.getElementById(id);if(e)e.remove();});
 
-  // Injecter le style d'impression : masquer TOUT sauf le bon
-  const styleEl = document.createElement('style');
+  // Injecter les styles du bon
+  var styleEl = document.createElement('style');
   styleEl.id = '__ps';
-  styleEl.textContent = `
-    @media print {
-      body > *:not(#__pb) { display: none !important; visibility: hidden !important; }
-      #__pb { display: block !important; visibility: visible !important;
-              position: fixed !important; top: 0; left: 0;
-              width: 100%; background: #fff; z-index: 99999; }
-      ${bonStyle}
-    }`;
+  styleEl.textContent = bonStyle;
   document.head.appendChild(styleEl);
 
-  // Injecter le contenu du bon
-  const bonEl = document.createElement('div');
+  // Injecter le contenu du bon (visible)
+  var bonEl = document.createElement('div');
   bonEl.id = '__pb';
   bonEl.innerHTML = bonBody;
-  bonEl.style.cssText = 'display:none';
+  bonEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:99999;overflow:auto;padding:28px 36px;box-sizing:border-box';
   document.body.appendChild(bonEl);
+
+  // Masquer TOUS les autres enfants directs de body (JS pur, pas @media print)
+  var hidden = [];
+  Array.from(document.body.children).forEach(function(el){
+    if(el.id !== '__pb'){
+      hidden.push({el:el, vis:el.style.visibility, disp:el.style.display});
+      el.style.visibility = 'hidden';
+      el.style.display = 'none';
+    }
+  });
+
+  // Restauration après impression (événement afterprint)
+  function restore(){
+    window.removeEventListener('afterprint', restore);
+    hidden.forEach(function(item){
+      item.el.style.visibility = item.vis;
+      item.el.style.display = item.disp;
+    });
+    ['__ps','__pb'].forEach(function(id){var e=document.getElementById(id);if(e)e.remove();});
+  }
+  window.addEventListener('afterprint', restore);
 
   // Déclencher l'impression
   window.print();
 
-  // Nettoyage après fermeture de la boîte d'impression
-  setTimeout(function(){
-    ['__ps','__pb'].forEach(id=>{const el=document.getElementById(id);if(el)el.remove();});
-  }, 2000);
+  // Fallback si afterprint ne se déclenche pas (certains navigateurs)
+  setTimeout(restore, 30000);
 }
 
 // Appelé depuis le bouton inline dans le message d'erreur

@@ -2063,6 +2063,54 @@ function renderMobStats(){
     ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
 }
 
+function statutSelectMob(type, id, current){
+  // Options selon le type
+  const optsBase = [
+    {v:'disponible',  l:'Disponible'},
+    {v:'attribue',    l:'Attribué'},
+    {v:'en_reparation',l:'En réparation'},
+    {v:'hors_service', l:'Hors service'},
+  ];
+  const optsBadge = [
+    {v:'disponible',  l:'Disponible'},
+    {v:'attribue',    l:'Attribué'},
+    {v:'perdu',       l:'Perdu / Bloqué'},
+    {v:'hors_service', l:'Hors service'},
+  ];
+  const opts = type==='badge' ? optsBadge : optsBase;
+  const colors = {disponible:'#276749',attribue:'#1e40af',en_reparation:'#92400e',hors_service:'#c53030',perdu:'#c53030'};
+  const color = colors[current]||'#444';
+  return `<select style="font-size:11px;padding:3px 6px;border-radius:4px;border:1px solid #ccc;color:${color};font-weight:600;min-width:130px"
+    onchange="changeStatutMob('${type}','${id}',this.value,this)">
+    ${opts.map(o=>`<option value="${o.v}" ${o.v===current?'selected':''}>${o.l}</option>`).join('')}
+  </select>`;
+}
+
+async function changeStatutMob(type, id, newStatut, selectEl){
+  // Feedback visuel immédiat
+  const colors={disponible:'#276749',attribue:'#1e40af',en_reparation:'#92400e',hors_service:'#c53030',perdu:'#c53030'};
+  selectEl.style.color=colors[newStatut]||'#444';
+  selectEl.disabled=true;
+  setSyncStatus('syncing','Sauvegarde…');
+  try{
+    const table=type==='tel'?'mob_telephones':type==='tab'?'mob_tablettes':'mob_badges';
+    const arr=await readData(table);
+    const idx=arr.findIndex(x=>x.id===id);
+    if(idx>=0){
+      arr[idx]={...arr[idx],statut:newStatut,updatedAt:new Date().toISOString()};
+      await writeData(table,arr);
+      const cacheIdx=mobCache[type].findIndex(x=>x.id===id);
+      if(cacheIdx>=0)mobCache[type][cacheIdx]={...mobCache[type][cacheIdx],statut:newStatut};
+    }
+    setSyncStatus('ok','Sauvegardé');
+    renderMobStats();
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    selectEl.disabled=false;
+  }
+  selectEl.disabled=false;
+}
+
 function statutBadge(s){
   const map={attribue:'blue',disponible:'green',en_reparation:'yellow',hors_service:'red'};
   const labels={attribue:'Attribué',disponible:'Disponible',en_reparation:'En réparation',hors_service:'Hors service'};
@@ -2081,7 +2129,7 @@ function renderMobTel(){
         <td style="font-size:11px">${d.collaborateur||'—'}</td>
         <td style="font-size:11px">${d.site||'—'}</td>
         <td style="font-size:11px">${d.date_attribution||'—'}</td>
-        <td>${statutBadge(d.statut||'disponible')}</td>
+        <td>${statutSelectMob('tel',d.id,d.statut||'disponible')}</td>
         <td style="white-space:nowrap">
           <button class="btn small" onclick="editMobDevice('tel','${d.id}')">✏</button>
           <button class="btn small danger" onclick="deleteMobDevice('tel','${d.id}')">✕</button>
@@ -2102,7 +2150,7 @@ function renderMobTab(){
         <td style="font-size:11px">${d.collaborateur||'—'}</td>
         <td style="font-size:11px">${d.site||'—'}</td>
         <td style="font-size:11px">${d.date_attribution||'—'}</td>
-        <td>${statutBadge(d.statut||'disponible')}</td>
+        <td>${statutSelectMob('tab',d.id,d.statut||'disponible')}</td>
         <td style="white-space:nowrap">
           <button class="btn small" onclick="editMobDevice('tab','${d.id}')">✏</button>
           <button class="btn small danger" onclick="deleteMobDevice('tab','${d.id}')">✕</button>

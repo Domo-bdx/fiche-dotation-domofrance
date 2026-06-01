@@ -1753,19 +1753,22 @@ function fermerBonOverlay(e){
 
 function imprimerBon(){
   if(!window.__bonHtml) return;
-  const old = document.getElementById('__bon_iframe');
-  if(old) old.remove();
-  const iframe = document.createElement('iframe');
-  iframe.id = '__bon_iframe';
-  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;opacity:0;pointer-events:none';
-  document.body.appendChild(iframe);
-  const doc = iframe.contentDocument || iframe.contentWindow.document;
-  doc.open(); doc.write(window.__bonHtml); doc.close();
-  setTimeout(function(){
-    iframe.contentWindow.focus();
-    iframe.contentWindow.print();
-    setTimeout(function(){ iframe.remove(); }, 3000);
-  }, 400);
+  // Blob URL = nouvel onglet avec UNIQUEMENT le bon, sans popup blocker
+  const blob = new Blob([window.__bonHtml], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if(!win){
+    // Fallback si bloqué : lien de téléchargement
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bon-dotation.html';
+    a.click();
+  } else {
+    // Lancer impression automatiquement à l'ouverture
+    win.onload = function(){
+      setTimeout(function(){ win.print(); URL.revokeObjectURL(url); }, 400);
+    };
+  }
 }
 
 // Appelé depuis le bouton inline dans le message d'erreur

@@ -79,7 +79,19 @@ tr:hover td{background:#f8f9fb}
 .settings-section{border-top:1px solid #eef;margin-top:12px;padding-top:12px}
 .msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
 .msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
-@media print{.header,.nav,.no-print{display:none!important}body{background:#fff}}
+@media print{
+  /* Masquer tout sauf l'overlay bon de dotation */
+  body > *:not(#bon-overlay){display:none!important}
+  #bon-overlay{position:static!important;background:#fff!important;padding:0!important}
+  #bon-overlay-inner{box-shadow:none!important;border:none!important;padding:16px 24px!important;max-width:100%!important}
+  .bon-print-actions{display:none!important}
+  @page{margin:12mm}
+}
+/* Overlay bon de dotation */
+#bon-overlay{display:none;position:fixed;inset:0;background:#0005;z-index:9999;overflow-y:auto;padding:24px}
+#bon-overlay.open{display:flex;align-items:flex-start;justify-content:center}
+#bon-overlay-inner{background:#fff;border-radius:8px;box-shadow:0 8px 40px #0004;padding:28px 36px;max-width:860px;width:100%;position:relative}
+.bon-print-actions{display:flex;gap:8px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee}
 /* ── Bon de dotation redesign ── */
 .bon-section-title{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;padding-bottom:4px;border-bottom:2px solid #e8003d}
 .bon-data-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
@@ -1474,6 +1486,51 @@ async function validerDotation(){
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
 }
+
+// Appelé depuis le bouton inline dans le message d'erreur
+async function _confirmerDotationPartielle(){
+  document.getElementById('dotation-msg').innerHTML='';
+  const nom=document.getElementById('d-nom').value.trim();
+  const prenom=document.getElementById('d-prenom').value.trim();
+  const type=document.getElementById('d-type').value;
+  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
+  const site=document.getElementById('d-site').value;
+  const matricule=document.getElementById('d-matricule').value.trim();
+  const motif=document.getElementById('d-motif').value.trim();
+  const btn=document.getElementById('btn-valider');
+  btn.disabled=true;btn.textContent='Enregistrement…';
+  showMsg('dotation-msg','Enregistrement en cours…','info');
+  try{
+    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
+    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
+    // Valider les articles disponibles
+    for(const line of dispos){
+      const s=getStock(line.ref,line.taille);
+      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
+      const art=CATALOGUE.find(x=>x.ref===line.ref);
+      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
+    }
+    // Enregistrer les articles manquants en attente
+    for(const line of manquants){
+      const art=CATALOGUE.find(x=>x.ref===line.ref);
+      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
+    }
+    // Mobilité / badges (toujours traités)
+    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
+    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
+    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
+    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
+    const msg=dispos.length>0
+      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
+      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
+    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
+  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
+  btn.disabled=false;btn.textContent='Valider et déduire du stock';
+}
+
 
 // Appelé depuis le bouton inline dans le message d'erreur
 async function _confirmerDotationPartielle(){
@@ -3256,6 +3313,17 @@ async function initApp(){
 }
 initApp();
 </script>
+
+<!-- Overlay bon de dotation -->
+<div id="bon-overlay" onclick="fermerBonOverlay(event)">
+  <div id="bon-overlay-inner">
+    <div class="bon-print-actions">
+      <button class="btn primary" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
+      <button class="btn" onclick="fermerBon()">✕ Fermer</button>
+    </div>
+    <div id="bon-overlay-content"></div>
+  </div>
+</div>
 
 <!-- Bouton retour en haut -->
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>

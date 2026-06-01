@@ -1770,6 +1770,9 @@ ${!hasEpi&&!hasTel&&!hasTab&&!hasBadge?'<p style="color:#888;text-align:center;p
     return;
   }catch(e){ /* fallback sur overlay */ }
   // === FALLBACK : overlay si localStorage non disponible ===
+  // Réafficher le bouton imprimer (mode dégradé sans bon_dotation.html)
+  var btnPrint = document.getElementById('btn-overlay-print');
+  if(btnPrint) btnPrint.style.display = '';
 
   // Afficher la prévisualisation dans l'overlay
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
@@ -2120,6 +2123,9 @@ ${!hasEpi&&!hasTel&&!hasTab&&!hasBadge?'<p style="color:#888;text-align:center;p
     return;
   }catch(e){ /* fallback sur overlay */ }
   // === FALLBACK : overlay si localStorage non disponible ===
+  // Réafficher le bouton imprimer (mode dégradé sans bon_dotation.html)
+  var btnPrint = document.getElementById('btn-overlay-print');
+  if(btnPrint) btnPrint.style.display = '';
 
   // Afficher la prévisualisation dans l'overlay
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
@@ -3768,8 +3774,8 @@ initApp();
 <!-- Overlay bon de dotation -->
 <div id="bon-overlay" onclick="fermerBonOverlay(event)">
   <div id="bon-overlay-inner">
-    <div class="bon-print-actions no-print">
-      <button class="btn primary" onclick="imprimerBon()">🖨 Imprimer / Exporter PDF</button>
+    <div class="bon-print-actions no-print" id="bon-overlay-actions">
+      <button class="btn primary" id="btn-overlay-print" onclick="imprimerBon()" style="display:none">🖨 Imprimer / Exporter PDF</button>
       <button class="btn" onclick="fermerBon()">✕ Fermer</button>
     </div>
     <div id="bon-overlay-content"></div>

@@ -2432,18 +2432,22 @@ function genererBon(){
     })
   };
 
-  // Encoder les données en base64 pour les passer dans l'URL (fiable cross-tab)
-  const json = JSON.stringify(bonData);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  const url = 'bon_dotation.html?d=' + b64;
+  // Sauvegarder en localStorage (synchrone et fiable entre onglets du même domaine)
+  try {
+    localStorage.setItem('domo_bon_data', JSON.stringify(bonData));
+  } catch(e) {
+    showMsg('dotation-msg','Erreur localStorage : '+e.message,'err');
+    return;
+  }
 
-  // Afficher l'overlay avec le lien direct
+  // Afficher l'overlay avec le bouton lien direct vers bon_dotation.html
   document.getElementById('bon-overlay-content').innerHTML=
     '<div style="text-align:center;padding:40px 20px">'
     +'<div style="font-size:48px;margin-bottom:16px">✅</div>'
     +'<div style="font-size:16px;font-weight:700;color:#1a3a5c;margin-bottom:8px">Bon prêt !</div>'
-    +'<div style="font-size:13px;color:#555;margin-bottom:24px">Cliquez sur le bouton ci-dessous pour ouvrir le bon dans un nouvel onglet.</div>'
-    +'<a href="'+url+'" target="_blank" style="display:inline-block;background:#1a3a5c;color:#fff;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none">🖨 Ouvrir le bon de dotation</a>'
+    +'<div style="font-size:13px;color:#555;margin-bottom:24px">Cliquez sur le bouton pour ouvrir le bon dans un nouvel onglet.</div>'
+    +'<a href="bon_dotation.html" target="_blank" style="display:inline-block;background:#1a3a5c;color:#fff;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:.02em">'
+    +'🖨 Ouvrir le bon de dotation</a>'
     +'<div style="font-size:11px;color:#aaa;margin-top:16px">Utilisez le bouton Imprimer sur la page du bon.</div>'
     +'</div>';
   document.getElementById('bon-overlay').classList.add('open');

@@ -112,6 +112,7 @@ tr:hover td{background:#f8f9fb}
 .pap-line{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:#f8f9fb;border-radius:5px;border:1px solid #eef}
 .pap-line.insuffisant{border-color:#fc8181;background:#fff5f5}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -290,10 +291,11 @@ tr:hover td{background:#f8f9fb}
 
   <div class="mob-stats" id="mob-stats-bar"></div>
 
-  <div style="display:flex;gap:8px;margin-bottom:12px" id="mob-subtabs">
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap" id="mob-subtabs">
     <button class="cat-btn active" id="msub-tel" onclick="setMobSub('tel',this)">📱 Téléphones</button>
     <button class="cat-btn" id="msub-tab" onclick="setMobSub('tab',this)">📟 Tablettes</button>
     <button class="cat-btn" id="msub-badge" onclick="setMobSub('badge',this)">🪪 Badges</button>
+    <button class="btn" onclick="exportStockMobilite()" title="Exporter le stock Mobilité en Excel" style="margin-left:auto;white-space:nowrap">📥 Export Excel</button>
   </div>
 
   <div id="mob-panel-tel">
@@ -426,7 +428,10 @@ tr:hover td{background:#f8f9fb}
   <div class="card">
     <h3>Gestion du stock EPI</h3>
     <div class="cat-filter" id="cat-filter-stock"></div>
-    <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderStock()" id="stock-search"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <div class="search-bar" style="flex:1;margin-bottom:0"><input type="text" placeholder="Rechercher…" oninput="renderStock()" id="stock-search"></div>
+      <button class="btn" onclick="exportStockEPI()" title="Exporter le stock EPI en Excel" style="white-space:nowrap">📥 Export Excel</button>
+    </div>
     <div class="tbl-wrap">
       <table><thead><tr>
         <th>Ref</th><th>Désignation</th><th>Catégorie</th><th>Taille</th>
@@ -3749,6 +3754,63 @@ initApp();
 window.addEventListener('scroll',function(){
   document.getElementById('btn-top').classList.toggle('visible', window.scrollY > 300);
 });
+
+// ─── EXPORT EXCEL ─────────────────────────────────────────────────────────
+
+function exportStockEPI(){
+  const date = new Date().toLocaleDateString('fr-FR').replace(/\//g,'-');
+  const wb = XLSX.utils.book_new();
+
+  // Feuille Stock EPI
+  const rows = [];
+  rows.push(['Référence','Désignation','Catégorie','Taille','Stock','Seuil alerte','Attribués']);
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(art=>{
+    art.tailles.forEach(t=>{
+      const s = getStock(art.ref, t);
+      rows.push([art.ref, art.nom, art.cat, t, s.qte, s.seuil, s.attribues||0]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:40},{wch:18},{wch:10},{wch:8},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock EPI');
+
+  XLSX.writeFile(wb, `GESTOCK_Stock_EPI_${date}.xlsx`);
+}
+
+function exportStockMobilite(){
+  const date = new Date().toLocaleDateString('fr-FR').replace(/\//g,'-');
+  const wb = XLSX.utils.book_new();
+
+  // Feuille Téléphones
+  const telRows = [['Marque','Modèle','IMEI','SIM / Numéro','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.tel||[]).forEach(d=>{
+    telRows.push([d.marque||'', d.modele||'', d.imei||'', d.sim||'', d.collaborateur||'', d.site||'', d.statut||'', d.date_attribution||'']);
+  });
+  const wsTel = XLSX.utils.aoa_to_sheet(telRows);
+  wsTel['!cols'] = [{wch:12},{wch:20},{wch:18},{wch:16},{wch:22},{wch:20},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsTel, 'Téléphones');
+
+  // Feuille Tablettes
+  const tabRows = [['Nom','Marque','Modèle','IMEI','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.tab||[]).forEach(d=>{
+    tabRows.push([d.nom||'', d.marque||'', d.modele||'', d.imei||'', d.collaborateur||'', d.site||'', d.statut||'', d.date_attribution||'']);
+  });
+  const wsTab = XLSX.utils.aoa_to_sheet(tabRows);
+  wsTab['!cols'] = [{wch:14},{wch:12},{wch:20},{wch:18},{wch:22},{wch:20},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsTab, 'Tablettes');
+
+  // Feuille Badges
+  const badgeRows = [['Numéro','Type','Collaborateur','Site','Statut','Date attribution']];
+  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Alarme',autre:'Autre'};
+  (mobCache.badge||[]).forEach(d=>{
+    badgeRows.push([d.numero||'', typeLabel[d.type_badge]||d.type_badge||'', d.collaborateur||'', d.site||'', d.statut||'', d.date_attribution||'']);
+  });
+  const wsBadge = XLSX.utils.aoa_to_sheet(badgeRows);
+  wsBadge['!cols'] = [{wch:14},{wch:12},{wch:22},{wch:20},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsBadge, 'Badges');
+
+  XLSX.writeFile(wb, `GESTOCK_Stock_Mobilite_${date}.xlsx`);
+}
 </script>
 </body>
 </html>

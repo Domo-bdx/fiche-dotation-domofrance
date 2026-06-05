@@ -3673,18 +3673,7 @@ async function initApp(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
   setSyncStatus('syncing','Connexion…');
   if(!localStorage.getItem('domo_gh_token')){
-    document.getElementById('conn-detail').innerHTML='<span style="color:#e07b00">⚠ Token GitHub non configuré — les données sont en lecture seule. Va dans <strong>⚙ Paramètres</strong> pour activer l'écriture.</span>';
-  }
-  try{
-    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Accept':'application/vnd.github.v3+json'}},12000);
-    if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur 401 : Token invalide';return;}
-    if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Erreur 403 : Accès refusé';return;}
-    if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Erreur 404 : Dépôt introuvable';return;}
-    if(!r.ok){setSyncStatus('error','GitHub erreur '+r.status);document.getElementById('conn-detail').textContent='✗ GitHub erreur '+r.status;return;}
-  }catch(e){
-    setSyncStatus('error','Réseau: '+e.message);
-    document.getElementById('conn-detail').textContent='✗ Erreur réseau: '+e.message;
-    return;
+    document.getElementById('conn-detail').innerHTML='<span style="color:#e07b00">⚠ Token non configuré — lecture seule. Voir ⚙ Paramètres pour activer l\'écriture.</span>';
   }
 
   try{

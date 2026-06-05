@@ -711,7 +711,7 @@ async function fetchWithTimeout(url,opts,ms=15000){
 
 async function ghRead(path){
   const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}&t=${Date.now()}`;
-  const r=await fetchWithTimeout(url,{headers:getGHHeaders()});
+  const r=await fetchWithTimeout(url,{headers:{'Accept':'application/vnd.github.v3+json'}});
   if(r.status===404)return null;
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
   const j=await r.json();
@@ -3673,12 +3673,10 @@ async function initApp(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
   setSyncStatus('syncing','Connexion…');
   if(!localStorage.getItem('domo_gh_token')){
-    setSyncStatus('error','Token manquant');
-    document.getElementById('conn-detail').innerHTML='<span style="color:#c53030">⚠ Token GitHub non configuré — va dans <strong>⚙ Paramètres</strong> pour le saisir</span>';
-    return;
+    document.getElementById('conn-detail').innerHTML='<span style="color:#e07b00">⚠ Token GitHub non configuré — les données sont en lecture seule. Va dans <strong>⚙ Paramètres</strong> pour activer l'écriture.</span>';
   }
   try{
-    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json'}},12000);
+    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Accept':'application/vnd.github.v3+json'}},12000);
     if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur 401 : Token invalide';return;}
     if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Erreur 403 : Accès refusé';return;}
     if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Erreur 404 : Dépôt introuvable';return;}

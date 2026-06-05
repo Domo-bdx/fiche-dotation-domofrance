@@ -4018,6 +4018,45 @@ sessionStorage.removeItem('gestock_user');
   </div>
 </div>
 
+  <!-- Gestion des comptes — admin uniquement -->
+  <div class="card" id="section-gestion-comptes" style="display:none">
+    <h3>👥 Gestion des comptes utilisateurs</h3>
+    <div id="users-list"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn success" onclick="openNewUserForm()">+ Ajouter un utilisateur</button>
+    </div>
+    <div id="new-user-form" style="display:none;margin-top:16px;background:#f4f8fc;border-radius:8px;padding:16px">
+      <h4 style="color:#1a3a5c;margin-bottom:12px">Nouvel utilisateur</h4>
+      <div class="form-row-3">
+        <div><label>Login</label><input type="text" id="nu-login" placeholder="ex: jmartin"></div>
+        <div><label>Nom complet</label><input type="text" id="nu-nom" placeholder="Jean MARTIN"></div>
+        <div><label>Rôle</label><select id="nu-role"><option value="gestionnaire">Gestionnaire</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div><label>Mot de passe initial</label><input type="text" id="nu-pwd" placeholder="Domofrance2026!" value="Domofrance2026!"></div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn success" onclick="saveNewUser()">Créer le compte</button>
+        <button class="btn" onclick="document.getElementById('new-user-form').style.display='none'">Annuler</button>
+      </div>
+      <div id="nu-msg"></div>
+    </div>
+  </div>
+
+  <!-- Mon compte — tous les utilisateurs -->
+  <div class="card" id="section-mon-compte">
+    <h3>🔑 Mon compte</h3>
+    <div style="margin-bottom:12px" id="mon-compte-info"></div>
+    <label>Nouveau mot de passe</label>
+    <input type="password" id="mc-new" placeholder="8 caractères minimum" style="max-width:300px">
+    <label style="margin-top:10px;display:block">Confirmer le mot de passe</label>
+    <input type="password" id="mc-confirm" placeholder="Répétez" style="max-width:300px">
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn success" onclick="changerMonMotDePasse()">Modifier mon mot de passe</button>
+    </div>
+    <div id="mc-msg"></div>
+  </div>
+
 <!-- Bouton retour en haut -->
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
 

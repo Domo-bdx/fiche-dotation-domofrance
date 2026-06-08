@@ -2393,7 +2393,7 @@ function genererBon(){
     let tr=epiLines.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);return`<tr><td>${l.ref}</td><td>${a?a.nom:'—'}</td><td style="text-align:center">${l.taille||'—'}</td><td style="text-align:center">${l.qte}</td></tr>`;}).join('');
     epiSection=`<div class="section-title">🦺 EPI attribués</div>
 <table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Qté</th></tr></thead><tbody>${tr}</tbody></table>
-<div class="note-orange"><strong>Attestation :</strong> J'atteste avoir été informé des principes généraux relatifs à l'utilisation des EPI et je m'engage à les porter chaque fois que la situation de travail le nécessite.</div>`;
+<div class="note-orange"><strong>Attestation :</strong> J'atteste avoir été informé des principes généraux relatifs à l'utilisation des EPI et je m'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>`;
   }
 
   // Téléphones

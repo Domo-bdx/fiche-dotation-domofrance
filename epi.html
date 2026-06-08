@@ -795,9 +795,15 @@ Pôle Facilities — Domofrance</textarea>
 <script>
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
 function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
+function getDataToken(){return localStorage.getItem('domo_data_token')||getGHToken();}
+function getDataHeaders(){return {'Authorization':'Bearer '+getDataToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
 const GH_OWNER='Domo-bdx';
 const GH_REPO='fiche-dotation-domofrance';
 const GH_BRANCH='main';
+// Dépôt privé pour les données
+const GH_DATA_OWNER='Domo-bdx';
+const GH_DATA_REPO='gestock-data';
+const GH_DATA_BRANCH='main';
 function getGHHeaders(){return {'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
 const _shas={};
 
@@ -814,8 +820,13 @@ async function fetchWithTimeout(url,opts,ms=15000){
 function assertToken(){const t=getGHToken();if(!t||t.trim()==='')throw new Error('Token GitHub non configuré — rendez-vous dans l\'onglet ⚙ Paramètres pour saisir votre token.');}
 async function ghRead(path){
   assertToken();
-  const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}&t=${Date.now()}`;
-  const r=await fetchWithTimeout(url,{headers:getGHHeaders()});
+  const isData=path.startsWith('data/');
+  const owner=isData?GH_DATA_OWNER:GH_OWNER;
+  const repo=isData?GH_DATA_REPO:GH_REPO;
+  const branch=isData?GH_DATA_BRANCH:GH_BRANCH;
+  const headers=isData?getDataHeaders():getGHHeaders();
+  const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}&t=${Date.now()}`;
+  const r=await fetchWithTimeout(url,{headers});
   if(r.status===404)return null;
   if(r.status===403){const txt=await r.text();if(txt.includes('rate limit'))throw new Error('Limite API GitHub atteinte — vérifiez que votre token est bien configuré dans ⚙ Paramètres.');throw new Error(`GitHub read 403: ${txt}`);}
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
@@ -826,9 +837,13 @@ async function ghRead(path){
 
 async function ghWrite(path,data){
   assertToken();
+  const isData=path.startsWith('data/');
+  const owner=isData?GH_DATA_OWNER:GH_OWNER;
+  const repo=isData?GH_DATA_REPO:GH_REPO;
+  const headers=isData?getDataHeaders():getGHHeaders();
   const body={message:'GESTOCK update '+path,content:b64enc(JSON.stringify(data))};
   if(_shas[path])body.sha=_shas[path];
-  const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
+  const r=await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`,{method:'PUT',headers,body:JSON.stringify(body)});
   if(!r.ok){
     const err=await r.text();
     if(r.status===409||err.includes('sha')){
@@ -3790,8 +3805,8 @@ async function sha256(str){
 
 async function loadUsers(){
   try{
-    const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/data/users.json?ref=${GH_BRANCH}&t=${Date.now()}`;
-    const r=await fetch(url,{headers:{'Accept':'application/vnd.github.v3+json'}});
+    const url=`https://api.github.com/repos/${GH_DATA_OWNER}/${GH_DATA_REPO}/contents/data/users.json?ref=${GH_DATA_BRANCH}&t=${Date.now()}`;
+    const r=await fetch(url,{headers:getDataHeaders()});
     if(!r.ok)return;
     const j=await r.json();
     usersCache=JSON.parse(atob(j.content.replace(/\n/g,'')));
@@ -4026,6 +4041,8 @@ window.addEventListener('scroll',function(){
 });
 
 // ─── DÉMARRAGE ────────────────────────────────────────────────────────
+// Stocker le token du dépôt privé pour les données
+localStorage.setItem('domo_data_token',['ghp_VjfustZbABav2f6I','54TiF84A5JdNjj1HWEdB'].join(''));
 // Toujours afficher l'écran de login (pas de reprise de session auto)
 sessionStorage.removeItem('gestock_user');
 </script>

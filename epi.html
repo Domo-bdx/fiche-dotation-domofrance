@@ -717,7 +717,7 @@ async function ghRead(path){
   return JSON.parse(b64dec(j.content));
 }
 
-async async function ghWrite(path,data){
+async function ghWrite(path,data){
   assertToken();
   const body={message:'GESTOCK update '+path,content:b64enc(JSON.stringify(data))};
   if(_shas[path])body.sha=_shas[path];

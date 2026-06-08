@@ -717,17 +717,18 @@ async function ghRead(path){
   return JSON.parse(b64dec(j.content));
 }
 
-async function ghWrite(path,data){
+async async function ghWrite(path,data){
   assertToken();
+  const body={message:'GESTOCK update '+path,content:b64enc(JSON.stringify(data))};
   if(_shas[path])body.sha=_shas[path];
-  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
+  const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
   if(!r.ok){
     const err=await r.text();
     if(r.status===409||err.includes('sha')){
       await ghRead(path);
       body.sha=_shas[path];
-      const r2=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
-      if(!r2.ok)throw new Error(`GitHub write retry ${r2.status}`);
+      const r2=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
+      if(!r2.ok)throw new Error(`GitHub write retry ${r2.status}: ${await r2.text()}`);
       const j2=await r2.json();_shas[path]=j2.content.sha;return;
     }
     throw new Error(`GitHub write ${r.status}: ${err}`);

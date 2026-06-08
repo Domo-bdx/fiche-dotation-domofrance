@@ -2624,6 +2624,7 @@ function setMobSub(sub,btn){
 function getBadgeCat(b){
   const notes=(b.notes||'').toLowerCase();
   const type=b.type_badge||'';
+  if(type==='telecommande_siege')return'telecommande_siege';
   if(notes.includes('libourne')||notes.includes('aquitanis'))return'libourne';
   if(notes.includes('siège')||notes.includes('siege'))return'siege';
   if(type==='alarme'||notes.includes('alarme'))return'alarme';

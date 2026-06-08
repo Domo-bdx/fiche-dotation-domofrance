@@ -2662,8 +2662,9 @@ function renderMobStats(){
     <div class="stat" style="border-left:3px solid #1a3a5c"><div class="stat-n" style="font-size:18px">${badges.length}</div><div class="stat-l">Badges total</div><div style="font-size:10px;color:#888;margin-top:2px">${badges.length-badgeAtt} dispo · <span style="color:#c05621">${badgeAtt} attrib.</span></div></div>
     ${badgeStat('Libourne','🏠','libourne','#276749')}
     ${badgeStat('Siège','🏢','siege','#1a3a5c')}
+    ${badgeStat('WatchDoc','📄','watchdoc','#0369a1')}
     ${badgeStat('Unaverse','🚨','alarme','#c53030')}
-    ${cats.telecommande_siege>0?badgeStat('Télécommande Siège','🔑','telecommande_siege','#6b21a8'):''}
+    ${badgeStat('Télécommande Siège','🔑','telecommande_siege','#6b21a8')}
     ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
 }
 

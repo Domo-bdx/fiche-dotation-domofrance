@@ -807,7 +807,7 @@ const GH_DATA_OWNER='Domo-bdx';
 const GH_DATA_REPO='gestock-data';
 const GH_DATA_BRANCH='main';
 function getGHHeaders(){return {'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
-const _shas={};
+const _shas={}; const _datashas={};
 
 function b64enc(str){return btoa(unescape(encodeURIComponent(str)));}
 function b64dec(b64){return decodeURIComponent(escape(atob(b64.split('\n').join(''))));}
@@ -833,7 +833,7 @@ async function ghRead(path){
   if(r.status===403){const txt=await r.text();if(txt.includes('rate limit'))throw new Error('Limite API GitHub atteinte — vérifiez que votre token est bien configuré dans ⚙ Paramètres.');throw new Error(`GitHub read 403: ${txt}`);}
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
   const j=await r.json();
-  _shas[path]=j.sha;
+  if(isData)_datashas[path]=j.sha; else _shas[path]=j.sha;
   return JSON.parse(b64dec(j.content));
 }
 
@@ -844,13 +844,13 @@ async function ghWrite(path,data){
   const repo=isData?GH_DATA_REPO:GH_REPO;
   const headers=isData?getDataHeaders():getGHHeaders();
   const body={message:'GESTOCK update '+path,content:b64enc(JSON.stringify(data))};
-  if(_shas[path])body.sha=_shas[path];
+  const shaCache=isData?_datashas:_shas; if(shaCache[path])body.sha=shaCache[path];
   const r=await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`,{method:'PUT',headers,body:JSON.stringify(body)});
   if(!r.ok){
     const err=await r.text();
     if(r.status===409||err.includes('sha')){
       await ghRead(path);
-      body.sha=_shas[path];
+      body.sha=isData?_datashas[path]:_shas[path];
       const r2=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
       if(!r2.ok)throw new Error(`GitHub write retry ${r2.status}: ${await r2.text()}`);
       const j2=await r2.json();_shas[path]=j2.content.sha;return;

@@ -2656,22 +2656,20 @@ function renderMobStats(){
     </div>`;
   };
 
-  // Compteurs par modèle téléphone
-  const telModelCount={};
-  const telModelAtt={};
-  tels.forEach(t=>{
+  // Compteurs par modèle tablette
+  const tabModelCount={};
+  const tabModelAtt={};
+  tabs.forEach(t=>{
     const m=t.modele||'Inconnu';
-    telModelCount[m]=(telModelCount[m]||0)+1;
-    if(t.statut==='Attribué')telModelAtt[m]=(telModelAtt[m]||0)+1;
+    tabModelCount[m]=(tabModelCount[m]||0)+1;
+    if(t.statut==='Attribué')tabModelAtt[m]=(tabModelAtt[m]||0)+1;
   });
-  // Nom court du modèle (ex: "Galaxy A36 5G" au lieu de "Galaxy A36 5G (SM-A366B)")
-  const shortModel=m=>m.replace(/\s*\(SM-[^)]+\)/,'').replace(/\s*\([^)]+\)/,'');
-  const telModels=Object.entries(telModelCount)
+  const tabModels=Object.entries(tabModelCount)
     .sort((a,b)=>b[1]-a[1])
     .map(([m,total])=>{
-      const att=telModelAtt[m]||0, dispo=total-att;
-      return `<div class="stat" style="border-left:3px solid #0369a1;min-width:110px">
-        <div style="font-size:11px;margin-bottom:2px">📱</div>
+      const att=tabModelAtt[m]||0, dispo=total-att;
+      return `<div class="stat" style="border-left:3px solid #0891b2;min-width:110px">
+        <div style="font-size:11px;margin-bottom:2px">📟</div>
         <div class="stat-n" style="font-size:18px">${total}</div>
         <div class="stat-l" style="font-size:10px">${shortModel(m)}</div>
         <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
@@ -2680,8 +2678,8 @@ function renderMobStats(){
 
   document.getElementById('mob-stats-bar').innerHTML=`
     <div class="stat"><div class="stat-n">${tels.length}</div><div class="stat-l">Téléphones</div><div style="font-size:10px;color:#888;margin-top:2px">${tels.length-telAtt} dispo · <span style="color:#c05621">${telAtt} attrib.</span></div></div>
-    ${telModels}
     <div class="stat"><div class="stat-n">${tabs.length}</div><div class="stat-l">Tablettes</div><div style="font-size:10px;color:#888;margin-top:2px">${tabs.length-tabAtt} dispo · <span style="color:#c05621">${tabAtt} attrib.</span></div></div>
+    ${tabModels}
     <div class="stat" style="border-left:3px solid #1a3a5c"><div class="stat-n" style="font-size:18px">${badges.length}</div><div class="stat-l">Badges total</div><div style="font-size:10px;color:#888;margin-top:2px">${badges.length-badgeAtt} dispo · <span style="color:#c05621">${badgeAtt} attrib.</span></div></div>
     ${badgeStat('Libourne','🏠','libourne','#276749')}
     ${badgeStat('Siège','🏢','siege','#1a3a5c')}

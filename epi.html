@@ -422,6 +422,7 @@ tr:hover td{background:#f8f9fb}
           <option value="acces">Accès</option>
           <option value="watchdoc">WatchDoc</option>
           <option value="alarme">Unaverse</option>
+          <option value="telecommande_siege">Télécommande Siège</option>
           <option value="autre">Autre</option>
         </select>
         <select id="mob-badge-filter-statut" onchange="renderMobBadge()" style="width:160px">
@@ -465,7 +466,8 @@ tr:hover td{background:#f8f9fb}
             <option value="acces">Accès</option>
             <option value="watchdoc">WatchDoc</option>
             <option value="alarme">Unaverse</option>
-            <option value="autre">Autre</option>
+            <option value="telecommande_siege">Télécommande Siège</option>
+          <option value="autre">Autre</option>
           </select>
         </div>
       </div>
@@ -513,7 +515,7 @@ tr:hover td{background:#f8f9fb}
     <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderHistorique()" id="histo-search"></div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>Date</th><th>Type</th><th>Collaborateur</th><th>Site</th><th>EPI</th><th>Taille</th><th>Qté</th>
+        <th>Date</th><th>Type</th><th>Collaborateur</th><th>Site</th><th>EPI</th><th>Taille</th><th>Unité</th>
       </tr></thead><tbody id="histo-body"></tbody></table>
     </div>
   </div>
@@ -1067,7 +1069,7 @@ function renderBadgeLines(){
   const type=document.getElementById('d-type').value;
   const dispos=mobCache.badge.filter(x=>x.statut==='disponible');
   const attribues=mobCache.badge.filter(x=>x.statut==='attribue');
-  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre'};
+  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Télécommande Siège'};
   c.innerHTML=badgeLines.map(l=>{
     const sel=mobCache.badge.find(x=>x.id===l.deviceId);
     const basePool=type==='restitution'?attribues:dispos;
@@ -1343,7 +1345,7 @@ function searchMobLine(type, id, val){
     selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
   } else {
     lines=badgeLines; renderFn=renderBadgeLines;
-    const tl={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre'};
+    const tl={acces:'Accès',watchdoc:'WatchDoc',autre:'Autre',telecommande_siege:'Télécommande Siège'};
     selLookup=(pool,q)=>pool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
   }
   const l=lines.find(x=>x.id===id);
@@ -2397,7 +2399,7 @@ function genererBon(){
   const dateStr=new Date(date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
   const ref='BON-'+date.replace(/-/g,'').slice(2)+'-'+nom.slice(0,3).toUpperCase();
   const typeLabels={dotation:'DOTATION',restitution:'RESTITUTION',remplacement:'REMPLACEMENT'};
-  const badgeTypeLabels={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre'};
+  const badgeTypeLabels={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Télécommande Siège'};
 
   // ── Construire le HTML complet du bon ──────────────────────────────────────
   let rows='';
@@ -2407,7 +2409,7 @@ function genererBon(){
   if(epiLines.length){
     let tr=epiLines.map(l=>{const a=CATALOGUE.find(x=>x.ref===l.ref);return`<tr><td>${l.ref}</td><td>${a?a.nom:'—'}</td><td style="text-align:center">${l.taille||'—'}</td><td style="text-align:center">${l.qte}</td></tr>`;}).join('');
     epiSection=`<div class="section-title">🦺 EPI attribués</div>
-<table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Qté</th></tr></thead><tbody>${tr}</tbody></table>
+<table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Unité</th></tr></thead><tbody>${tr}</tbody></table>
 <div class="note-orange"><strong>Attestation :</strong> J'atteste avoir été informé des principes généraux relatifs à l'utilisation des EPI et je m'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>`;
   }
 
@@ -2636,8 +2638,8 @@ function renderMobStats(){
   const badgeAtt=badges.filter(x=>x.statut==='attribue').length;
 
   // Compteurs par catégorie badge
-  const cats={libourne:0,siege:0,watchdoc:0,alarme:0,autre:0};
-  const catsAtt={libourne:0,siege:0,watchdoc:0,alarme:0,autre:0};
+  const cats={libourne:0,siege:0,watchdoc:0,alarme:0,telecommande_siege:0,autre:0};
+  const catsAtt={libourne:0,siege:0,watchdoc:0,alarme:0,telecommande_siege:0,autre:0};
   badges.forEach(b=>{
     const c=getBadgeCat(b);
     cats[c]++;
@@ -2661,6 +2663,7 @@ function renderMobStats(){
     ${badgeStat('Libourne','🏠','libourne','#276749')}
     ${badgeStat('Siège','🏢','siege','#1a3a5c')}
     ${badgeStat('Unaverse','🚨','alarme','#c53030')}
+    ${cats.telecommande_siege>0?badgeStat('Télécommande Siège','🔑','telecommande_siege','#6b21a8'):''}
     ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
 }
 
@@ -2764,7 +2767,7 @@ function renderMobBadge(){
   const q=(document.getElementById('mob-badge-search')?.value||'').toLowerCase();
   const ft=document.getElementById('mob-badge-filter-type')?.value||'';
   const fs=document.getElementById('mob-badge-filter-statut')?.value||'';
-  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre'};
+  const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Télécommande Siège'};
   let rows=mobCache.badge.filter(d=>(!ft||d.type_badge===ft)&&(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
   document.getElementById('mob-badge-body').innerHTML=rows.length
     ?rows.map(d=>`<tr><td><strong>${d.numero||'—'}</strong></td><td><span class="badge ${d.type_badge==='watchdoc'?'blue':d.type_badge==='acces'?'green':d.type_badge==='alarme'?'red':'gray'}">${typeLabel[d.type_badge]||d.type_badge||'—'}</span></td><td>${statutSelectMob('badge',d.id,d.statut||'disponible')}</td><td style="font-size:11px;color:#666">${d.notes||'—'}</td><td style="white-space:nowrap"><button class="btn small" onclick="editMobDevice('badge','${d.id}')">✏</button><button class="btn small danger" onclick="deleteMobDevice('badge','${d.id}')">✕</button></td></tr>`).join('')

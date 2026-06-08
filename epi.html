@@ -2633,21 +2633,58 @@ function getBadgeCat(b){
 
 function renderMobStats(){
   const tels=mobCache.tel,tabs=mobCache.tab,badges=mobCache.badge;
-  const telAtt=tels.filter(x=>x.statut==='attribue').length;
-  const tabAtt=tabs.filter(x=>x.statut==='attribue').length;
-  const badgeAtt=badges.filter(x=>x.statut==='attribue').length;
+  const telAtt=tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const tabAtt=tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const badgeAtt=badges.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+
+  // Nom court (sans le code SM-xxx)
+  const shortModel=m=>m.replace(/\s*\([^)]+\)/g,'').trim();
+
+  // Compteurs téléphones par modèle
+  const telModelCount={},telModelAtt={};
+  tels.forEach(t=>{
+    const m=t.modele||'Inconnu';
+    telModelCount[m]=(telModelCount[m]||0)+1;
+    if(t.statut==='Attribué'||t.statut==='attribue')telModelAtt[m]=(telModelAtt[m]||0)+1;
+  });
+  const telModels=Object.entries(telModelCount).sort((a,b)=>b[1]-a[1]).map(([m,total])=>{
+    const att=telModelAtt[m]||0,dispo=total-att;
+    return `<div class="stat" style="border-left:3px solid #0369a1;min-width:110px">
+      <div style="font-size:11px;margin-bottom:2px">📱</div>
+      <div class="stat-n" style="font-size:18px">${total}</div>
+      <div class="stat-l" style="font-size:10px">${shortModel(m)}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
+    </div>`;
+  }).join('');
+
+  // Compteurs tablettes par modèle
+  const tabModelCount={},tabModelAtt={};
+  tabs.forEach(t=>{
+    const m=t.modele||'Inconnu';
+    tabModelCount[m]=(tabModelCount[m]||0)+1;
+    if(t.statut==='Attribué'||t.statut==='attribue')tabModelAtt[m]=(tabModelAtt[m]||0)+1;
+  });
+  const tabModels=Object.entries(tabModelCount).sort((a,b)=>b[1]-a[1]).map(([m,total])=>{
+    const att=tabModelAtt[m]||0,dispo=total-att;
+    return `<div class="stat" style="border-left:3px solid #0891b2;min-width:110px">
+      <div style="font-size:11px;margin-bottom:2px">📟</div>
+      <div class="stat-n" style="font-size:18px">${total}</div>
+      <div class="stat-l" style="font-size:10px">${shortModel(m)}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
+    </div>`;
+  }).join('');
 
   // Compteurs par catégorie badge
   const cats={libourne:0,siege:0,watchdoc:0,alarme:0,telecommande_siege:0,autre:0};
   const catsAtt={libourne:0,siege:0,watchdoc:0,alarme:0,telecommande_siege:0,autre:0};
   badges.forEach(b=>{
     const c=getBadgeCat(b);
-    cats[c]++;
-    if(b.statut==='attribue')catsAtt[c]++;
+    if(cats[c]!==undefined)cats[c]++;
+    if((b.statut==='Attribué'||b.statut==='attribue')&&catsAtt[c]!==undefined)catsAtt[c]++;
   });
 
   const badgeStat=(label,icon,cat,color)=>{
-    const total=cats[cat], att=catsAtt[cat], dispo=total-att;
+    const total=cats[cat]||0,att=catsAtt[cat]||0,dispo=total-att;
     return `<div class="stat" style="border-left:3px solid ${color}">
       <div style="font-size:14px;margin-bottom:2px">${icon}</div>
       <div class="stat-n" style="font-size:18px">${total}</div>
@@ -2656,37 +2693,20 @@ function renderMobStats(){
     </div>`;
   };
 
-  // Compteurs par modèle tablette
-  const tabModelCount={};
-  const tabModelAtt={};
-  tabs.forEach(t=>{
-    const m=t.modele||'Inconnu';
-    tabModelCount[m]=(tabModelCount[m]||0)+1;
-    if(t.statut==='Attribué')tabModelAtt[m]=(tabModelAtt[m]||0)+1;
-  });
-  const tabModels=Object.entries(tabModelCount)
-    .sort((a,b)=>b[1]-a[1])
-    .map(([m,total])=>{
-      const att=tabModelAtt[m]||0, dispo=total-att;
-      return `<div class="stat" style="border-left:3px solid #0891b2;min-width:110px">
-        <div style="font-size:11px;margin-bottom:2px">📟</div>
-        <div class="stat-n" style="font-size:18px">${total}</div>
-        <div class="stat-l" style="font-size:10px">${shortModel(m)}</div>
-        <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
-      </div>`;
-    }).join('');
-
   document.getElementById('mob-stats-bar').innerHTML=`
     <div class="stat"><div class="stat-n">${tels.length}</div><div class="stat-l">Téléphones</div><div style="font-size:10px;color:#888;margin-top:2px">${tels.length-telAtt} dispo · <span style="color:#c05621">${telAtt} attrib.</span></div></div>
+    ${telModels}
     <div class="stat"><div class="stat-n">${tabs.length}</div><div class="stat-l">Tablettes</div><div style="font-size:10px;color:#888;margin-top:2px">${tabs.length-tabAtt} dispo · <span style="color:#c05621">${tabAtt} attrib.</span></div></div>
     ${tabModels}
     <div class="stat" style="border-left:3px solid #1a3a5c"><div class="stat-n" style="font-size:18px">${badges.length}</div><div class="stat-l">Badges total</div><div style="font-size:10px;color:#888;margin-top:2px">${badges.length-badgeAtt} dispo · <span style="color:#c05621">${badgeAtt} attrib.</span></div></div>
     ${badgeStat('Libourne','🏠','libourne','#276749')}
     ${badgeStat('Siège','🏢','siege','#1a3a5c')}
+    ${badgeStat('WatchDoc','📄','watchdoc','#0369a1')}
     ${badgeStat('Unaverse','🚨','alarme','#c53030')}
-    ${cats.telecommande_siege>0?badgeStat('Télécommande Siège','🔑','telecommande_siege','#6b21a8'):''}
+    ${badgeStat('Télécommande Siège','🔑','telecommande_siege','#6b21a8')}
     ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
 }
+
 
 function statutSelectMob(type, id, current){
   // Options selon le type

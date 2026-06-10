@@ -144,6 +144,25 @@ tr:hover td{background:#f8f9fb}
 .tag-admin{background:#1a3a5c;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
 .tag-gest{background:#2e7d32;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
 .tag-inactif{background:#aaa;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+
+/* ─── DASHBOARD ─────────────────────────────────────────────────────── */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.db-kpi{background:#fff;border-radius:10px;border:1px solid #e0e7ef;padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.db-kpi-icon{font-size:22px;margin-bottom:4px}
+.db-kpi-val{font-size:28px;font-weight:700;color:#1a3a5c;line-height:1}
+.db-kpi-lbl{font-size:12px;color:#888;font-weight:500}
+.db-kpi-sub{font-size:11px;color:#c0392b;font-weight:600}
+.db-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.db-chart-card{background:#fff;border-radius:10px;border:1px solid #e0e7ef;padding:16px}
+.db-chart-card h4{font-size:13px;font-weight:600;color:#1a3a5c;margin:0 0 12px 0}
+.db-chart-card canvas{max-height:220px}
+.db-section{font-size:13px;font-weight:700;color:#1a3a5c;margin:20px 0 10px 0;padding-bottom:4px;border-bottom:2px solid #e0e7ef}
+.db-top-table{width:100%;border-collapse:collapse;font-size:12px}
+.db-top-table th{background:#1a3a5c;color:#fff;padding:6px 10px;text-align:left}
+.db-top-table td{padding:6px 10px;border-bottom:1px solid #f0f0f0}
+.db-top-table tr:nth-child(even) td{background:#f8f9fb}
+.db-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.db-charts,.db-row3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -209,6 +228,7 @@ tr:hover td{background:#f8f9fb}
   <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
   <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
   <button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
+  <button class="nav-btn" id="btn-dashboard" onclick="goTab('dashboard',this)">📊 Dashboard</button>
   <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
 </div>
 
@@ -684,6 +704,76 @@ tr:hover td{background:#f8f9fb}
 </div>
 
 <!-- PARAMETRES -->
+
+<!-- ─── PANEL DASHBOARD ────────────────────────────────────────────── -->
+<div id="tab-dashboard" class="panel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h2 style="margin:0;color:#1a3a5c">📊 Tableau de bord</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label style="font-size:12px;color:#666">Site :</label>
+      <select id="db-filter-site" onchange="renderDashboard()" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #ddd">
+        <option value="">Tous les sites</option>
+      </select>
+      <button class="btn" onclick="renderDashboard()" style="font-size:12px">🔄 Actualiser</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="db-grid" id="db-kpis"></div>
+
+  <!-- Graphiques ligne 1 -->
+  <div class="db-charts">
+    <div class="db-chart-card">
+      <h4>📱 Parc téléphones — Répartition par modèle</h4>
+      <canvas id="chart-tel-modeles"></canvas>
+    </div>
+    <div class="db-chart-card">
+      <h4>🪪 Badges — Répartition par type</h4>
+      <canvas id="chart-badges-types"></canvas>
+    </div>
+  </div>
+
+  <!-- Graphiques ligne 2 -->
+  <div class="db-charts">
+    <div class="db-chart-card">
+      <h4>📦 Stock EPI — Top 10 articles par valeur</h4>
+      <canvas id="chart-epi-valeur"></canvas>
+    </div>
+    <div class="db-chart-card">
+      <h4>📅 Mouvements mobilité — Par mois</h4>
+      <canvas id="chart-mouvements-mois"></canvas>
+    </div>
+  </div>
+
+  <!-- Ligne 3 : tableaux -->
+  <div class="db-row3">
+    <div class="db-chart-card">
+      <h4>🏆 Top articles EPI attribués</h4>
+      <table class="db-top-table" id="db-top-epi"></table>
+    </div>
+    <div class="db-chart-card">
+      <h4>🏢 Dotations par site</h4>
+      <table class="db-top-table" id="db-top-sites"></table>
+    </div>
+    <div class="db-chart-card">
+      <h4>⚠️ Stock EPI sous seuil</h4>
+      <table class="db-top-table" id="db-alertes-epi"></table>
+    </div>
+  </div>
+
+  <!-- Tablettes -->
+  <div class="db-charts">
+    <div class="db-chart-card">
+      <h4>📟 Tablettes — Répartition par modèle</h4>
+      <canvas id="chart-tab-modeles"></canvas>
+    </div>
+    <div class="db-chart-card">
+      <h4>📊 Mobilité — Attribution vs Disponible</h4>
+      <canvas id="chart-mob-attrib"></canvas>
+    </div>
+  </div>
+</div>
+
 <div id="tab-parametres" class="panel">
   <div class="card">
     <h3>🔑 Token GitHub — connexion à la base de données</h3>
@@ -799,6 +889,7 @@ Pôle Facilities — Domofrance</textarea>
 </div><!-- end content -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
 function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
@@ -1060,6 +1151,7 @@ function goTab(t,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   if(t==='parametres'&&currentUser&&currentUser.role==='admin'&&usersCache.length>0){renderUsersList();}
+  if(t==='dashboard'){renderDashboard();}
   document.getElementById('tab-'+t).classList.add('active');
   if(btn)btn.classList.add('active');
   if(t==='stock'){renderStockStats();renderStock()}
@@ -4066,6 +4158,201 @@ function exportStockMobilite(){
   const date=new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb,'GESTOCK_Stock_Mobilite_'+date+'.xlsx');
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── MODULE DASHBOARD ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let _dbCharts = {};
+
+function destroyChart(id) {
+  if (_dbCharts[id]) { _dbCharts[id].destroy(); delete _dbCharts[id]; }
+}
+
+function renderDashboard() {
+  const filterSite = document.getElementById('db-filter-site')?.value || '';
+
+  // Alimenter le filtre sites
+  const siteSet = new Set();
+  [...(mobCache.tel||[]), ...(mobCache.badge||[]), ...(mobCache.tab||[])]
+    .forEach(x => { if (x.site) siteSet.add(x.site); });
+  mouvementsCache.forEach(m => { if (m.site) siteSet.add(m.site); });
+  const selSite = document.getElementById('db-filter-site');
+  if (selSite && selSite.options.length <= 1) {
+    [...siteSet].sort().forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      selSite.appendChild(o);
+    });
+  }
+
+  const tels   = filterSite ? (mobCache.tel||[]).filter(x=>x.site===filterSite) : (mobCache.tel||[]);
+  const tabs   = filterSite ? (mobCache.tab||[]).filter(x=>x.site===filterSite) : (mobCache.tab||[]);
+  const badges = filterSite ? (mobCache.badge||[]).filter(x=>x.site===filterSite) : (mobCache.badge||[]);
+  const mouvs  = filterSite ? mouvementsCache.filter(m=>m.site===filterSite) : mouvementsCache;
+
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  const totalTel   = tels.length;
+  const attribTel  = tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const totalTab   = tabs.length;
+  const attribTab  = tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const totalBadge = badges.length;
+  const attribBadge= badges.filter(x=>x.statut==='Attribué'||x.statut==='Disponible'?false:true).length;
+  const dispoBadge = badges.filter(x=>x.statut==='Disponible'||x.statut==='disponible').length;
+
+  // Valeur stock EPI
+  let valeurStock = 0;
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const s = stockCache[a.ref+'__'+t]||{};
+      if ((s.qte||0)>0 && (a.prix||0)>0) valeurStock += (s.qte||0) * a.prix;
+    });
+  });
+
+  // Articles en alerte
+  let alertesEPI = 0;
+  Object.entries(stockCache).forEach(([k,v])=>{
+    if ((v.seuil||0)>0 && (v.qte||0) <= (v.seuil||0)) alertesEPI++;
+  });
+
+  document.getElementById('db-kpis').innerHTML = `
+    <div class="db-kpi"><div class="db-kpi-icon">📱</div><div class="db-kpi-val">${totalTel}</div><div class="db-kpi-lbl">Téléphones</div><div class="db-kpi-sub" style="color:#0369a1">${attribTel} attribués · ${totalTel-attribTel} dispo</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📟</div><div class="db-kpi-val">${totalTab}</div><div class="db-kpi-lbl">Tablettes</div><div class="db-kpi-sub" style="color:#0369a1">${attribTab} attribuées · ${totalTab-attribTab} dispo</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">🪪</div><div class="db-kpi-val">${totalBadge}</div><div class="db-kpi-lbl">Badges</div><div class="db-kpi-sub" style="color:#276749">${dispoBadge} disponibles</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">💶</div><div class="db-kpi-val">${valeurStock.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €</div><div class="db-kpi-lbl">Valeur stock EPI</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📦</div><div class="db-kpi-val">${Object.values(stockCache).reduce((a,v)=>a+(v.qte||0),0)}</div><div class="db-kpi-lbl">Articles EPI en stock</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">⚠️</div><div class="db-kpi-val" style="color:#c0392b">${alertesEPI}</div><div class="db-kpi-lbl">Références EPI sous seuil</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📋</div><div class="db-kpi-val">${mouvs.length}</div><div class="db-kpi-lbl">Mouvements enregistrés</div></div>
+  `;
+
+  // ── Graphique 1 : téléphones par modèle ───────────────────────────────
+  destroyChart('chart-tel-modeles');
+  const telModels = {};
+  tels.forEach(t => { const m=t.modele||'Inconnu'; telModels[m]=(telModels[m]||0)+1; });
+  const telEntries = Object.entries(telModels).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ctx1 = document.getElementById('chart-tel-modeles');
+  if (ctx1 && telEntries.length) {
+    _dbCharts['chart-tel-modeles'] = new Chart(ctx1, { type:'doughnut', data:{
+      labels: telEntries.map(([m])=>m.replace(/\s*\([^)]+\)/g,'')),
+      datasets:[{data:telEntries.map(([,v])=>v),backgroundColor:['#1a3a5c','#2e5d8e','#0369a1','#0891b2','#c0392b','#e67e22','#276749','#6b21a8'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 2 : badges par type ─────────────────────────────────────
+  destroyChart('chart-badges-types');
+  const badgeLabels = {acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',telecommande_siege:'Télécommande Siège',autre:'Autre'};
+  const badgeTypes = {};
+  badges.forEach(b => { const t=badgeLabels[b.type_badge]||b.type_badge||'Autre'; badgeTypes[t]=(badgeTypes[t]||0)+1; });
+  const ctx2 = document.getElementById('chart-badges-types');
+  if (ctx2 && Object.keys(badgeTypes).length) {
+    _dbCharts['chart-badges-types'] = new Chart(ctx2, { type:'pie', data:{
+      labels: Object.keys(badgeTypes),
+      datasets:[{data:Object.values(badgeTypes),backgroundColor:['#1a3a5c','#0369a1','#c0392b','#6b21a8','#888'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 3 : Top 10 EPI par valeur stock ──────────────────────────
+  destroyChart('chart-epi-valeur');
+  const epiValeurs = {};
+  CATALOGUE.filter(a=>!a.catalogOnly && a.prix>0).forEach(a=>{
+    let qteTotal=0;
+    (a.tailles||['Unique']).forEach(t=>{ qteTotal+=(stockCache[a.ref+'__'+t]||{qte:0}).qte||0; });
+    if (qteTotal>0) epiValeurs[a.nom] = qteTotal * a.prix;
+  });
+  const epiTop = Object.entries(epiValeurs).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ctx3 = document.getElementById('chart-epi-valeur');
+  if (ctx3 && epiTop.length) {
+    _dbCharts['chart-epi-valeur'] = new Chart(ctx3, { type:'bar', data:{
+      labels: epiTop.map(([n])=>n.length>20?n.slice(0,20)+'…':n),
+      datasets:[{label:'Valeur (€)',data:epiTop.map(([,v])=>Math.round(v*100)/100),backgroundColor:'rgba(26,58,92,0.8)',borderColor:'#1a3a5c',borderWidth:1}]
+    }, options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{color:'#f0f0f0'}},y:{ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Graphique 4 : Mouvements par mois ─────────────────────────────────
+  destroyChart('chart-mouvements-mois');
+  const parMois = {};
+  mouvs.forEach(m=>{
+    const mois=(m.date||m.createdAt||'').slice(0,7);
+    if(!mois)return;
+    if(!parMois[mois])parMois[mois]={attribution:0,restitution:0};
+    if(m.type&&m.type.includes('attribution'))parMois[mois].attribution++;
+    else if(m.type&&m.type.includes('restitution'))parMois[mois].restitution++;
+  });
+  const moisSorted = Object.keys(parMois).sort();
+  const ctx4 = document.getElementById('chart-mouvements-mois');
+  if (ctx4 && moisSorted.length) {
+    _dbCharts['chart-mouvements-mois'] = new Chart(ctx4, { type:'bar', data:{
+      labels: moisSorted.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][parseInt(mo)-1]+' '+y.slice(2); }),
+      datasets:[
+        {label:'Attributions',data:moisSorted.map(m=>parMois[m].attribution),backgroundColor:'rgba(26,58,92,0.8)'},
+        {label:'Restitutions',data:moisSorted.map(m=>parMois[m].restitution),backgroundColor:'rgba(192,57,43,0.7)'},
+      ]
+    }, options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{x:{stacked:false,ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Graphique 5 : Tablettes par modèle ────────────────────────────────
+  destroyChart('chart-tab-modeles');
+  const tabModels = {};
+  tabs.forEach(t=>{ const m=t.modele||'Inconnu'; tabModels[m]=(tabModels[m]||0)+1; });
+  const ctx5 = document.getElementById('chart-tab-modeles');
+  if (ctx5 && Object.keys(tabModels).length) {
+    _dbCharts['chart-tab-modeles'] = new Chart(ctx5, { type:'doughnut', data:{
+      labels: Object.keys(tabModels).map(m=>m.replace(/\s*\([^)]+\)/g,'')),
+      datasets:[{data:Object.values(tabModels),backgroundColor:['#0891b2','#0369a1','#1a3a5c','#276749'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 6 : Mobilité attribution vs disponible ──────────────────
+  destroyChart('chart-mob-attrib');
+  const ctx6 = document.getElementById('chart-mob-attrib');
+  if (ctx6) {
+    const isDispo = x=>x.statut==='Disponible'||x.statut==='disponible';
+    const isAttrib= x=>x.statut==='Attribué'||x.statut==='attribue';
+    _dbCharts['chart-mob-attrib'] = new Chart(ctx6, { type:'bar', data:{
+      labels:['Téléphones','Tablettes','Badges'],
+      datasets:[
+        {label:'Disponibles',data:[tels.filter(isDispo).length,tabs.filter(isDispo).length,badges.filter(isDispo).length],backgroundColor:'rgba(39,103,73,0.8)'},
+        {label:'Attribués',data:[tels.filter(isAttrib).length,tabs.filter(isAttrib).length,badges.filter(isAttrib).length],backgroundColor:'rgba(192,57,43,0.7)'},
+      ]
+    }, options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Tableau 1 : Top EPI attribués ─────────────────────────────────────
+  const epiAttrib = {};
+  mouvs.filter(m=>m.type==='dotation'||m.type==='attribution').forEach(m=>{
+    if(m.ref){const a=CATALOGUE.find(x=>x.ref===m.ref);if(a){epiAttrib[a.nom]=(epiAttrib[a.nom]||0)+(m.qte||1);}}
+  });
+  const epiTopAttrib = Object.entries(epiAttrib).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('db-top-epi').innerHTML =
+    '<thead><tr><th>Article</th><th style="text-align:right">Attribués</th></tr></thead><tbody>' +
+    (epiTopAttrib.length ? epiTopAttrib.map(([n,v])=>`<tr><td>${n}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`).join('') :
+    '<tr><td colspan="2" style="color:#888;font-style:italic">Aucun mouvement EPI enregistré</td></tr>') + '</tbody>';
+
+  // ── Tableau 2 : Dotations par site ────────────────────────────────────
+  const siteCount = {};
+  mouvs.forEach(m=>{ if(m.site){siteCount[m.site]=(siteCount[m.site]||0)+1;} });
+  const siteTop = Object.entries(siteCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('db-top-sites').innerHTML =
+    '<thead><tr><th>Site / Agence</th><th style="text-align:right">Mouvements</th></tr></thead><tbody>' +
+    (siteTop.length ? siteTop.map(([s,v])=>`<tr><td>${s}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`).join('') :
+    '<tr><td colspan="2" style="color:#888;font-style:italic">Aucune donnée</td></tr>') + '</tbody>';
+
+  // ── Tableau 3 : Articles EPI sous seuil ───────────────────────────────
+  const alertes = [];
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const s=stockCache[a.ref+'__'+t]||{};
+      if((s.seuil||0)>0&&(s.qte||0)<=(s.seuil||0)) alertes.push({nom:a.nom,taille:t,qte:s.qte||0,seuil:s.seuil||0});
+    });
+  });
+  alertes.sort((a,b)=>a.qte-b.qte);
+  document.getElementById('db-alertes-epi').innerHTML =
+    '<thead><tr><th>Article</th><th>Taille</th><th style="text-align:right">Qté</th></tr></thead><tbody>' +
+    (alertes.length ? alertes.slice(0,10).map(a=>`<tr><td>${a.nom.length>20?a.nom.slice(0,20)+'…':a.nom}</td><td>${a.taille}</td><td style="text-align:right;font-weight:600;color:${a.qte===0?'#c0392b':'#e67e22'}">${a.qte}</td></tr>`).join('') :
+    '<tr><td colspan="3" style="color:#276749;font-style:italic">✅ Aucune alerte</td></tr>') + '</tbody>';
+}
+
 
 async function initApp(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';

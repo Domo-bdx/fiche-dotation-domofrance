@@ -1082,8 +1082,8 @@ function renderBadgeLines(){
   if(!c)return;
   if(!badgeLines.length){c.innerHTML='<div class="empty">Aucun badge ajouté</div>';return}
   const type=document.getElementById('d-type').value;
-  const dispos=mobCache.badge.filter(x=>x.statut==='disponible');
-  const attribues=mobCache.badge.filter(x=>x.statut==='attribue');
+  const dispos=mobCache.badge.filter(x=>x.statut==='disponible'||x.statut==='Disponible'||x.statut==='Disponible');
+  const attribues=mobCache.badge.filter(x=>x.statut==='attribue'||x.statut==='Attribué'||x.statut==='Attribué');
   const typeLabel={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Télécommande Siège'};
   c.innerHTML=badgeLines.map(l=>{
     const sel=mobCache.badge.find(x=>x.id===l.deviceId);
@@ -1137,9 +1137,9 @@ function updateTabLine(id,field,val){
 function renderTelLines(){
   const c=document.getElementById('tel-lines-container');
   if(!telLines.length){c.innerHTML='<div class="empty">Aucun téléphone ajouté</div>';return}
-  const dispos=mobCache.tel.filter(x=>x.statut==='disponible');
+  const dispos=mobCache.tel.filter(x=>x.statut==='disponible'||x.statut==='Disponible');
   const type=document.getElementById('d-type').value;
-  const attribues=mobCache.tel.filter(x=>x.statut==='attribue');
+  const attribues=mobCache.tel.filter(x=>x.statut==='attribue'||x.statut==='Attribué');
   c.innerHTML=telLines.map(l=>{
     const sel=mobCache.tel.find(x=>x.id===l.deviceId);
     const basePool=type==='restitution'?attribues:dispos;
@@ -1174,8 +1174,8 @@ function renderTabLines(){
   const c=document.getElementById('tab-lines-container');
   if(!tabLines.length){c.innerHTML='<div class="empty">Aucune tablette ajoutée</div>';return}
   const type=document.getElementById('d-type').value;
-  const dispos=mobCache.tab.filter(x=>x.statut==='disponible');
-  const attribues=mobCache.tab.filter(x=>x.statut==='attribue');
+  const dispos=mobCache.tab.filter(x=>x.statut==='disponible'||x.statut==='Disponible');
+  const attribues=mobCache.tab.filter(x=>x.statut==='attribue'||x.statut==='Attribué');
   c.innerHTML=tabLines.map(l=>{
     const sel=mobCache.tab.find(x=>x.id===l.deviceId);
     const basePool=type==='restitution'?attribues:dispos;
@@ -2649,9 +2649,9 @@ function getBadgeCat(b){
 
 function renderMobStats(){
   const tels=mobCache.tel,tabs=mobCache.tab,badges=mobCache.badge;
-  const telAtt=tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
-  const tabAtt=tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
-  const badgeAtt=badges.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const telAtt=tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue'||x.statut==='Attribué').length;
+  const tabAtt=tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue'||x.statut==='Attribué').length;
+  const badgeAtt=badges.filter(x=>x.statut==='Attribué'||x.statut==='attribue'||x.statut==='Attribué').length;
 
   // Nom court (sans le code SM-xxx)
   const shortModel=m=>m.replace(/\s*\([^)]+\)/g,'').trim();

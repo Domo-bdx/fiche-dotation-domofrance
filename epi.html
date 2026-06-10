@@ -496,7 +496,10 @@ tr:hover td{background:#f8f9fb}
 <div id="tab-stock" class="panel">
   <div class="stats-row" id="stock-stats"></div>
   <div class="card">
-    <h3>Gestion du stock EPI</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <h3 style="margin:0">Gestion du stock EPI</h3>
+      <button class="btn success" onclick="exportStockEPI()" style="font-size:12px">📥 Export Excel</button>
+    </div>
     <div class="cat-filter" id="cat-filter-stock"></div>
     <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderStock()" id="stock-search"></div>
     <div class="tbl-wrap">
@@ -794,6 +797,7 @@ Pôle Facilities — Domofrance</textarea>
   </div>
 </div><!-- end content -->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
 function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
@@ -4013,6 +4017,55 @@ async function changerMonMotDePasse(){
   showMsg('mc-msg','Mot de passe modifié avec succès.','success');
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── EXPORT EXCEL ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+function exportStockEPI(){
+  if(typeof XLSX==='undefined'){alert('Librairie XLSX non chargée. Vérifiez votre connexion.');return;}
+  const rows=[['Référence','Désignation','Catégorie','Taille','Stock','Seuil','Attribués','Prix unitaire']];
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const key=a.ref+'__'+t;
+      const s=stockCache[key]||{qte:0,seuil:0,attribues:0};
+      rows.push([a.ref,a.nom,a.cat||'',t,s.qte||0,s.seuil||0,s.attribues||0,a.prix||0]);
+    });
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:35},{wch:18},{wch:8},{wch:7},{wch:7},{wch:10},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,'Stock EPI',ws);
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'GESTOCK_Stock_EPI_'+date+'.xlsx');
+}
+
+function exportStockMobilite(){
+  if(typeof XLSX==='undefined'){alert('Librairie XLSX non chargée. Vérifiez votre connexion.');return;}
+  const wb=XLSX.utils.book_new();
+  // Téléphones
+  const telRows=[['ID','Marque','Modèle','IMEI','Ligne SIM','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.tel||[]).forEach(t=>telRows.push([t.id||'',t.marque||'',t.modele||'',t.imei||'',t.sim||'',t.collaborateur||'',t.site||'',t.statut||'',t.date_attribution||'']));
+  const wsTel=XLSX.utils.aoa_to_sheet(telRows);
+  wsTel['!cols']=[{wch:14},{wch:12},{wch:22},{wch:18},{wch:14},{wch:25},{wch:16},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,'Téléphones',wsTel);
+  // Tablettes
+  const tabRows=[['ID','Nom','Marque','Modèle','IMEI','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.tab||[]).forEach(t=>tabRows.push([t.id||'',t.nom||'',t.marque||'',t.modele||'',t.imei||'',t.collaborateur||'',t.site||'',t.statut||'',t.date_attribution||'']));
+  const wsTab=XLSX.utils.aoa_to_sheet(tabRows);
+  wsTab['!cols']=[{wch:14},{wch:20},{wch:12},{wch:22},{wch:18},{wch:25},{wch:16},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,'Tablettes',wsTab);
+  // Badges
+  const badgeLabels={acces:'Accès',watchdoc:'WatchDoc',alarme:'Unaverse',telecommande_siege:'Télécommande Siège',autre:'Autre'};
+  const badgeRows=[['ID','Numéro','Type','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.badge||[]).forEach(b=>badgeRows.push([b.id||'',b.numero||'',badgeLabels[b.type_badge]||b.type_badge||'',b.collaborateur||'',b.site||'',b.statut||'',b.date_attribution||'']));
+  const wsBadge=XLSX.utils.aoa_to_sheet(badgeRows);
+  wsBadge['!cols']=[{wch:14},{wch:14},{wch:20},{wch:25},{wch:16},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,'Badges',wsBadge);
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'GESTOCK_Stock_Mobilite_'+date+'.xlsx');
+}
+
 async function initApp(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
   setSyncStatus('syncing','Connexion…');
@@ -4108,3 +4161,4 @@ sessionStorage.removeItem('gestock_user');
 </script>
 </body>
 </html>
+  <div style="text-align:right;margin-bottom:8px"><button class="btn success" onclick="exportStockMobilite()" style="font-size:12px">📥 Export Excel</button></div>

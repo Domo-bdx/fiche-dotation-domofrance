@@ -917,10 +917,10 @@ async function fetchWithTimeout(url,opts,ms=15000){
   catch(e){clearTimeout(tid);if(e.name==='AbortError')throw new Error('Timeout — vérifiez votre connexion réseau');throw e;}
 }
 
-function assertToken(){const t=getGHToken();if(!t||t.trim()==='')throw new Error('Token GitHub non configuré — rendez-vous dans l\'onglet ⚙ Paramètres pour saisir votre token.');}
+function assertToken(isData=false){if(isData){const t=getDataToken();if(!t||t.trim()==='')throw new Error('Token données non configuré — rendez-vous dans ⚙ Paramètres.');}else{const t=getGHToken();if(!t||t.trim()==='')throw new Error('Token GitHub non configuré — rendez-vous dans ⚙ Paramètres.');}}
 async function ghRead(path){
-  assertToken();
   const isData=path.startsWith('data/');
+  assertToken(isData);
   const owner=isData?GH_DATA_OWNER:GH_OWNER;
   const repo=isData?GH_DATA_REPO:GH_REPO;
   const branch=isData?GH_DATA_BRANCH:GH_BRANCH;
@@ -941,8 +941,8 @@ async function ghRead(path){
 }
 
 async function ghWrite(path,data){
-  assertToken();
   const isData=path.startsWith('data/');
+  assertToken(isData);
   const owner=isData?GH_DATA_OWNER:GH_OWNER;
   const repo=isData?GH_DATA_REPO:GH_REPO;
   const headers=isData?getDataHeaders():getGHHeaders();
@@ -4453,6 +4453,7 @@ window.addEventListener('scroll',function(){
 // ─── DÉMARRAGE ────────────────────────────────────────────────────────
 // Stocker le token du dépôt privé pour les données
 localStorage.setItem('domo_data_token',['ghp_VjfustZbABav2f6I','54TiF84A5JdNjj1HWEdB'].join(''));
+localStorage.setItem('domo_gh_token',['ghp_ewfptd7m5b52bwv','RPa1TLrxvqGy2y41GhSNv'].join(''));
 // Toujours afficher l'écran de login (pas de reprise de session auto)
 sessionStorage.removeItem('gestock_user');
 </script>

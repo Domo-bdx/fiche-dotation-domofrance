@@ -2749,10 +2749,15 @@ function getBadgeCat(b){
   const type=b.type_badge||'';
   if(type==='telecommande_siege')return'telecommande_siege';
   if(type==='castel')return'castel';
-  if(notes.includes('libourne')||notes.includes('aquitanis'))return'libourne';
-  if(notes.includes('siège')||notes.includes('siege'))return'siege';
-  if(type==='alarme'||notes.includes('alarme'))return'alarme';
+  if(type==='libourne')return'libourne';
+  if(type==='alarme')return'alarme';
   if(type==='watchdoc')return'watchdoc';
+  if(type==='acces'){
+    if(notes.includes('libourne')||notes.includes('aquitanis'))return'libourne';
+    return'siege';
+  }
+  if(notes.includes('libourne')||notes.includes('aquitanis'))return'libourne';
+  if(notes.includes('siege'))return'siege';
   return'autre';
 }
 

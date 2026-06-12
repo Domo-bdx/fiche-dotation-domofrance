@@ -925,17 +925,21 @@ async function ghRead(path){
   const repo=isData?GH_DATA_REPO:GH_REPO;
   const branch=isData?GH_DATA_BRANCH:GH_BRANCH;
   const headers=isData?getDataHeaders():getGHHeaders();
-  // Récupérer le SHA via API Contents
   const apiUrl=`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}&t=${Date.now()}`;
-  const rApi=await fetchWithTimeout(apiUrl,{headers});
-  if(rApi.status===404)return null;
-  if(rApi.status===403){const txt=await rApi.text();if(txt.includes('rate limit'))throw new Error('Limite API GitHub atteinte — vérifiez que votre token est bien configuré dans ⚙ Paramètres.');throw new Error(`GitHub read 403: ${txt}`);}
-  if(!rApi.ok)throw new Error(`GitHub read ${rApi.status}: ${await rApi.text()}`);
-  const j=await rApi.json();
+  const r=await fetchWithTimeout(apiUrl,{headers});
+  if(r.status===404)return null;
+  if(r.status===403){const txt=await r.text();if(txt.includes('rate limit'))throw new Error('Limite API GitHub atteinte — vérifiez que votre token est bien configuré dans ⚙ Paramètres.');throw new Error(`GitHub read 403: ${txt}`);}
+  if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
+  const j=await r.json();
   if(isData)_datashas[path]=j.sha; else _shas[path]=j.sha;
-  // Lire le contenu via raw.githubusercontent.com (évite la troncature base64 sur les gros fichiers)
+  // Si contenu disponible dans la réponse, l'utiliser directement
+  if(j.content){
+    const decoded=j.content.replace(/\n/g,'');
+    return JSON.parse(atob(decoded));
+  }
+  // Fallback raw pour les très gros fichiers (>1Mo)
   const rawUrl=`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}?t=${Date.now()}`;
-  const rRaw=await fetchWithTimeout(rawUrl,{headers});
+  const rRaw=await fetchWithTimeout(rawUrl,{headers:{'Authorization':headers['Authorization']}});
   if(!rRaw.ok)throw new Error(`GitHub raw read ${rRaw.status}`);
   return await rRaw.json();
 }

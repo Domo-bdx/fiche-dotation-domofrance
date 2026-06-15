@@ -4217,24 +4217,32 @@ function destroyChart(id) {
 function renderDashboard() {
   const filterSite = document.getElementById('db-filter-site')?.value || '';
 
-  // Alimenter le filtre sites
-  // Nettoyage des noms de sites mal encodés
+  // Alimenter le filtre sites — reconstruction complète à chaque appel
   const cleanSite = s => {
-    if (!s || typeof s !== 'string') return s;
-    if (s.includes('Ã')) return 'Siege';
-    return s;
+    if (!s || typeof s !== 'string') return '';
+    // Supprimer toute chaîne contenant des caractères mal encodés
+    if (s.includes('Ã') || s.includes('Â') || s.includes('�')) return '';
+    return s.trim();
   };
   const siteSet = new Set();
   [...(mobCache.tel||[]), ...(mobCache.badge||[]), ...(mobCache.tab||[])]
-    .forEach(x => { if (x.site) siteSet.add(cleanSite(x.site)); });
-  mouvementsCache.forEach(m => { if (m.site) siteSet.add(cleanSite(m.site)); });
+    .forEach(x => { const s=cleanSite(x.site||''); if(s) siteSet.add(s); });
+  mouvementsCache.forEach(m => { const s=cleanSite(m.site||''); if(s) siteSet.add(s); });
   const selSite = document.getElementById('db-filter-site');
-  if (selSite && selSite.options.length <= 1) {
+  if (selSite) {
+    // Vider complètement avant de repeupler
+    const currentVal = selSite.value;
+    while(selSite.options.length > 0) selSite.remove(0);
+    const allOpt = document.createElement('option');
+    allOpt.value = ''; allOpt.textContent = 'Tous les sites';
+    selSite.appendChild(allOpt);
     [...siteSet].sort().forEach(s => {
       const o = document.createElement('option');
       o.value = s; o.textContent = s;
       selSite.appendChild(o);
     });
+    // Restaurer la valeur si encore disponible
+    if(currentVal && [...siteSet].includes(currentVal)) selSite.value = currentVal;
   }
 
   const tels   = filterSite ? (mobCache.tel||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tel||[]);

@@ -4218,10 +4218,16 @@ function renderDashboard() {
   const filterSite = document.getElementById('db-filter-site')?.value || '';
 
   // Alimenter le filtre sites
+  // Nettoyage des noms de sites mal encodés
+  const cleanSite = s => {
+    if (!s || typeof s !== 'string') return s;
+    if (s.includes('Ã')) return 'Siege';
+    return s;
+  };
   const siteSet = new Set();
   [...(mobCache.tel||[]), ...(mobCache.badge||[]), ...(mobCache.tab||[])]
-    .forEach(x => { if (x.site) siteSet.add(x.site); });
-  mouvementsCache.forEach(m => { if (m.site) siteSet.add(m.site); });
+    .forEach(x => { if (x.site) siteSet.add(cleanSite(x.site)); });
+  mouvementsCache.forEach(m => { if (m.site) siteSet.add(cleanSite(m.site)); });
   const selSite = document.getElementById('db-filter-site');
   if (selSite && selSite.options.length <= 1) {
     [...siteSet].sort().forEach(s => {
@@ -4231,10 +4237,10 @@ function renderDashboard() {
     });
   }
 
-  const tels   = filterSite ? (mobCache.tel||[]).filter(x=>x.site===filterSite) : (mobCache.tel||[]);
-  const tabs   = filterSite ? (mobCache.tab||[]).filter(x=>x.site===filterSite) : (mobCache.tab||[]);
-  const badges = filterSite ? (mobCache.badge||[]).filter(x=>x.site===filterSite) : (mobCache.badge||[]);
-  const mouvs  = filterSite ? mouvementsCache.filter(m=>m.site===filterSite) : mouvementsCache;
+  const tels   = filterSite ? (mobCache.tel||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tel||[]);
+  const tabs   = filterSite ? (mobCache.tab||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tab||[]);
+  const badges = filterSite ? (mobCache.badge||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.badge||[]);
+  const mouvs  = filterSite ? mouvementsCache.filter(m=>cleanSite(m.site||'')===filterSite) : mouvementsCache;
 
   // ── KPIs ──────────────────────────────────────────────────────────────
   const totalTel   = tels.length;

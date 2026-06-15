@@ -683,8 +683,24 @@ tr:hover td{background:#f8f9fb}
     <div style="margin-bottom:8px;font-size:11px;color:#555" id="mail-to-preview"></div>
     <div id="mail-body-preview" class="mail-preview"></div>
     <div class="btn-row" style="margin-top:10px">
-      <button class="btn primary" onclick="ouvrirMailAlerte()">📧 Copier + ouvrir Outlook</button>
-      <button class="btn" onclick="copierMailAlerte()">Copier le texte seul</button>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px">
+          <div style="font-weight:700;color:#856404;margin-bottom:6px">🚨 Mail RUPTURES uniquement</div>
+          <div style="font-size:11px;color:#856404;margin-bottom:8px">Uniquement les articles à 0 en stock</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" style="background:#c0392b" onclick="ouvrirMailAlerte('ruptures')">📧 Ouvrir Outlook</button>
+            <button class="btn" onclick="copierMailAlerte('ruptures')">Copier texte</button>
+          </div>
+        </div>
+        <div style="background:#e8f4f8;border:1px solid #0369a1;border-radius:8px;padding:12px 16px">
+          <div style="font-weight:700;color:#1a3a5c;margin-bottom:6px">📦 Mail COMPLET (ruptures + stock bas)</div>
+          <div style="font-size:11px;color:#555;margin-bottom:8px">Tous les articles sous le seuil d'alerte</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" onclick="ouvrirMailAlerte('tout')">📧 Ouvrir Outlook</button>
+            <button class="btn" onclick="copierMailAlerte('tout')">Copier texte</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div style="font-size:11px;color:#888;margin-top:6px">Le texte est copié automatiquement — faites <strong>Ctrl+V</strong> dans le corps du mail Outlook.</div>
     <div id="mail-msg"></div>
@@ -3135,7 +3151,7 @@ function updateAlerteBadge(){
   else{btn.removeAttribute('data-count');btn.classList.remove('alert-badge')}
 }
 
-function buildMailPreview(alertesEpi){
+function buildMailPreview(alertesEpi, mode='tout'){
   const cfg=loadConfig();
   const date=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const sign=cfg.signature||'Cordialement,\nPôle Facilities — Domofrance';
@@ -3153,11 +3169,13 @@ function buildMailPreview(alertesEpi){
     return;
   }
 
-  const sujet = hasEpi&&hasPap
-    ? 'ALERTE STOCK EPI & PAPETERIE — Domofrance Pôle Facilities'
-    : hasEpi
-      ? (cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities')
-      : 'ALERTE STOCK PAPETERIE — Domofrance Pôle Facilities';
+  const sujet = mode==='ruptures'
+    ? 'RUPTURES DE STOCK EPI — Domofrance Pôle Facilities'
+    : hasEpi&&hasPap
+      ? 'ALERTE STOCK EPI & PAPETERIE — Domofrance Pôle Facilities'
+      : hasEpi
+        ? (cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities')
+        : 'ALERTE STOCK PAPETERIE — Domofrance Pôle Facilities';
 
   let corps = intro + '\n\n';
 
@@ -3192,17 +3210,25 @@ function buildMailPreview(alertesEpi){
   window._mailSujet=sujet;
 }
 
-function ouvrirMailAlerte(){
+function ouvrirMailAlerte(mode='tout'){
   const cfg=loadConfig();
-  const alertesEpi=getAlertes();
+  let alertesEpi=getAlertes();
   const alertesPap=getPapeterieAlertes();
-  if(!alertesEpi.length&&!alertesPap.length){showMsg('mail-msg','✓ Aucune alerte EPI ni papeterie en ce moment.','ok');return}
-  buildMailPreview(alertesEpi);
+  if(mode==='ruptures'){
+    alertesEpi=alertesEpi.filter(a=>a.qte===0);
+    if(!alertesEpi.length){showMsg('mail-msg','✓ Aucune rupture EPI en ce moment.','ok');return}
+  } else {
+    if(!alertesEpi.length&&!alertesPap.length){showMsg('mail-msg','✓ Aucune alerte EPI ni papeterie en ce moment.','ok');return}
+  }
+  buildMailPreview(alertesEpi, mode);
   navigator.clipboard.writeText(window._mailCorps||'').catch(()=>{});
   _openOutlook(cfg,window._mailSujet);
   showMsg('mail-msg','✓ Texte copié — Outlook s\'ouvre, collez avec Ctrl+V.','ok');
 }
-function copierMailAlerte(){
+function copierMailAlerte(mode='tout'){
+  let alertesEpi=getAlertes();
+  if(mode==='ruptures') alertesEpi=alertesEpi.filter(a=>a.qte===0);
+  buildMailPreview(alertesEpi, mode);
   navigator.clipboard.writeText(window._mailCorps||'').then(()=>{showMsg('mail-msg','✓ Texte copié — collez avec Ctrl+V dans Outlook.','ok');setTimeout(()=>document.getElementById('mail-msg').innerHTML='',4000);});
 }
 function _openOutlook(cfg,sujet){

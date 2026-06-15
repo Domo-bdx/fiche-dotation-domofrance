@@ -1200,7 +1200,7 @@ function renderBadgeLines(){
     const pool=!q?basePool:basePool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
     const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>N° ${d.numero||'?'} — ${typeLabel[d.type_badge]||d.type_badge||'?'} ${d.notes?'('+d.notes+')':''}</option>`).join('');
     const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">🪪 Badge N° ${sel.numero||'—'} — ${typeLabel[sel.type_badge]||sel.type_badge||'—'}</div>`:'';
-    const isWatchdoc=sel&&(sel.type_badge==='watchdoc'||(sel.notes||'').toLowerCase().includes('siège')||(sel.notes||'').toLowerCase().includes('siege'));
+    const isWatchdoc=sel&&(sel.type_badge==='watchdoc'||(sel.notes||'').toLowerCase().includes('siege')||(sel.notes||'').toLowerCase().includes('siege'));
     const pukField=sel&&type!=='restitution'?`<div style="margin-top:8px">
       <label style="font-size:10px;color:#666">Code PUK Siege (WatchDoc) ${isWatchdoc?'<span style="color:#1a3a5c;font-weight:700">✓ Badge Siege / WatchDoc</span>':''}</label>
       <input type="text" placeholder="Code PUK WatchDoc" value="${l.puk_watchdoc||''}"

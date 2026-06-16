@@ -940,23 +940,25 @@ async function ghRead(path){
   const owner=isData?GH_DATA_OWNER:GH_OWNER;
   const repo=isData?GH_DATA_REPO:GH_REPO;
   const branch=isData?GH_DATA_BRANCH:GH_BRANCH;
-  const headers=isData?getDataHeaders():getGHHeaders();
+  const baseHeaders=isData?getDataHeaders():getGHHeaders();
+  // 1) Récupérer le SHA via l'API Contents standard (JSON, léger)
   const apiUrl=`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}&t=${Date.now()}`;
-  const r=await fetchWithTimeout(apiUrl,{headers});
+  const r=await fetchWithTimeout(apiUrl,{headers:baseHeaders});
   if(r.status===404)return null;
   if(r.status===403){const txt=await r.text();if(txt.includes('rate limit'))throw new Error('Limite API GitHub atteinte — vérifiez que votre token est bien configuré dans ⚙ Paramètres.');throw new Error(`GitHub read 403: ${txt}`);}
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
   const j=await r.json();
   if(isData)_datashas[path]=j.sha; else _shas[path]=j.sha;
-  // Si contenu disponible dans la réponse, l'utiliser directement
+  // 2) Si le contenu base64 est présent et complet, l'utiliser directement (fichiers < ~1Mo)
   if(j.content){
     const decoded=j.content.replace(/\n/g,'');
     return JSON.parse(atob(decoded));
   }
-  // Fallback raw pour les très gros fichiers (>1Mo)
-  const rawUrl=`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}?t=${Date.now()}`;
-  const rRaw=await fetchWithTimeout(rawUrl,{headers:{'Authorization':headers['Authorization']}});
-  if(!rRaw.ok)throw new Error(`GitHub raw read ${rRaw.status}`);
+  // 3) Fallback pour les gros fichiers : re-demander l'API Contents avec Accept raw
+  //    (reste sur api.github.com — évite les soucis CORS de raw.githubusercontent.com)
+  const rawHeaders={...baseHeaders,'Accept':'application/vnd.github.raw+json'};
+  const rRaw=await fetchWithTimeout(apiUrl,{headers:rawHeaders});
+  if(!rRaw.ok)throw new Error(`GitHub raw read ${rRaw.status}: ${await rRaw.text()}`);
   return await rRaw.json();
 }
 

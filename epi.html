@@ -1170,7 +1170,8 @@ async function forceSyncStock(){
 function getStock(ref,taille){
   const k=ref+'__'+taille;
   if(!stockCache[k])stockCache[k]={ref,taille,qte:0,seuil:2,attribues:0};
-  return stockCache[k];
+  const s=stockCache[k];
+  return {...s,qte:Number(s.qte)||0,seuil:Number(s.seuil)||0,attribues:Number(s.attribues)||0};
 }
 
 async function saveStockRow(ref,taille,fields){
@@ -1199,7 +1200,7 @@ function goTab(t,btn){
   if(t==='dashboard'){renderDashboard();}
   document.getElementById('tab-'+t).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(t==='stock'){renderStockStats();renderStock()}
+  if(t==='stock'){if(Object.keys(stockCache).length===0){loadAllStock().then(()=>{renderStockStats();renderStock();});}else{renderStockStats();renderStock();}}
   if(t==='historique'){loadAllMouvements().then(renderHistorique)}
   if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();buildMailPreview(getAlertes());}
   if(t==='catalogue')renderCatalogue();
@@ -3057,7 +3058,13 @@ async function deleteMobDevice(type,id){
 // ─── STOCK EPI ────────────────────────────────────────────────────────────────
 function renderStockStats(){
   let total=0,bas=0,rupture=0,att=0;
-  Object.values(stockCache).forEach(s=>{total+=s.qte;att+=s.attribues||0;if(s.qte===0)rupture++;else if(s.qte<=s.seuil)bas++});
+  Object.values(stockCache).forEach(s=>{
+    const qte=Number(s.qte)||0;
+    const seuil=Number(s.seuil)||0;
+    total+=qte;att+=Number(s.attribues)||0;
+    if(qte===0)rupture++;else if(qte<=seuil)bas++;
+  });
+  console.log('[renderStockStats] stockCache entries:',Object.keys(stockCache).length,'total:',total);
   document.getElementById('stock-stats').innerHTML=`
     <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Unités en stock</div></div>
     <div class="stat"><div class="stat-n">${att}</div><div class="stat-l">Attribués</div></div>

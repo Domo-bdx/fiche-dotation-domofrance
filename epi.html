@@ -163,6 +163,70 @@ tr:hover td{background:#f8f9fb}
 .db-top-table tr:nth-child(even) td{background:#f8f9fb}
 .db-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
 @media(max-width:900px){.db-charts,.db-row3{grid-template-columns:1fr}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE / TABLETTE
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Menu burger — masqué par défaut, affiché sous 860px */
+#nav-burger{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;margin-left:auto}
+
+@media(max-width:860px){
+  /* ── Header ── */
+  .header{padding:10px 12px;flex-wrap:wrap;gap:8px}
+  .header h1{font-size:14px}
+  .header img{height:34px!important}
+  #nav-burger{display:block}
+  .sync-indicator{display:none}
+  #user-badge{margin-left:0;order:2}
+  #user-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── Nav devient un menu déroulant plein écran ── */
+  .nav{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;
+       background:#1a3a5c;z-index:2000;padding:60px 0 20px;overflow-y:auto;gap:0}
+  .nav.nav-open{display:flex}
+  .nav button{color:#fff;font-size:15px;text-align:left;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.12);
+              border-bottom-width:1px!important;margin-bottom:0;width:100%}
+  .nav button.active{color:#fff;background:rgba(255,255,255,.12);border-bottom-color:rgba(255,255,255,.12)}
+  #nav-close{display:block;position:fixed;top:14px;right:16px;z-index:2001;background:none;border:none;color:#fff;font-size:26px;cursor:pointer}
+
+  /* ── Contenu général ── */
+  .content{padding:10px 10px 70px}
+  .card{padding:12px}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .epi-line,.tel-line,.tab-line,.rec-line,.pap-line{grid-template-columns:1fr}
+  .mob-stats{grid-template-columns:repeat(2,1fr)}
+  .pap-stats{grid-template-columns:repeat(2,1fr)}
+  .sig-zone{grid-template-columns:1fr}
+  .ig{grid-template-columns:1fr}
+  .db-grid{grid-template-columns:repeat(2,1fr)}
+  input,select,textarea,.btn{font-size:14px}
+  .btn{min-height:40px}
+  .btn.small{min-height:32px}
+  #login-box{width:90vw;padding:32px 24px}
+  .chgpwd-box{width:90vw;padding:24px 20px}
+
+  /* ── Tableaux → cartes empilées ── */
+  .tbl-wrap,.content table{overflow-x:visible}
+  table.resp-cards,table.resp-cards thead,table.resp-cards tbody,
+  table.resp-cards th,table.resp-cards td,table.resp-cards tr{display:block;width:100%}
+  table.resp-cards thead{display:none}
+  table.resp-cards tr{background:#fff;border:1px solid #dde;border-radius:6px;padding:10px 12px;margin-bottom:10px}
+  table.resp-cards tr:hover td{background:none}
+  table.resp-cards td{border-bottom:1px solid #f0f2f5;padding:7px 0;text-align:left!important;white-space:normal;word-break:break-word}
+  table.resp-cards td:last-child{border-bottom:none}
+  table.resp-cards td[data-label]::before{content:attr(data-label);display:block;font-size:9px;font-weight:700;
+       color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+}
+
+@media(max-width:480px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .mob-stats,.pap-stats,.db-grid{grid-template-columns:1fr}
+  .header h1{font-size:13px}
+  .header>div:first-child>div{display:none}
+  .cat-filter{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+}
 </style>
 </head>
 <body>
@@ -217,9 +281,11 @@ tr:hover td{background:#f8f9fb}
     <span id="sync-label">Connexion…</span>
     <span style="opacity:.5;margin-left:8px" id="header-date"></span>
   </div>
+  <button id="nav-burger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
 </div>
 
-<div class="nav">
+<div class="nav" id="main-nav">
+  <button id="nav-close" onclick="toggleMobileNav()" aria-label="Fermer">✕</button>
   <button class="nav-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
   <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
   <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
@@ -1213,7 +1279,48 @@ function goTab(t,btn){
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
   if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab();renderMobBadge()})}
   if(t==='papeterie'){renderPapeterieStats();renderPapeterieAlertes();}
+  closeMobileNav();
+  setTimeout(applyResponsiveLabels,80);
 }
+
+// ─── MENU MOBILE (burger) ───────────────────────────────────────────────────
+function toggleMobileNav(){
+  document.getElementById('main-nav').classList.toggle('nav-open');
+}
+function closeMobileNav(){
+  document.getElementById('main-nav').classList.remove('nav-open');
+}
+
+// ─── RESPONSIVE: cartes empilées sur mobile pour tous les tableaux ─────────
+// Ajoute la classe resp-cards + un data-label sur chaque <td> (issu du <th>
+// correspondant) afin que le CSS mobile affiche chaque ligne sous forme de
+// carte avec le libellé de colonne, sans devoir modifier chaque fonction
+// de rendu individuellement.
+function applyResponsiveLabels(){
+  const panel=document.querySelector('.panel.active');
+  if(!panel)return;
+  panel.querySelectorAll('table').forEach(tbl=>{
+    if(tbl.closest('#bon-overlay'))return; // ne pas toucher au bon de dotation imprimable
+    tbl.classList.add('resp-cards');
+    const ths=tbl.querySelectorAll('thead th');
+    if(!ths.length)return;
+    const labels=Array.from(ths).map(th=>th.textContent.trim());
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{
+      const tds=tr.querySelectorAll('td');
+      if(tds.length===1&&tds[0].hasAttribute('colspan'))return; // ligne "Aucun résultat"
+      tds.forEach((td,i)=>{ if(labels[i])td.setAttribute('data-label',labels[i]); });
+    });
+  });
+}
+// Réapplique les labels après tout re-rendu dynamique (recherche, filtre, etc.)
+const respObserver=new MutationObserver(()=>{
+  clearTimeout(window.__respTimer);
+  window.__respTimer=setTimeout(applyResponsiveLabels,120);
+});
+document.addEventListener('DOMContentLoaded',()=>{
+  const contentEl=document.querySelector('.content');
+  if(contentEl)respObserver.observe(contentEl,{childList:true,subtree:true});
+});
 
 // ─── DOTATION ─────────────────────────────────────────────────────────────────
 function addBadgeLine(){

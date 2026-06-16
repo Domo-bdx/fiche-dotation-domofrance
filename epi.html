@@ -1043,7 +1043,7 @@ async function ghRead(path){
   // 2) Si le contenu base64 est présent et complet, l'utiliser directement (fichiers < ~1Mo)
   if(j.content){
     const decoded=j.content.replace(/\n/g,'');
-    return JSON.parse(atob(decoded));
+    return JSON.parse(b64dec(decoded));
   }
   // 3) Fallback pour les gros fichiers : re-demander l'API Contents avec Accept raw
   //    (reste sur api.github.com — évite les soucis CORS de raw.githubusercontent.com)

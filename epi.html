@@ -1714,12 +1714,18 @@ async function validerDotation(){
     for(const line of badgeLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
-      const bDev=mobCache.badge.find(x=>x.id===line.deviceId)||{};
+      let bDev=mobCache.badge.find(x=>x.id===line.deviceId);
+      if(!bDev){
+        // Filet de sécurité : si le cache local n'a pas le badge, le relire depuis le serveur
+        const freshBadges=await readData('mob_badges');
+        bDev=freshBadges.find(x=>x.id===line.deviceId)||{};
+      }
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;}else{patch.collaborateur='';patch.site='';}
       await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);
       const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};
-      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_badge':'attribution_badge',nom,prenom,matricule,site,motif,designation:`Badge N° ${bDev.numero||line.deviceId}`,numero:bDev.numero||'',ref:line.deviceId,taille:null,qte:null});
+      const badgeNum=bDev.numero||'';
+      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_badge':'attribution_badge',nom,prenom,matricule,site,motif,designation:badgeNum?`Badge N° ${badgeNum}`:'Badge',numero:badgeNum,ref:line.deviceId,taille:null,qte:null});
     }
     for(const line of telLines){
       if(!line.deviceId)continue;

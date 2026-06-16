@@ -4318,9 +4318,18 @@ function exportStockEPI(){
   const rows=[['Référence','Désignation','Catégorie','Taille','Stock','Seuil','Attribués','Prix unitaire']];
   CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
     (a.tailles||['Unique']).forEach(t=>{
-      const key=a.ref+'__'+t;
+      const key=String(a.ref||'')+'__'+String(t||'');
       const s=stockCache[key]||{qte:0,seuil:0,attribues:0};
-      rows.push([a.ref,a.nom,a.cat||'',t,s.qte||0,s.seuil||0,s.attribues||0,a.prix||0]);
+      rows.push([
+        String(a.ref||''),
+        String(a.nom||''),
+        String(a.cat||''),
+        String(t||''),
+        Number(s.qte)||0,
+        Number(s.seuil)||0,
+        Number(s.attribues)||0,
+        Number(a.prix)||0
+      ]);
     });
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);

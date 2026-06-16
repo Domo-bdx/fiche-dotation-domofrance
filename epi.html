@@ -1049,15 +1049,19 @@ async function ghWrite(path,data){
   if(!r.ok){
     const err=await r.text();
     if(r.status===409||err.includes('sha')){
+      // Retry avec SHA frais — DOIT rester sur le même dépôt (public/privé) que l'écriture initiale
       await ghRead(path);
       body.sha=isData?_datashas[path]:_shas[path];
-      const r2=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
+      const r2=await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`,{method:'PUT',headers,body:JSON.stringify(body)});
       if(!r2.ok)throw new Error(`GitHub write retry ${r2.status}: ${await r2.text()}`);
-      const j2=await r2.json();_shas[path]=j2.content.sha;return;
+      const j2=await r2.json();
+      if(isData)_datashas[path]=j2.content.sha; else _shas[path]=j2.content.sha;
+      return;
     }
     throw new Error(`GitHub write ${r.status}: ${err}`);
   }
-  const j=await r.json();_shas[path]=j.content.sha;
+  const j=await r.json();
+  if(isData)_datashas[path]=j.content.sha; else _shas[path]=j.content.sha;
 }
 
 async function readData(name){return await ghRead('data/'+name+'.json')||[]}

@@ -1118,12 +1118,19 @@ async function loadAllStock(){
     const obj=await readObj('stock');
     stockCache={};
     Object.entries(obj).forEach(([k,r])=>{stockCache[k]={...r,id:k}});
-    setSyncStatus('ok','Base synchronisée');
+    const nbEntries=Object.keys(stockCache).length;
+    setSyncStatus('ok','Base synchronisée ('+nbEntries+' refs)');
     document.getElementById('conn-bar').style.display='none';
+    if(nbEntries===0){
+      const bar=document.getElementById('conn-bar');
+      if(bar){bar.style.display='flex';bar.innerHTML='<span style="color:#c0392b;font-weight:600">⚠ Stock chargé mais vide (0 référence) — vérifiez data/stock.json sur gestock-data</span>';}
+    }
     return true;
   }catch(e){
-    setSyncStatus('error','Erreur: '+e.message);
-    console.error(e);
+    setSyncStatus('error','Erreur stock: '+e.message);
+    console.error('loadAllStock error:',e);
+    const bar=document.getElementById('conn-bar');
+    if(bar){bar.style.display='flex';bar.innerHTML='<span style="color:#c0392b;font-weight:600">⚠ Erreur chargement stock : '+e.message+'</span>';}
     return false;
   }
 }

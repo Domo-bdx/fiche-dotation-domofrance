@@ -929,8 +929,17 @@ function b64dec(b64){return decodeURIComponent(escape(atob(b64.split('\n').join(
 async function fetchWithTimeout(url,opts,ms=15000){
   const ctrl=new AbortController();
   const tid=setTimeout(()=>ctrl.abort(),ms);
-  try{const r=await fetch(url,{...opts,signal:ctrl.signal});clearTimeout(tid);return r;}
-  catch(e){clearTimeout(tid);if(e.name==='AbortError')throw new Error('Timeout — vérifiez votre connexion réseau');throw e;}
+  try{
+    const r=await fetch(url,{...opts,signal:ctrl.signal});
+    clearTimeout(tid);
+    return r;
+  }
+  catch(e){
+    clearTimeout(tid);
+    console.error('[fetchWithTimeout] URL:',url,'Erreur:',e.name,e.message,e);
+    if(e.name==='AbortError')throw new Error('Timeout — vérifiez votre connexion réseau');
+    throw new Error('Fetch failed vers '+url+' : '+e.message+' ('+e.name+')');
+  }
 }
 
 function assertToken(isData=false){if(isData){const t=getDataToken();if(!t||t.trim()==='')throw new Error('Token données non configuré — rendez-vous dans ⚙ Paramètres.');}else{const t=getGHToken();if(!t||t.trim()==='')throw new Error('Token GitHub non configuré — rendez-vous dans ⚙ Paramètres.');}}

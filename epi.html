@@ -49,6 +49,12 @@ tr:hover td{background:#f8f9fb}
 .badge.yellow{background:#fef3c7;color:#92400e}.badge.blue{background:#dbeafe;color:#1e40af}
 .badge.gray{background:#e2e8f0;color:#4a5568}.badge.purple{background:#e9d8fd;color:#6b21a8}
 .alert-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff8f0;border:1px solid #fbd38d;border-radius:5px;margin-bottom:6px}
+.cat-thumb{width:42px;height:42px;object-fit:contain;border:1px solid #eef;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
+.cat-thumb-empty{display:inline-block;width:42px;height:42px;text-align:center;line-height:42px;color:#ccc;font-size:12px}
+.cat-img-overlay{position:fixed;inset:0;background:rgba(20,20,30,.75);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;padding:20px}
+.cat-img-modal{background:#fff;border-radius:8px;padding:16px;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:default}
+.cat-img-modal img{max-width:min(70vw,500px);max-height:60vh;object-fit:contain}
+.cat-img-caption{font-size:13px;font-weight:600;color:#333;text-align:center}
 .search-bar{margin-bottom:10px}
 .search-bar input{max-width:320px}
 .tbl-wrap{overflow-x:auto}
@@ -781,7 +787,7 @@ tr:hover td{background:#f8f9fb}
     <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderCatalogue()" id="cat-search"></div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>Ref</th><th>Désignation</th><th>Catégorie</th><th>Tailles</th><th>Fabricant</th><th>Prix 2025</th><th>Action</th>
+        <th>Photo</th><th>Ref</th><th>Désignation</th><th>Catégorie</th><th>Tailles</th><th>Fabricant</th><th>Prix 2025</th><th>Action</th>
       </tr></thead><tbody id="cat-body"></tbody></table>
     </div>
   </div>
@@ -1121,67 +1127,67 @@ let activeCatCat='Tous';
 
 // ─── CATALOGUE EPI ───────────────────────────────────────────────────────────
 const CATALOGUE=[
- {ref:'658200',nom:'Gilet Jaune',cat:'Vêtements HV',tailles:['S','M','L','XL','2XL','3XL'],fab:'Groupe RG',prix:1.88},
- {ref:'658101',nom:'Parka Chantier',cat:'Vêtements HV',tailles:['S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Groupe RG',prix:50.82},
- {ref:'03-024844',nom:'Pantalon Homme Hiver',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56','58','60'],fab:'WK Designed To Work',prix:28.69},
- {ref:'03-024845',nom:'Pantalon Femme Hiver',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56'],fab:'WK Designed To Work',prix:24.07},
- {ref:'03-024846',nom:'Veste softshell',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL','5XL'],fab:'WK Designed To Work',prix:32.89},
- {ref:'0TOPK677',nom:'Parka Kariban',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL'],fab:'Top Tex',prix:31.53},
- {ref:'03-017207',nom:'Bodywarmer',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:25.93},
- {ref:'03-016334',nom:'Sweat-shirt',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'],fab:'Top Tex',prix:12.94},
- {ref:'03-006208',nom:'T-shirt',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:3.32},
- {ref:'0TOPRU599MCMAR',nom:'Polo',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:10.85},
- {ref:'03-023219',nom:'Sweat femme',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL'],fab:'Top Tex',prix:13.93},
- {ref:'03-022637',nom:'Pantalon Femme été',cat:'Vêtements',tailles:['34','36','38','40','42','44','46'],fab:'Blaklader',prix:80.00},
- {ref:'03-023538',nom:'Pantalon Homme été',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56','58','60'],fab:'Blaklader',prix:80.00},
- {ref:'643100',nom:'Ensemble pluie Robson 2 Vert',cat:'Vêtements',tailles:['S','M','L','XL','2XL','3XL'],fab:'Ergos',prix:22.88},
+ {ref:'658200',img:'images/epi/658200.jpg',nom:'Gilet Jaune',cat:'Vêtements HV',tailles:['S','M','L','XL','2XL','3XL'],fab:'Groupe RG',prix:1.88},
+ {ref:'658101',img:'images/epi/658101.jpg',nom:'Parka Chantier',cat:'Vêtements HV',tailles:['S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Groupe RG',prix:50.82},
+ {ref:'03-024844',img:'images/epi/03-024844.jpg',nom:'Pantalon Homme Hiver',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56','58','60'],fab:'WK Designed To Work',prix:28.69},
+ {ref:'03-024845',img:'images/epi/03-024845.jpg',nom:'Pantalon Femme Hiver',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56'],fab:'WK Designed To Work',prix:24.07},
+ {ref:'03-024846',img:'images/epi/03-024846.jpg',nom:'Veste softshell',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL','5XL'],fab:'WK Designed To Work',prix:32.89},
+ {ref:'0TOPK677',img:'images/epi/0TOPK677.jpg',nom:'Parka Kariban',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL'],fab:'Top Tex',prix:31.53},
+ {ref:'03-017207',img:'images/epi/03-017207.jpg',nom:'Bodywarmer',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:25.93},
+ {ref:'03-016334',img:'images/epi/03-016334.jpg',nom:'Sweat-shirt',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'],fab:'Top Tex',prix:12.94},
+ {ref:'03-006208',img:'images/epi/03-006208.jpg',nom:'T-shirt',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:3.32},
+ {ref:'0TOPRU599MCMAR',img:'images/epi/0TOPRU599MCMAR.jpg',nom:'Polo',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:10.85},
+ {ref:'03-023219',img:'images/epi/03-023219.jpg',nom:'Sweat femme',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL'],fab:'Top Tex',prix:13.93},
+ {ref:'03-022637',img:'images/epi/03-022637.jpg',nom:'Pantalon Femme été',cat:'Vêtements',tailles:['34','36','38','40','42','44','46'],fab:'Blaklader',prix:80.00},
+ {ref:'03-023538',img:'images/epi/03-023538.jpg',nom:'Pantalon Homme été',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56','58','60'],fab:'Blaklader',prix:80.00},
+ {ref:'643100',img:'images/epi/643100.jpg',nom:'Ensemble pluie Robson 2 Vert',cat:'Vêtements',tailles:['S','M','L','XL','2XL','3XL'],fab:'Ergos',prix:22.88},
  {ref:'PONCHO01',nom:'Poncho de pluie',cat:'Vêtements',tailles:['Unique'],fab:'',prix:0},
- {ref:'04-000537',nom:'Semelles TechniGel',cat:'Chaussures',tailles:['36/37','38/39','40/41','42/43','44/45','46/47'],fab:'Groupe JLF',prix:8.77},
- {ref:'610025',nom:'Semelles Fresh Cut Maxi',cat:'Chaussures',tailles:['Unique'],fab:'Groupe RG',prix:4.15},
- {ref:'0EN412802',nom:'Lampe frontale Vision HD+',cat:'Hygiène & Sécurité',tailles:['Unique'],fab:'Energizer',prix:22.35},
+ {ref:'04-000537',img:'images/epi/04-000537.jpg',nom:'Semelles TechniGel',cat:'Chaussures',tailles:['36/37','38/39','40/41','42/43','44/45','46/47'],fab:'Groupe JLF',prix:8.77},
+ {ref:'610025',img:'images/epi/610025.jpg',nom:'Semelles Fresh Cut Maxi',cat:'Chaussures',tailles:['Unique'],fab:'Groupe RG',prix:4.15},
+ {ref:'0EN412802',img:'images/epi/0EN412802.jpg',nom:'Lampe frontale Vision HD+',cat:'Hygiène & Sécurité',tailles:['Unique'],fab:'Energizer',prix:22.35},
  {ref:'GTS-FORESTIER',nom:'Gants Forestiers 2SA5',cat:'Gants',tailles:['8','11'],fab:'SIP',prix:0},
  {ref:'POWERFLEX80600',nom:'Gants Powerflex 80600',cat:'Gants',tailles:['7','8','9','10'],fab:'Ansell',prix:0},
  {ref:'0AN63864',nom:'Gants Microflex 63-864',cat:'Gants',tailles:['6','7','8','10'],fab:'Ansell',prix:11.78},
  {ref:'CUIR-HYDRO-520',nom:'Gants cuir hydrofuge renforcé BUCH520',cat:'Gants',tailles:['8','9','10','11'],fab:'Delta Plus',prix:0},
- {ref:'0RIRGT350',nom:'Gants Tricoton Light RGT350',cat:'Gants',tailles:['Unique'],fab:'Honeywell',prix:0.96},
+ {ref:'0RIRGT350',img:'images/epi/0RIRGT350.jpg',nom:'Gants Tricoton Light RGT350',cat:'Gants',tailles:['Unique'],fab:'Honeywell',prix:0.96},
  {ref:'SURCHA-VISIT',nom:'Sur Chaussure Visiteur',cat:'Chaussures',tailles:['35/39','40/44','45/48'],fab:'',prix:37},
- {ref:'0TOP031MAR',nom:'Bonnet KP031 Marine',cat:'Protection tête',tailles:['Unique'],fab:'Top Tex',prix:2.15},
- {ref:'01-001707',nom:'Casquette KP124 Navy/White',cat:'Protection tête',tailles:['Unique'],fab:'Top Tex',prix:2.06},
+ {ref:'0TOP031MAR',img:'images/epi/0TOP031MAR.jpg',nom:'Bonnet KP031 Marine',cat:'Protection tête',tailles:['Unique'],fab:'Top Tex',prix:2.15},
+ {ref:'01-001707',img:'images/epi/01-001707.jpg',nom:'Casquette KP124 Navy/White',cat:'Protection tête',tailles:['Unique'],fab:'Top Tex',prix:2.06},
  {ref:'CHARLOTTE01',nom:'Charlotte protection usage unique',cat:'Protection tête',tailles:['Unique'],fab:'',prix:0},
- {ref:'07-000592',nom:'Sac à dos Multisport',cat:'Hygiène & Sécurité',tailles:['Unique'],fab:'Top Tex',prix:23.60},
- {ref:'750003BT',nom:'Couvre-chaussures antidérapants PP',cat:'Chaussures',tailles:['Unique'],fab:'Groupe RG',prix:0.2684},
- {ref:'0MICWH15S00111',nom:'Combinaison protection SMS Blanc',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL'],fab:'Ansell Comasec',prix:2.88},
- {ref:'544303',catalogOnly:true,nom:'Chaussures Denver 2 S1PS SR FO',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:50.79},
- {ref:'544302',catalogOnly:true,nom:'Chaussures Dallas 2 S1PS SR FO',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:47.50},
- {ref:'544225',nom:'Chaussures Hautes',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:64.93},
- {ref:'544224',nom:'Chaussures Basses',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:61.20},
- {ref:'544229',catalogOnly:true,nom:'Chaussures Zeus 2 ESD S3S',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:null},
- {ref:'586072',nom:'Bottes fourrées Bergen S3',cat:'Chaussures',tailles:['38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:55.27},
- {ref:'582001A',catalogOnly:true,nom:'Bottes sécurité Oslo 2 S3 CI SRC',cat:'Chaussures',tailles:['38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:45.80},
- {ref:'608020',nom:'Bottes pluie Bronze2 S5',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Delta Plus',prix:15.12},
- {ref:'04-004648',catalogOnly:true,nom:'Chaussures basses Belina 6726 Noir/Rose',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42'],fab:'Parade',prix:44.23},
- {ref:'04-007696',catalogOnly:true,nom:'Chaussures hautes Briana 2735 S3S Noire',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42'],fab:'Parade',prix:59.95},
- {ref:'357001',nom:'Gants fleur bovin naturel',cat:'Gants',tailles:['8','9','10','11'],fab:'Groupe RG',prix:3.15},
- {ref:'398201',nom:'Gants anticoupure Kev/acier latex crêpé',cat:'Gants',tailles:['8','9','10','11','12'],fab:'Groupe RG',prix:6.27},
- {ref:'398308',nom:'Gants anticoupure HPPE J18 mousse nitrile',cat:'Gants',tailles:['6','7','8','9','10','11'],fab:'Groupe RG',prix:4.68},
- {ref:'398500',nom:'Gants RGO2 gris',cat:'Gants',tailles:['6','7','8','9','10','11'],fab:'Groupe RG',prix:3.27},
- {ref:'425003',nom:'Gants Ultranitril 492 Vert',cat:'Gants',tailles:['7','8','9','10','11'],fab:'MAPA',prix:1.68},
- {ref:'490001',nom:'Gants isolants électriciens CL.00',cat:'Gants',tailles:['6','8','9','10','11'],fab:'Sibille Factory',prix:18.84},
- {ref:'02-000651',nom:'Gants Maxiflex Endurance 42-847 Noir',cat:'Gants',tailles:['6','7','8','11'],fab:'Difac',prix:4.91},
- {ref:'02-000653',nom:'Gants anticoupure 2XD3 Rouge/Noir',cat:'Gants',tailles:['8','9','10','11','12'],fab:'Sioen',prix:25.37},
- {ref:'02-001648',nom:'Gants usage unique 6110PF EBT Vert (bte 100)',cat:'Gants',tailles:['7','8','9','10','11'],fab:'Showa',prix:8.77},
- {ref:'365001E',catalogOnly:true,nom:'Gants fleur hydro paille élastique',cat:'Gants',tailles:['Unique'],fab:'Groupe RG',prix:5.80},
- {ref:'240009',nom:'Casque EVO 2 avec porte-badge',cat:'Casques',tailles:['Unique'],fab:'JSP',prix:9.96},
- {ref:'01-002199',nom:'Casque EVO2 ventilé Blanc',cat:'Casques',tailles:['Unique'],fab:'JSP',prix:4.52},
- {ref:'0BOSPHERPI',nom:'Écran facial Sphère PC incolore',cat:'Casques',tailles:['Unique'],fab:'Bollé',prix:15.49},
+ {ref:'07-000592',img:'images/epi/07-000592.jpg',nom:'Sac à dos Multisport',cat:'Hygiène & Sécurité',tailles:['Unique'],fab:'Top Tex',prix:23.60},
+ {ref:'750003BT',img:'images/epi/750003BT.jpg',nom:'Couvre-chaussures antidérapants PP',cat:'Chaussures',tailles:['Unique'],fab:'Groupe RG',prix:0.2684},
+ {ref:'0MICWH15S00111',img:'images/epi/0MICWH15S00111.jpg',nom:'Combinaison protection SMS Blanc',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL'],fab:'Ansell Comasec',prix:2.88},
+ {ref:'544303',img:'images/epi/544303.jpg',catalogOnly:true,nom:'Chaussures Denver 2 S1PS SR FO',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:50.79},
+ {ref:'544302',img:'images/epi/544302.jpg',catalogOnly:true,nom:'Chaussures Dallas 2 S1PS SR FO',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:47.50},
+ {ref:'544225',img:'images/epi/544225.jpg',nom:'Chaussures Hautes',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:64.93},
+ {ref:'544224',img:'images/epi/544224.jpg',nom:'Chaussures Basses',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:61.20},
+ {ref:'544229',img:'images/epi/544229.jpg',catalogOnly:true,nom:'Chaussures Zeus 2 ESD S3S',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:null},
+ {ref:'586072',img:'images/epi/586072.jpg',nom:'Bottes fourrées Bergen S3',cat:'Chaussures',tailles:['38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:55.27},
+ {ref:'582001A',img:'images/epi/582001A.jpg',catalogOnly:true,nom:'Bottes sécurité Oslo 2 S3 CI SRC',cat:'Chaussures',tailles:['38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:45.80},
+ {ref:'608020',img:'images/epi/608020.jpg',nom:'Bottes pluie Bronze2 S5',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Delta Plus',prix:15.12},
+ {ref:'04-004648',img:'images/epi/04-004648.jpg',catalogOnly:true,nom:'Chaussures basses Belina 6726 Noir/Rose',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42'],fab:'Parade',prix:44.23},
+ {ref:'04-007696',img:'images/epi/04-007696.jpg',catalogOnly:true,nom:'Chaussures hautes Briana 2735 S3S Noire',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42'],fab:'Parade',prix:59.95},
+ {ref:'357001',img:'images/epi/357001.jpg',nom:'Gants fleur bovin naturel',cat:'Gants',tailles:['8','9','10','11'],fab:'Groupe RG',prix:3.15},
+ {ref:'398201',img:'images/epi/398201.jpg',nom:'Gants anticoupure Kev/acier latex crêpé',cat:'Gants',tailles:['8','9','10','11','12'],fab:'Groupe RG',prix:6.27},
+ {ref:'398308',img:'images/epi/398308.jpg',nom:'Gants anticoupure HPPE J18 mousse nitrile',cat:'Gants',tailles:['6','7','8','9','10','11'],fab:'Groupe RG',prix:4.68},
+ {ref:'398500',img:'images/epi/398500.jpg',nom:'Gants RGO2 gris',cat:'Gants',tailles:['6','7','8','9','10','11'],fab:'Groupe RG',prix:3.27},
+ {ref:'425003',img:'images/epi/425003.jpg',nom:'Gants Ultranitril 492 Vert',cat:'Gants',tailles:['7','8','9','10','11'],fab:'MAPA',prix:1.68},
+ {ref:'490001',img:'images/epi/490001.jpg',nom:'Gants isolants électriciens CL.00',cat:'Gants',tailles:['6','8','9','10','11'],fab:'Sibille Factory',prix:18.84},
+ {ref:'02-000651',img:'images/epi/02-000651.jpg',nom:'Gants Maxiflex Endurance 42-847 Noir',cat:'Gants',tailles:['6','7','8','11'],fab:'Difac',prix:4.91},
+ {ref:'02-000653',img:'images/epi/02-000653.jpg',nom:'Gants anticoupure 2XD3 Rouge/Noir',cat:'Gants',tailles:['8','9','10','11','12'],fab:'Sioen',prix:25.37},
+ {ref:'02-001648',img:'images/epi/02-001648.jpg',nom:'Gants usage unique 6110PF EBT Vert (bte 100)',cat:'Gants',tailles:['7','8','9','10','11'],fab:'Showa',prix:8.77},
+ {ref:'365001E',img:'images/epi/365001E.jpg',catalogOnly:true,nom:'Gants fleur hydro paille élastique',cat:'Gants',tailles:['Unique'],fab:'Groupe RG',prix:5.80},
+ {ref:'240009',img:'images/epi/240009.jpg',nom:'Casque EVO 2 avec porte-badge',cat:'Casques',tailles:['Unique'],fab:'JSP',prix:9.96},
+ {ref:'01-002199',img:'images/epi/01-002199.jpg',nom:'Casque EVO2 ventilé Blanc',cat:'Casques',tailles:['Unique'],fab:'JSP',prix:4.52},
+ {ref:'0BOSPHERPI',img:'images/epi/0BOSPHERPI.jpg',nom:'Écran facial Sphère PC incolore',cat:'Casques',tailles:['Unique'],fab:'Bollé',prix:15.49},
  {ref:'0DMoyen format720',nom:'Arceau antibruit Percap 5720',cat:'Protection auditive',tailles:['Unique'],fab:'Honeywell',prix:3.41},
- {ref:'292010',nom:'Casque antibruit Optime III H540A',cat:'Protection auditive',tailles:['Unique'],fab:'3M',prix:20.60},
- {ref:'110001',nom:'Lunettes Rafale incolore AR',cat:'Lunettes',tailles:['Unique'],fab:'Groupe RG',prix:3.78},
- {ref:'110007',nom:'Lunettes Rafale gris solaire AR',cat:'Lunettes',tailles:['Unique'],fab:'Groupe RG',prix:4.46},
- {ref:'157131',nom:'Lunette-masque Ultrasonic PC incolore',cat:'Lunettes',tailles:['Unique'],fab:'Uvex Heckel',prix:10.27},
- {ref:'190901',nom:'Masque jetable FFP1 NR D Classics (ctn 240)',cat:'Masques',tailles:['Unique'],fab:'Moldex',prix:2.06},
- {ref:'01-006820',nom:'Masques chirurgicaux IIR (bte 50)',cat:'Masques',tailles:['Unique'],fab:'GCE Lighting',prix:3.34},
- {ref:'0MOL5230',nom:'Demi-masque Compact Mask FFA2P3',cat:'Masques',tailles:['Unique'],fab:'Moldex',prix:25.79},
+ {ref:'292010',img:'images/epi/292010.jpg',nom:'Casque antibruit Optime III H540A',cat:'Protection auditive',tailles:['Unique'],fab:'3M',prix:20.60},
+ {ref:'110001',img:'images/epi/110001.jpg',nom:'Lunettes Rafale incolore AR',cat:'Lunettes',tailles:['Unique'],fab:'Groupe RG',prix:3.78},
+ {ref:'110007',img:'images/epi/110007.jpg',nom:'Lunettes Rafale gris solaire AR',cat:'Lunettes',tailles:['Unique'],fab:'Groupe RG',prix:4.46},
+ {ref:'157131',img:'images/epi/157131.jpg',nom:'Lunette-masque Ultrasonic PC incolore',cat:'Lunettes',tailles:['Unique'],fab:'Uvex Heckel',prix:10.27},
+ {ref:'190901',img:'images/epi/190901.jpg',nom:'Masque jetable FFP1 NR D Classics (ctn 240)',cat:'Masques',tailles:['Unique'],fab:'Moldex',prix:2.06},
+ {ref:'01-006820',img:'images/epi/01-006820.jpg',nom:'Masques chirurgicaux IIR (bte 50)',cat:'Masques',tailles:['Unique'],fab:'GCE Lighting',prix:3.34},
+ {ref:'0MOL5230',img:'images/epi/0MOL5230.jpg',nom:'Demi-masque Compact Mask FFA2P3',cat:'Masques',tailles:['Unique'],fab:'Moldex',prix:25.79},
 ];
 const CATS=[...new Set(CATALOGUE.map(c=>c.cat))].sort();
 
@@ -3391,8 +3397,15 @@ function renderCatalogue(){
   const q=(document.getElementById('cat-search')?.value||'').toLowerCase();
   const rows=CATALOGUE.filter(a=>activeCatCat==='Tous'||a.cat===activeCatCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q));
   document.getElementById('cat-body').innerHTML=rows.length
-    ?rows.map(a=>`<tr><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
-    :'<tr><td colspan="7" class="empty">Aucun résultat</td></tr>';
+    ?rows.map(a=>`<tr><td>${a.img?`<img src="${a.img}" alt="${a.nom}" class="cat-thumb" onclick="zoomCatImg('${a.img}','${a.nom.replace(/'/g,"\\'")}')">`:`<span class="cat-thumb-empty">—</span>`}</td><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
+}
+function zoomCatImg(src,nom){
+  const ov=document.createElement('div');
+  ov.className='cat-img-overlay';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML=`<div class="cat-img-modal"><img src="${src}" alt="${nom}"><div class="cat-img-caption">${nom}</div></div>`;
+  document.body.appendChild(ov);
 }
 function addFromCat(ref){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));

@@ -995,8 +995,18 @@ const GH_DATA_BRANCH='main';
 function getGHHeaders(){return {'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
 const _shas={}; const _datashas={};
 
-function b64enc(str){return btoa(unescape(encodeURIComponent(str)));}
-function b64dec(b64){return decodeURIComponent(escape(atob(b64.split('\n').join(''))));}
+function b64enc(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin='';
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin);
+}
+function b64dec(b64){
+  const bin=atob(b64.split('\n').join(''));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
 
 async function fetchWithTimeout(url,opts,ms=15000){
   const ctrl=new AbortController();

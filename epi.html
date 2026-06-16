@@ -1128,7 +1128,12 @@ async function loadAllStock(){
   try{
     const obj=await readObj('stock');
     stockCache={};
-    Object.entries(obj).forEach(([k,r])=>{stockCache[k]={...r,id:k}});
+    Object.entries(obj).forEach(([k,r])=>{
+      const sep=k.lastIndexOf('__');
+      const ref=sep>=0?k.substring(0,sep):k;
+      const taille=sep>=0?k.substring(sep+2):'Unique';
+      stockCache[k]={...r,ref,taille,id:k};
+    });
     const nbEntries=Object.keys(stockCache).length;
     setSyncStatus('ok','Base synchronisée ('+nbEntries+' refs)');
     document.getElementById('conn-bar').style.display='none';
@@ -1176,15 +1181,15 @@ function getStock(ref,taille){
 
 async function saveStockRow(ref,taille,fields){
   const k=ref+'__'+taille;
-  const art=CATALOGUE.find(x=>x.ref===ref);
   setSyncStatus('syncing','Sauvegarde…');
   try{
     const obj=await readObj('stock');
     const existing=obj[k]||{qte:0,seuil:2,attribues:0};
-    const data={ref,taille,designation:art?art.nom:'',categorie:art?art.cat:'',...existing,...fields,id:k,updatedAt:new Date().toISOString()};
+    // Format allégé : uniquement qte/seuil/attribues (designation/categorie viennent de CATALOGUE)
+    const data={qte:existing.qte||0,seuil:existing.seuil||2,attribues:existing.attribues||0,...fields};
     obj[k]=data;
     await writeData('stock',obj);
-    stockCache[k]=data;
+    stockCache[k]={...data,ref,taille,id:k};
     setSyncStatus('ok','Sauvegardé');
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);

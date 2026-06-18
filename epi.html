@@ -3271,8 +3271,9 @@ function renderHistorique(){
       const label=typeLabel[m.type]||m.type;
       const badgeCls=typeBadge[m.type]||'gray';
       const desig=(m.designation||m.ref||'—');
-      const detail=m.taille||m.imei||m.numero||'—';
-      const qteInfo=m.qte!=null?m.qte:(m.imei||m.numero||'—');
+      const isDevice=m.type&&(m.type.endsWith('_tel')||m.type.endsWith('_tab')||m.type.endsWith('_badge'));
+      const detail=isDevice?(m.imei||m.numero||'—'):(m.taille||'—');
+      const qteInfo=isDevice?1:(m.qte!=null?m.qte:'—');
       return `<tr>
         <td>${m.date||'—'}</td>
         <td><span class="badge ${badgeCls}" style="white-space:nowrap">${label}</span></td>

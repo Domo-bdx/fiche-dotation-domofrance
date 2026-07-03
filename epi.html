@@ -240,8 +240,7 @@ tr:hover td{background:#f8f9fb}
 .fiches-search-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
 .fiches-search-bar label{font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px}
 .fiches-search-bar input{padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px;width:200px}
-.fiches-mode-toggle{display:flex;gap:0;margin-bottom:18px}
-.fiches-mode-toggle{position:relative;z-index:1}
+.fiches-mode-toggle{display:flex;gap:0;margin-bottom:18px;position:relative;z-index:1}
 .fiches-mode-toggle button{all:unset;box-sizing:border-box;padding:8px 18px;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;display:inline-block}
 .fiches-mode-toggle button:first-child{border-radius:5px 0 0 5px}
 .fiches-mode-toggle button:last-child{border-radius:0 5px 5px 0;border-left:none}
@@ -4756,7 +4755,7 @@ sessionStorage.removeItem('gestock_user');
 
 // ─── FICHES A POSTERIORI ─────────────────────────────────────────────────────
 let _fichesMode = 'collab';
-let _fichesSessions = []; // cache indexé pour les boutons
+let _fichesSessions = [];
 
 function fichesSwitchMode(mode){
   _fichesMode = mode;
@@ -4770,10 +4769,10 @@ function fichesSwitchMode(mode){
 function fichesGetSessions(){
   const TYPES_DOT = new Set(['dotation','attribution_tel','attribution_tab','attribution_badge']);
   const map = {};
-  mouvementsCache.forEach(m => {
+  mouvementsCache.forEach(function(m){
     if(!TYPES_DOT.has(m.type)) return;
-    const day = (m.date||'').slice(0,10);
-    const key = (m.nom||'').toUpperCase().trim() + '||' + (m.prenom||'').trim() + '||' + day;
+    var day = (m.date||'').slice(0,10);
+    var key = (m.nom||'').toUpperCase().trim() + '||' + (m.prenom||'').trim() + '||' + day;
     if(!map[key]){
       map[key] = {
         nom: (m.nom||'').toUpperCase().trim(),
@@ -4787,12 +4786,13 @@ function fichesGetSessions(){
     }
     map[key].mouvements.push(m);
   });
-  return Object.values(map).sort((a,b)=> b.date.localeCompare(a.date));
+  return Object.values(map).sort(function(a,b){ return b.date.localeCompare(a.date); });
 }
 
 function fichesRender(){
-  const list  = document.getElementById('fiches-result-list');
-  const empty = document.getElementById('fiches-empty');
+  var list  = document.getElementById('fiches-result-list');
+  var empty = document.getElementById('fiches-empty');
+  if(!list || !empty) return;
   list.innerHTML = '';
   empty.style.display = 'none';
   _fichesSessions = [];
@@ -4804,17 +4804,17 @@ function fichesRender(){
     return;
   }
 
-  const sessions = fichesGetSessions();
-  let filtered = sessions;
+  var sessions = fichesGetSessions();
+  var filtered = sessions;
 
   if(_fichesMode === 'collab'){
-    const q = (document.getElementById('fiches-input-nom').value||'').trim().toUpperCase();
+    var q = (document.getElementById('fiches-input-nom').value||'').trim().toUpperCase();
     if(!q){ return; }
-    filtered = sessions.filter(s => s.nom.includes(q) || s.prenom.toUpperCase().includes(q));
+    filtered = sessions.filter(function(s){ return s.nom.includes(q) || s.prenom.toUpperCase().includes(q); });
   } else {
-    const d = document.getElementById('fiches-input-date').value||'';
+    var d = document.getElementById('fiches-input-date').value||'';
     if(!d){ return; }
-    filtered = sessions.filter(s => s.date === d);
+    filtered = sessions.filter(function(s){ return s.date === d; });
   }
 
   if(!filtered.length){
@@ -4823,172 +4823,99 @@ function fichesRender(){
     return;
   }
 
-  // Stocker dans le cache indexé — les boutons utilisent l'index
   _fichesSessions = filtered;
 
-  filtered.forEach((s, idx) => {
-    const tags = new Set();
-    s.mouvements.forEach(m => {
+  filtered.forEach(function(s, idx){
+    var tags = new Set();
+    s.mouvements.forEach(function(m){
       if(m.type==='dotation')          tags.add('🦺 EPI');
       if(m.type==='attribution_tel')   tags.add('📱 Téléphone');
       if(m.type==='attribution_tab')   tags.add('📟 Tablette');
       if(m.type==='attribution_badge') tags.add('🪪 Badge');
     });
-    const tagsHtml = [...tags].map(t=>`<span class="frl-tag">${t}</span>`).join('');
-    const dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
-
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div class="frl-info">
-        <div class="frl-name">${s.nom} ${s.prenom}</div>
-        <div class="frl-meta">${dateStr} · ${s.site||'—'} · ${s.motif||'—'}</div>
-        <div class="frl-tags">${tagsHtml}</div>
-      </div>
-      <button class="btn-gen-fiche" onclick="fichesGenerer(${idx})">📋 Générer la fiche</button>`;
+    var tagsHtml = Array.from(tags).map(function(t){ return '<span class="frl-tag">'+t+'</span>'; }).join('');
+    var dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+    var li = document.createElement('li');
+    li.innerHTML =
+      '<div class="frl-info">' +
+        '<div class="frl-name">'+s.nom+' '+s.prenom+'</div>' +
+        '<div class="frl-meta">'+dateStr+' · '+(s.site||'—')+' · '+(s.motif||'—')+'</div>' +
+        '<div class="frl-tags">'+tagsHtml+'</div>' +
+      '</div>' +
+      '<button class="btn-gen-fiche" onclick="fichesGenerer('+idx+')">📋 Générer la fiche</button>';
     list.appendChild(li);
   });
 }
 
 async function fichesGenerer(idx){
-  const s = _fichesSessions[idx];
+  var s = _fichesSessions[idx];
   if(!s){ console.error('Session introuvable index', idx); return; }
 
-  const badgeTypeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
-  const dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
-  const ref = 'BON-'+(s.date||'').replace(/-/g,'').slice(2)+'-'+s.nom.slice(0,3).toUpperCase();
+  var badgeTypeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
+  var dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+  var ref = 'BON-'+(s.date||'').replace(/-/g,'').slice(2)+'-'+s.nom.slice(0,3).toUpperCase();
 
-  // EPI
-  const epiMovs = s.mouvements.filter(m=>m.type==='dotation');
-  let epiSection = '';
+  var epiMovs = s.mouvements.filter(function(m){ return m.type==='dotation'; });
+  var epiSection = '';
   if(epiMovs.length){
-    const rows = epiMovs.map(m=>{
-      const cat = CATALOGUE.find(x=>x.ref===m.ref)||{};
-      return `<tr><td>${m.ref||'—'}</td><td>${cat.nom||m.designation||'—'}</td><td style="text-align:center">${m.taille||'—'}</td><td style="text-align:center">${m.qte||1}</td></tr>`;
+    var rows = epiMovs.map(function(m){
+      var cat = CATALOGUE.find(function(x){ return x.ref===m.ref; })||{};
+      return '<tr><td>'+(m.ref||'—')+'</td><td>'+(cat.nom||m.designation||'—')+'</td><td style="text-align:center">'+(m.taille||'—')+'</td><td style="text-align:center">'+(m.qte||1)+'</td></tr>';
     }).join('');
-    epiSection = `<div class="section-title">🦺 EPI attribués</div>
-<table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Unité</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="note-orange"><strong>Attestation :</strong> J'atteste avoir été informé des principes généraux relatifs à l'utilisation des EPI et je m'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>`;
+    epiSection = '<div class="section-title">🦺 EPI attribués</div><table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Unité</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-orange"><strong>Attestation :</strong> J\'atteste avoir été informé des principes généraux relatifs à l\'utilisation des EPI et je m\'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>';
   }
 
-  // Téléphones
-  const telMovs = s.mouvements.filter(m=>m.type==='attribution_tel');
-  let telSection = '';
+  var telMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tel'; });
+  var telSection = '';
   if(telMovs.length){
-    const rows = telMovs.map(m=>{
-      const d = mobCache.tel.find(x=>x.id===m.ref)||{};
-      return `<tr><td>${m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—'}</td><td><code>${m.imei||d.imei||'—'}</code></td><td>—</td><td>—</td><td>—</td></tr>`;
+    var rows = telMovs.map(function(m){
+      var d = mobCache.tel.find(function(x){ return x.id===m.ref; })||{};
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>—</td><td>—</td><td>—</td></tr>';
     }).join('');
-    telSection = `<div class="section-title">📱 Téléphones attribués</div>
-<table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>`;
+    telSection = '<div class="section-title">📱 Téléphones attribués</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
   }
 
-  // Tablettes
-  const tabMovs = s.mouvements.filter(m=>m.type==='attribution_tab');
-  let tabSection = '';
+  var tabMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tab'; });
+  var tabSection = '';
   if(tabMovs.length){
-    const rows = tabMovs.map(m=>{
-      const d = mobCache.tab.find(x=>x.id===m.ref)||{};
-      return `<tr><td>${m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—'}</td><td><code>${m.imei||d.imei||'—'}</code></td><td>—</td><td>—</td><td>—</td></tr>`;
+    var rows = tabMovs.map(function(m){
+      var d = mobCache.tab.find(function(x){ return x.id===m.ref; })||{};
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>—</td><td>—</td><td>—</td></tr>';
     }).join('');
-    tabSection = `<div class="section-title">📟 Tablettes attribuées</div>
-<table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>`;
+    tabSection = '<div class="section-title">📟 Tablettes attribuées</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
   }
 
-  // Badges
-  const badgeMovs = s.mouvements.filter(m=>m.type==='attribution_badge');
-  let badgeSection = '';
+  var badgeMovs = s.mouvements.filter(function(m){ return m.type==='attribution_badge'; });
+  var badgeSection = '';
   if(badgeMovs.length){
-    const rows = badgeMovs.map(m=>{
-      const d = mobCache.badge.find(x=>x.id===m.ref)||{};
-      const num = m.numero||d.numero||'—';
-      const type = badgeTypeLabels[d.type_badge]||d.type_badge||'—';
-      return `<tr><td><strong>${num}</strong></td><td>${type}</td><td>${d.notes||'—'}</td><td style="font-family:monospace">—</td></tr>`;
+    var rows = badgeMovs.map(function(m){
+      var d = mobCache.badge.find(function(x){ return x.id===m.ref; })||{};
+      var num = m.numero||d.numero||'—';
+      var type = badgeTypeLabels[d.type_badge]||d.type_badge||'—';
+      return '<tr><td><strong>'+num+'</strong></td><td>'+type+'</td><td>'+(d.notes||'—')+'</td><td style="font-family:monospace">—</td></tr>';
     }).join('');
-    badgeSection = `<div class="section-title">🪪 Badges attribués</div>
-<table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th><th>Code PUK Siege (WatchDoc)</th></tr></thead><tbody>${rows}</tbody></table>`;
+    badgeSection = '<div class="section-title">🪪 Badges attribués</div><table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th><th>Code PUK Siege (WatchDoc)</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
 
-  // Logo — chargé depuis le fichier PNG externe
-  let logoB64 = '';
+  var logoB64 = '';
   try {
-    const resp = await fetch('images/logo-domofrance.png');
-    const ab = await resp.arrayBuffer();
-    logoB64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+    var resp = await fetch('images/logo-domofrance.png');
+    var ab = await resp.arrayBuffer();
+    logoB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
   } catch(e) { logoB64 = ''; }
 
-  const bonHtml = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<title>Bon de DOTATION — ${s.nom} ${s.prenom}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}
-.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
-.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}
-.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}
-.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}
-.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}
-.header img{height:52px}.hr{text-align:right}
-.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}
-.bon-ref{font-size:10px;color:#888;margin-top:3px}
-.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}
-.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
-.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
-.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}
-.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}
-.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}
-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
-thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}
-.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}
-.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}
-.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}
-.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}
-.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
-.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}
-.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}
-.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}
-@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}
-</style></head><body>
-<div class="page">
-<div class="actions">
-  <button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
-  <button class="btn-f" onclick="window.close()">✕ Fermer</button>
-</div>
-<div class="header">
-  <img src="data:image/png;base64,${logoB64}" alt="Domofrance">
-  <div class="hr">
-    <div class="bon-title">BON DE DOTATION</div>
-    <div class="bon-ref">Réf. ${ref} · ${dateStr}</div>
-    <div class="bon-ref">Pôle Facilities — Domofrance</div>
-  </div>
-</div>
-<div class="info-block"><div class="bt">Informations collaborateur</div>
-<div class="ig">
-  <div><div class="lbl">Nom / Prénom</div><div class="val">${s.nom} ${s.prenom}</div></div>
-  <div><div class="lbl">Identifiant</div><div class="val">${s.matricule||'—'}</div></div>
-  <div><div class="lbl">Site / Agence</div><div class="val">${s.site||'—'}</div></div>
-  <div><div class="lbl">Motif</div><div class="val">${s.motif||'—'}</div></div>
-</div></div>
-${epiSection}${telSection}${tabSection}${badgeSection}
-<div class="sig-zone">
-  <div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div>
-  <div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">${s.nom} ${s.prenom}</div><div class="sig-line"></div></div>
-</div>
-<div class="footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} — Domofrance Pôle Facilities · Usage interne confidentiel</div>
-</div>
-</body></html>`;
+  var bonHtml = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bon de DOTATION — '+s.nom+' '+s.prenom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}.header img{height:52px}.hr{text-align:right}.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}.bon-ref{font-size:10px;color:#888;margin-top:3px}.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}</style></head><body><div class="page"><div class="actions"><button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button><button class="btn-f" onclick="window.close()">✕ Fermer</button></div><div class="header"><img src="data:image/png;base64,'+logoB64+'" alt="Domofrance"><div class="hr"><div class="bon-title">BON DE DOTATION</div><div class="bon-ref">Réf. '+ref+' · '+dateStr+'</div><div class="bon-ref">Pôle Facilities — Domofrance</div></div></div><div class="info-block"><div class="bt">Informations collaborateur</div><div class="ig"><div><div class="lbl">Nom / Prénom</div><div class="val">'+s.nom+' '+s.prenom+'</div></div><div><div class="lbl">Identifiant</div><div class="val">'+(s.matricule||'—')+'</div></div><div><div class="lbl">Site / Agence</div><div class="val">'+(s.site||'—')+'</div></div><div><div class="lbl">Motif</div><div class="val">'+(s.motif||'—')+'</div></div></div></div>'+epiSection+telSection+tabSection+badgeSection+'<div class="sig-zone"><div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div><div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">'+s.nom+' '+s.prenom+'</div><div class="sig-line"></div></div></div><div class="footer">Document généré le '+new Date().toLocaleDateString('fr-FR')+' — Domofrance Pôle Facilities · Usage interne confidentiel</div></div></body></html>';
 
-  const blob = new Blob([bonHtml], {type:'text/html;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank');
+  var blob = new Blob([bonHtml], {type:'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var win = window.open(url, '_blank');
   if(win){
-    win.addEventListener('load', ()=>{ URL.revokeObjectURL(url); });
+    win.addEventListener('load', function(){ URL.revokeObjectURL(url); });
   } else {
-    const a = document.createElement('a');
+    var a = document.createElement('a');
     a.href = url; a.download = 'bon-dotation-'+ref+'.html';
     document.body.appendChild(a); a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   }
 }
 

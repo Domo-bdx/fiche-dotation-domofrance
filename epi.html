@@ -638,29 +638,23 @@ tr:hover td{background:#f8f9fb}
     <h3>Régénérer une fiche de dotation</h3>
     <p style="font-size:12px;color:#666;margin-bottom:14px">Retrouvez une dotation passée et régénérez la fiche regroupant tous les articles attribués lors de cette session.</p>
 
-    <div class="fiches-mode-toggle">
-      <button id="btn-mode-collab" class="active" onclick="fichesSwitchMode('collab')">👤 Par collaborateur</button>
-      <button id="btn-mode-date" onclick="fichesSwitchMode('date')">📅 Par date</button>
+    <div style="display:flex;gap:0;margin-bottom:18px">
+      <button id="btn-mode-collab" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;background:#1a3a5c;color:#fff;font-size:12px;font-weight:600;cursor:pointer;border-radius:5px 0 0 5px;outline:none" onclick="fichesSwitchMode('collab')">👤 Par collaborateur</button>
+      <button id="btn-mode-date" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;border-left:none;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;border-radius:0 5px 5px 0;outline:none" onclick="fichesSwitchMode('date')">📅 Par date</button>
     </div>
 
-    <!-- Recherche par collaborateur -->
-    <div id="fiches-search-collab" class="fiches-search-bar">
-      <div>
-        <label for="fiches-input-nom">Nom du collaborateur</label>
-        <input type="text" id="fiches-input-nom" placeholder="ex : DUPONT" oninput="fichesRender()">
-      </div>
+    <div id="fiches-search-collab" style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px">Nom du collaborateur</label>
+      <input type="text" id="fiches-input-nom" placeholder="ex : DUPONT" oninput="fichesRender()" style="padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px;width:220px">
     </div>
 
-    <!-- Recherche par date -->
-    <div id="fiches-search-date" class="fiches-search-bar" style="display:none">
-      <div>
-        <label for="fiches-input-date">Date de dotation</label>
-        <input type="date" id="fiches-input-date" oninput="fichesRender()">
-      </div>
+    <div id="fiches-search-date" style="display:none;margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px">Date de dotation</label>
+      <input type="date" id="fiches-input-date" oninput="fichesRender()" style="padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px">
     </div>
 
-    <ul class="fiches-result-list" id="fiches-result-list"></ul>
-    <div id="fiches-empty">Aucune dotation trouvée.</div>
+    <ul style="list-style:none;padding:0;margin:0" id="fiches-result-list"></ul>
+    <div id="fiches-empty" style="color:#999;font-size:12px;padding:20px 0;text-align:center;display:none">Aucune dotation trouvée.</div>
   </div>
 </div>
 
@@ -4759,8 +4753,10 @@ let _fichesSessions = [];
 
 function fichesSwitchMode(mode){
   _fichesMode = mode;
-  document.getElementById('btn-mode-collab').classList.toggle('active', mode==='collab');
-  document.getElementById('btn-mode-date').classList.toggle('active', mode==='date');
+  var bC = document.getElementById('btn-mode-collab');
+  var bD = document.getElementById('btn-mode-date');
+  if(bC){ bC.style.background = mode==='collab' ? '#1a3a5c' : '#fff'; bC.style.color = mode==='collab' ? '#fff' : '#1a3a5c'; }
+  if(bD){ bD.style.background = mode==='date'   ? '#1a3a5c' : '#fff'; bD.style.color = mode==='date'   ? '#fff' : '#1a3a5c'; }
   document.getElementById('fiches-search-collab').style.display = mode==='collab' ? '' : 'none';
   document.getElementById('fiches-search-date').style.display   = mode==='date'   ? '' : 'none';
   fichesRender();

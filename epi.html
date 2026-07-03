@@ -234,18 +234,7 @@ tr:hover td{background:#f8f9fb}
   .cat-filter{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
 }
 
-/* ── Popup rappel fiche dotation ───────────────────── */
-#popup-fiche-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center}
-#popup-fiche-overlay.visible{display:flex}
-#popup-fiche-box{background:#fff;border-radius:10px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.22);text-align:center}
-#popup-fiche-box .pf-icon{font-size:2.2rem;margin-bottom:10px}
-#popup-fiche-box h3{margin:0 0 8px;font-size:16px;color:#1a3a5c}
-#popup-fiche-box p{margin:0 0 20px;font-size:13px;color:#555;line-height:1.5}
-#popup-fiche-box .pf-btns{display:flex;gap:10px;justify-content:center}
-#popup-fiche-box .btn-pf-gen{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer}
-#popup-fiche-box .btn-pf-gen:hover{background:#16304d}
-#popup-fiche-box .btn-pf-later{background:#f0f2f5;color:#555;border:none;border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer}
-#popup-fiche-box .btn-pf-later:hover{background:#e0e4ea}
+
 
 /* ── Fiches a posteriori ───────────────────────────────────────────────── */
 .fiches-search-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
@@ -1820,7 +1809,7 @@ async function validerDotation(){
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche&&nom){addCollab(nom,prenom,matricule,site,date);}
     updateAlerteBadge();
-    showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');_popupFicheAfficher();
+    showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
 }
@@ -4764,17 +4753,6 @@ localStorage.setItem('domo_gh_token',['ghp_ewfptd7m5b52bwv','RPa1TLrxvqGy2y41GhS
 // Toujours afficher l'écran de login (pas de reprise de session auto)
 sessionStorage.removeItem('gestock_user');
 
-// ── Popup rappel fiche dotation ──────────────────────────────────────────────
-function _popupFicheAfficher(){
-  document.getElementById('popup-fiche-overlay').classList.add('visible');
-}
-function _popupFermer(){
-  document.getElementById('popup-fiche-overlay').classList.remove('visible');
-}
-function _popupGenererFiche(){
-  _popupFermer();
-  genererBon();
-}
 
 // ─── FICHES A POSTERIORI ─────────────────────────────────────────────────────
 let _fichesMode = 'collab';
@@ -4998,18 +4976,6 @@ ${epiSection}${telSection}${tabSection}${badgeSection}
   <div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">${s.nom} ${s.prenom}</div><div class="sig-line"></div></div>
 </div>
 <div class="footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} — Domofrance Pôle Facilities · Usage interne confidentiel</div>
-</div>
-<!-- Popup rappel fiche dotation -->
-<div id="popup-fiche-overlay" role="dialog" aria-modal="true">
-  <div id="popup-fiche-box">
-    <div class="pf-icon">📋</div>
-    <h3>Générer la fiche de dotation ?</h3>
-    <p>La dotation a bien été enregistrée.<br>Souhaitez-vous générer la fiche maintenant ?</p>
-    <div class="pf-btns">
-      <button class="btn-pf-gen" onclick="_popupGenererFiche()">Générer la fiche</button>
-      <button class="btn-pf-later" onclick="_popupFermer()">Plus tard</button>
-    </div>
-  </div>
 </div>
 </body></html>`;
 

@@ -2870,19 +2870,6 @@ ${epiSection}${telSection}${tabSection}${badgeSection}
 </div>
 <div class="footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} — Domofrance Pôle Facilities &nbsp;·&nbsp; Usage interne confidentiel</div>
 </div>
-
-<!-- Popup rappel fiche dotation -->
-<div id="popup-fiche-overlay" role="dialog" aria-modal="true">
-  <div id="popup-fiche-box">
-    <div class="pf-icon">📋</div>
-    <h3>Générer la fiche de dotation ?</h3>
-    <p>La dotation a bien été enregistrée.<br>Souhaitez-vous générer la fiche maintenant ?</p>
-    <div class="pf-btns">
-      <button class="btn-pf-gen" onclick="_popupGenererFiche()">Générer la fiche</button>
-      <button class="btn-pf-later" onclick="_popupFermer()">Plus tard</button>
-    </div>
-  </div>
-</div>
 </body></html>`;
 
   // Injecter le logo (évite les problèmes CORS avec src externe)

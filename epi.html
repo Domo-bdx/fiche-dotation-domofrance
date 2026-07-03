@@ -252,10 +252,10 @@ tr:hover td{background:#f8f9fb}
 .fiches-search-bar label{font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px}
 .fiches-search-bar input{padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px;width:200px}
 .fiches-mode-toggle{display:flex;gap:0;margin-bottom:18px}
-.fiches-mode-toggle button{padding:8px 18px;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer}
-.fiches-mode-toggle button:first-child{border-radius:5px 0 0 5px}
-.fiches-mode-toggle button:last-child{border-radius:0 5px 5px 0;border-left:none}
-.fiches-mode-toggle button.active{background:#1a3a5c;color:#fff}
+.fiches-mode-toggle button{padding:8px 18px;border:1px solid #1a3a5c!important;background:#fff!important;color:#1a3a5c!important;font-size:12px!important;font-weight:600;cursor:pointer!important;border-bottom-width:1px!important;pointer-events:auto!important}
+.fiches-mode-toggle button:first-child{border-radius:5px 0 0 5px!important}
+.fiches-mode-toggle button:last-child{border-radius:0 5px 5px 0!important;border-left:none!important}
+.fiches-mode-toggle button.active{background:#1a3a5c!important;color:#fff!important}
 .fiches-result-list{list-style:none;padding:0;margin:0}
 .fiches-result-list li{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eef;font-size:12px;gap:10px}
 .fiches-result-list li:hover{background:#f6f8fc}
@@ -4826,6 +4826,7 @@ function fichesRender(){
   if(mouvementsCache.length === 0){
     empty.style.display = '';
     empty.textContent = 'Chargement des données…';
+    loadAllMouvements().then(fichesRender);
     return;
   }
 

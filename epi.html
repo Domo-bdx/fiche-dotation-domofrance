@@ -4782,6 +4782,7 @@ function _popupGenererFiche(){
 
 // ─── FICHES A POSTERIORI ─────────────────────────────────────────────────────
 let _fichesMode = 'collab';
+let _fichesSessions = []; // cache indexé pour les boutons
 
 function fichesSwitchMode(mode){
   _fichesMode = mode;
@@ -4793,15 +4794,14 @@ function fichesSwitchMode(mode){
 }
 
 function fichesGetSessions(){
-  // Types de dotation (restitutions exclues)
   const TYPES_DOT = new Set(['dotation','attribution_tel','attribution_tab','attribution_badge']);
-  const sessions = {};
+  const map = {};
   mouvementsCache.forEach(m => {
     if(!TYPES_DOT.has(m.type)) return;
-    const day = (m.date||'').slice(0,10); // YYYY-MM-DD, ignore heures
+    const day = (m.date||'').slice(0,10);
     const key = (m.nom||'').toUpperCase().trim() + '||' + (m.prenom||'').trim() + '||' + day;
-    if(!sessions[key]){
-      sessions[key] = {
+    if(!map[key]){
+      map[key] = {
         nom: (m.nom||'').toUpperCase().trim(),
         prenom: (m.prenom||'').trim(),
         date: day,
@@ -4811,9 +4811,9 @@ function fichesGetSessions(){
         mouvements: []
       };
     }
-    sessions[key].mouvements.push(m);
+    map[key].mouvements.push(m);
   });
-  return Object.values(sessions).sort((a,b)=> b.date.localeCompare(a.date));
+  return Object.values(map).sort((a,b)=> b.date.localeCompare(a.date));
 }
 
 function fichesRender(){
@@ -4821,6 +4821,7 @@ function fichesRender(){
   const empty = document.getElementById('fiches-empty');
   list.innerHTML = '';
   empty.style.display = 'none';
+  _fichesSessions = [];
 
   if(mouvementsCache.length === 0){
     empty.style.display = '';
@@ -4833,11 +4834,11 @@ function fichesRender(){
 
   if(_fichesMode === 'collab'){
     const q = (document.getElementById('fiches-input-nom').value||'').trim().toUpperCase();
-    if(!q){ list.innerHTML = ''; return; }
+    if(!q){ return; }
     filtered = sessions.filter(s => s.nom.includes(q) || s.prenom.toUpperCase().includes(q));
   } else {
     const d = document.getElementById('fiches-input-date').value||'';
-    if(!d){ list.innerHTML = ''; return; }
+    if(!d){ return; }
     filtered = sessions.filter(s => s.date === d);
   }
 
@@ -4847,13 +4848,15 @@ function fichesRender(){
     return;
   }
 
-  filtered.forEach(s => {
-    // Tags par type d'article
+  // Stocker dans le cache indexé — les boutons utilisent l'index
+  _fichesSessions = filtered;
+
+  filtered.forEach((s, idx) => {
     const tags = new Set();
     s.mouvements.forEach(m => {
-      if(m.type==='dotation') tags.add('🦺 EPI');
-      if(m.type==='attribution_tel') tags.add('📱 Téléphone');
-      if(m.type==='attribution_tab') tags.add('📟 Tablette');
+      if(m.type==='dotation')          tags.add('🦺 EPI');
+      if(m.type==='attribution_tel')   tags.add('📱 Téléphone');
+      if(m.type==='attribution_tab')   tags.add('📟 Tablette');
       if(m.type==='attribution_badge') tags.add('🪪 Badge');
     });
     const tagsHtml = [...tags].map(t=>`<span class="frl-tag">${t}</span>`).join('');
@@ -4866,15 +4869,15 @@ function fichesRender(){
         <div class="frl-meta">${dateStr} · ${s.site||'—'} · ${s.motif||'—'}</div>
         <div class="frl-tags">${tagsHtml}</div>
       </div>
-      <button class="btn-gen-fiche" onclick="fichesGenerer(${JSON.stringify(JSON.stringify(s))})">📋 Générer la fiche</button>`;
+      <button class="btn-gen-fiche" onclick="fichesGenerer(${idx})">📋 Générer la fiche</button>`;
     list.appendChild(li);
   });
 }
 
-function fichesGenerer(sessionJson){
-  const s = JSON.parse(sessionJson);
-  // Reconstruire les sections comme genererBon() mais depuis les mouvements
-  const typeLabels = {dotation:'DOTATION',restitution:'RESTITUTION',remplacement:'REMPLACEMENT'};
+function fichesGenerer(idx){
+  const s = _fichesSessions[idx];
+  if(!s){ console.error('Session introuvable index', idx); return; }
+
   const badgeTypeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
   const dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
   const ref = 'BON-'+(s.date||'').replace(/-/g,'').slice(2)+'-'+s.nom.slice(0,3).toUpperCase();
@@ -4898,7 +4901,7 @@ function fichesGenerer(sessionJson){
   if(telMovs.length){
     const rows = telMovs.map(m=>{
       const d = mobCache.tel.find(x=>x.id===m.ref)||{};
-      return `<tr><td>${m.designation||d.marque+' '+d.modele||'—'}</td><td><code>${m.imei||d.imei||'—'}</code></td><td>—</td><td>—</td><td>—</td></tr>`;
+      return `<tr><td>${m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—'}</td><td><code>${m.imei||d.imei||'—'}</code></td><td>—</td><td>—</td><td>—</td></tr>`;
     }).join('');
     telSection = `<div class="section-title">📱 Téléphones attribués</div>
 <table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>${rows}</tbody></table>
@@ -4911,7 +4914,7 @@ function fichesGenerer(sessionJson){
   if(tabMovs.length){
     const rows = tabMovs.map(m=>{
       const d = mobCache.tab.find(x=>x.id===m.ref)||{};
-      return `<tr><td>${m.designation||d.marque+' '+d.modele||'—'}</td><td><code>${m.imei||d.imei||'—'}</code></td><td>—</td><td>—</td><td>—</td></tr>`;
+      return `<tr><td>${m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—'}</td><td><code>${m.imei||d.imei||'—'}</code></td><td>—</td><td>—</td><td>—</td></tr>`;
     }).join('');
     tabSection = `<div class="section-title">📟 Tablettes attribuées</div>
 <table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>${rows}</tbody></table>
@@ -4932,7 +4935,14 @@ function fichesGenerer(sessionJson){
 <table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th><th>Code PUK Siege (WatchDoc)</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
-  // Logo (réutiliser celui de genererBon — injecté après)
+  // Logo — extrait dynamiquement depuis genererBon (source unique, pas de duplication)
+  let logoB64 = '';
+  try {
+    const src = genererBon.toString();
+    const lm = src.match(/replace\('__LOGO__',\s*'([^']{100,})'/);
+    if(lm) logoB64 = lm[1];
+  } catch(e) {}
+
   const bonHtml = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <title>Bon de DOTATION — ${s.nom} ${s.prenom}</title>
 <style>
@@ -4943,8 +4953,7 @@ body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;p
 .btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}
 .btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}
 .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}
-.header img{height:52px}
-.hr{text-align:right}
+.header img{height:52px}.hr{text-align:right}
 .bon-title{font-size:17px;font-weight:700;color:#1a2e4a}
 .bon-ref{font-size:10px;color:#888;margin-top:3px}
 .info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}
@@ -4954,10 +4963,8 @@ body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;p
 .val{font-size:12px;font-weight:600;color:#222;margin-top:1px}
 .section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}
 table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
-thead tr{background:#1a2e4a}
-thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-tbody tr:nth-child(even){background:#f8f9fb}
-tbody td{padding:6px 10px;border-bottom:1px solid #eee}
+thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}
 .note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}
 .note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}
 .sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}
@@ -4974,10 +4981,10 @@ tbody td{padding:6px 10px;border-bottom:1px solid #eee}
   <button class="btn-f" onclick="window.close()">✕ Fermer</button>
 </div>
 <div class="header">
-  <img src="data:image/png;base64,__LOGO__" alt="Domofrance">
+  <img src="data:image/png;base64,${logoB64}" alt="Domofrance">
   <div class="hr">
     <div class="bon-title">BON DE DOTATION</div>
-    <div class="bon-ref">Réf. ${ref} &nbsp;·&nbsp; ${dateStr}</div>
+    <div class="bon-ref">Réf. ${ref} · ${dateStr}</div>
     <div class="bon-ref">Pôle Facilities — Domofrance</div>
   </div>
 </div>
@@ -4993,28 +5000,14 @@ ${epiSection}${telSection}${tabSection}${badgeSection}
   <div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div>
   <div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">${s.nom} ${s.prenom}</div><div class="sig-line"></div></div>
 </div>
-<div class="footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} — Domofrance Pôle Facilities &nbsp;·&nbsp; Usage interne confidentiel</div>
+<div class="footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} — Domofrance Pôle Facilities · Usage interne confidentiel</div>
 </div></body></html>`;
 
-  // Extraire le logo depuis genererBon (même base64)
-  const logoMatch = document.querySelector ? null : null;
-  // On récupère le logo depuis le DOM de la page courante via un trick :
-  // genererBon() l'a en dur dans son code — on le réutilise via une iframe cachée
-  // Méthode plus simple : extraire la constante logo directement
-  // Extraire le logo depuis genererBon (source unique)
-  let logoB64 = '';
-  try {
-    const src = genererBon.toString();
-    const lm = src.match(/replace\('__LOGO__',\s*'([^']{100,})'/);
-    if(lm) logoB64 = lm[1];
-  } catch(e) {}
-  const finalHtml = bonHtml.replace('__LOGO__', logoB64);
-
-  const blob = new Blob([finalHtml], {type:'text/html;charset=utf-8'});
+  const blob = new Blob([bonHtml], {type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
   if(win){
-    win.addEventListener('load', function(){ URL.revokeObjectURL(url); });
+    win.addEventListener('load', ()=>{ URL.revokeObjectURL(url); });
   } else {
     const a = document.createElement('a');
     a.href = url; a.download = 'bon-dotation-'+ref+'.html';
@@ -5022,20 +5015,5 @@ ${epiSection}${telSection}${tabSection}${badgeSection}
     setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   }
 }
-</script>
 
-<!-- Popup rappel fiche dotation -->
-<div id="popup-fiche-overlay" role="dialog" aria-modal="true">
-  <div id="popup-fiche-box">
-    <div class="pf-icon">📋</div>
-    <h3>Générer la fiche de dotation ?</h3>
-    <p>La dotation a bien été enregistrée.<br>Souhaitez-vous générer la fiche maintenant ?</p>
-    <div class="pf-btns">
-      <button class="btn-pf-gen" onclick="_popupGenererFiche()">Générer la fiche</button>
-      <button class="btn-pf-later" onclick="_popupFermer()">Plus tard</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
-  <div style="text-align:right;margin-bottom:8px"><button class="btn success" onclick="exportStockMobilite()" style="font-size:12px">📥 Export Excel</button></div>
+

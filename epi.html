@@ -4900,60 +4900,7 @@ async function fichesGenerer(idx){
     logoB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
   } catch(e) { logoB64 = ''; }
 
-  var bonHtml = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bon de DOTATION — '+s.nom+' '+s.prenom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}.header img{height:52px}.hr{text-align:right}.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}.bon-ref{font-size:10px;color:#888;margin-top:3px}.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}</style></head><body><div class="page"><div class="actions"><button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button><button class="btn-f" onclick="window.close()">✕ Fermer</button></div><div class="header"><img src="data:image/png;base64,'+logoB64+'" alt="Domofrance"><div class="hr"><div class="bon-title">BON DE DOTATION</div><div class="bon-ref">Réf. '+ref+' · '+dateStr+'</div><div class="bon-ref">Pôle Facilities — Domofrance</div></div></div><div class="info-block"><div class="bt">Informations collaborateur</div><div class="ig"><div><div class="lbl">Nom / Prénom</div><div class="val">'+s.nom+' '+s.prenom+'</div></div><div><div class="lbl">Identifiant</div><div class="val">'+(s.matricule||'—')+'</div></div><div><div class="lbl">Site / Agence</div><div class="val">'+(s.site||'—')+'</div></div><div><div class="lbl">Motif</div><div class="val">'+(s.motif||'—')+'</div></div></div></div>'+epiSection+telSection+tabSection+badgeSection+'<div class="sig-zone"><div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div><div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">'+s.nom+' '+s.prenom+'</div><div class="sig-line"></div></div></div><div class="footer">Document généré le '+new Date().toLocaleDateString('fr-FR')+' — Domofrance Pôle Facilities · Usage interne confidentiel</div></div>
-<script>
-// Exposer les fonctions fiches dans le scope global
-window.fichesRender = function(){ if(typeof _fichesMode !== 'undefined') return (function(){
-  var list = document.getElementById('fiches-result-list');
-  var empty = document.getElementById('fiches-empty');
-  if(!list || !empty) return;
-  list.innerHTML = '';
-  empty.style.display = 'none';
-  _fichesSessions = [];
-  if(mouvementsCache.length === 0){
-    empty.style.display = ''; empty.textContent = 'Chargement...';
-    loadAllMouvements().then(window.fichesRender); return;
-  }
-  var sessions = fichesGetSessions();
-  var filtered = sessions;
-  if(_fichesMode === 'collab'){
-    var q = (document.getElementById('fiches-input-nom').value||'').trim().toUpperCase();
-    if(!q) return;
-    filtered = sessions.filter(function(s){ return s.nom.includes(q)||s.prenom.toUpperCase().includes(q); });
-  } else {
-    var d = document.getElementById('fiches-input-date').value||'';
-    if(!d) return;
-    filtered = sessions.filter(function(s){ return s.date===d; });
-  }
-  if(!filtered.length){ empty.style.display=''; empty.textContent='Aucune dotation trouvée.'; return; }
-  _fichesSessions = filtered;
-  filtered.forEach(function(s,idx){
-    var tags=new Set();
-    s.mouvements.forEach(function(m){
-      if(m.type==='dotation') tags.add('🦺 EPI');
-      if(m.type==='attribution_tel') tags.add('📱 Téléphone');
-      if(m.type==='attribution_tab') tags.add('📟 Tablette');
-      if(m.type==='attribution_badge') tags.add('🪪 Badge');
-    });
-    var tagsHtml=Array.from(tags).map(function(t){return'<span class="frl-tag">'+t+'</span>';}).join('');
-    var dateStr=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}):'—';
-    var li=document.createElement('li');
-    li.innerHTML='<div class="frl-info"><div class="frl-name">'+s.nom+' '+s.prenom+'</div><div class="frl-meta">'+dateStr+' · '+(s.site||'—')+' · '+(s.motif||'—')+'</div><div class="frl-tags">'+tagsHtml+'</div></div><button class="btn-gen-fiche" type="button" onclick="fichesGenerer('+idx+')">📋 Générer la fiche</button>';
-    list.appendChild(li);
-  });
-})(); };
-window.fichesSwitchMode = function(mode){
-  _fichesMode = mode;
-  var bC=document.getElementById('btn-mode-collab');
-  var bD=document.getElementById('btn-mode-date');
-  if(bC){bC.style.background=mode==='collab'?'#1a3a5c':'#fff';bC.style.color=mode==='collab'?'#fff':'#1a3a5c';}
-  if(bD){bD.style.background=mode==='date'?'#1a3a5c':'#fff';bD.style.color=mode==='date'?'#fff':'#1a3a5c';}
-  document.getElementById('fiches-search-collab').style.display=mode==='collab'?'':'none';
-  document.getElementById('fiches-search-date').style.display=mode==='date'?'':'none';
-  window.fichesRender();
-};
-</script>
-</body></html>';
+  var bonHtml = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bon de DOTATION — '+s.nom+' '+s.prenom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}.header img{height:52px}.hr{text-align:right}.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}.bon-ref{font-size:10px;color:#888;margin-top:3px}.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}</style></head><body><div class="page"><div class="actions"><button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button><button class="btn-f" onclick="window.close()">✕ Fermer</button></div><div class="header"><img src="data:image/png;base64,'+logoB64+'" alt="Domofrance"><div class="hr"><div class="bon-title">BON DE DOTATION</div><div class="bon-ref">Réf. '+ref+' · '+dateStr+'</div><div class="bon-ref">Pôle Facilities — Domofrance</div></div></div><div class="info-block"><div class="bt">Informations collaborateur</div><div class="ig"><div><div class="lbl">Nom / Prénom</div><div class="val">'+s.nom+' '+s.prenom+'</div></div><div><div class="lbl">Identifiant</div><div class="val">'+(s.matricule||'—')+'</div></div><div><div class="lbl">Site / Agence</div><div class="val">'+(s.site||'—')+'</div></div><div><div class="lbl">Motif</div><div class="val">'+(s.motif||'—')+'</div></div></div></div>'+epiSection+telSection+tabSection+badgeSection+'<div class="sig-zone"><div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div><div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">'+s.nom+' '+s.prenom+'</div><div class="sig-line"></div></div></div><div class="footer">Document généré le '+new Date().toLocaleDateString('fr-FR')+' — Domofrance Pôle Facilities · Usage interne confidentiel</div></div></body></html>';
 
   var blob = new Blob([bonHtml], {type:'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);

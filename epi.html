@@ -1135,11 +1135,21 @@ const PACKS={
 };
 
 function appliquerPack(nom){
-  const items=PACKS[nom];if(!items)return;
-  epiLines=items.filter(item=>item.qte>0).map(item=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2),ref:item.ref,taille:'',qte:item.qte}));
-  renderEpiLines();
-  document.getElementById('epi-lines-container').scrollIntoView({behavior:'smooth',block:'start'});
-  showMsg('dotation-msg','✓ Pack appliqué — choisissez les tailles pour chaque article.','ok');
+  try{
+    const items=PACKS[nom];
+    if(!items){showMsg('dotation-msg','Pack introuvable : '+nom,'err');return;}
+    epiLines=items.filter(item=>item.qte>0).map(item=>({
+      id:Date.now().toString(36)+Math.random().toString(36).slice(2),
+      ref:item.ref,taille:'',qte:item.qte,search:''
+    }));
+    renderEpiLines();
+    const container=document.getElementById('epi-lines-container');
+    if(container)container.scrollIntoView({behavior:'smooth',block:'start'});
+    showMsg('dotation-msg','✓ Pack '+nom+' appliqué ('+epiLines.length+' articles) — choisissez les tailles.','ok');
+  }catch(e){
+    showMsg('dotation-msg','Erreur pack : '+e.message,'err');
+    console.error('appliquerPack error:',e);
+  }
 }
 
 function addEpiLine(prefillRef){

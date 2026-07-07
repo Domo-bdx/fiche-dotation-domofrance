@@ -690,8 +690,10 @@ Pôle Facilities — Domofrance</textarea>
 function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
 const GH_OWNER='Domo-bdx';
 const GH_REPO='fiche-dotation-domofrance';
+const GH_DATA_REPO='gestock-data';
 const GH_BRANCH='main';
-function getGHHeaders(){return {'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
+function getGHDataToken(){return localStorage.getItem('domo_gh_data_token')||getGHToken();}
+function getGHHeaders(isData=false){return {'Authorization':'Bearer '+(isData?getGHDataToken():getGHToken()),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
 const _shas={};
 
 function b64enc(str){return btoa(unescape(encodeURIComponent(str)));}
@@ -707,8 +709,10 @@ async function fetchWithTimeout(url,opts,ms=15000){
 function assertToken(){const t=getGHToken();if(!t||t.trim()==='')throw new Error('Token GitHub non configuré — rendez-vous dans l\'onglet ⚙ Paramètres pour saisir votre token.');}
 async function ghRead(path){
   assertToken();
-  const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}&t=${Date.now()}`;
-  const r=await fetchWithTimeout(url,{headers:getGHHeaders()});
+  const isData=path.startsWith('data/');
+  const repo=isData?GH_DATA_REPO:GH_REPO;
+  const url=`https://api.github.com/repos/${GH_OWNER}/${repo}/contents/${path}?ref=${GH_BRANCH}&t=${Date.now()}`;
+  const r=await fetchWithTimeout(url,{headers:getGHHeaders(isData)});
   if(r.status===404)return null;
   if(r.status===403){const txt=await r.text();if(txt.includes('rate limit'))throw new Error('Limite API GitHub atteinte — vérifiez que votre token est bien configuré dans ⚙ Paramètres.');throw new Error(`GitHub read 403: ${txt}`);}
   if(!r.ok)throw new Error(`GitHub read ${r.status}: ${await r.text()}`);
@@ -720,13 +724,15 @@ async function ghRead(path){
 async function ghWrite(path,data){
   assertToken();
   if(_shas[path])body.sha=_shas[path];
-  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
+  const isData=path.startsWith('data/');
+  const repo=isData?GH_DATA_REPO:GH_REPO;
+  const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${repo}/contents/${path}`,{method:'PUT',headers:getGHHeaders(isData),body:JSON.stringify(body)});
   if(!r.ok){
     const err=await r.text();
     if(r.status===409||err.includes('sha')){
       await ghRead(path);
       body.sha=_shas[path];
-      const r2=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{method:'PUT',headers:getGHHeaders(),body:JSON.stringify(body)});
+      const r2=await fetch(`https://api.github.com/repos/${GH_OWNER}/${repo}/contents/${path}`,{method:'PUT',headers:getGHHeaders(isData),body:JSON.stringify(body)});
       if(!r2.ok)throw new Error(`GitHub write retry ${r2.status}`);
       const j2=await r2.json();_shas[path]=j2.content.sha;return;
     }

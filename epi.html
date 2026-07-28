@@ -1448,14 +1448,14 @@ function renderBadgeLines(){
   }).join('');
 }
 
-function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:'',search:''});renderTelLines();}
+function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:'',numero:'',search:''});renderTelLines();}
 function addTabLine(){tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:'',search:''});renderTabLines();}
 function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
 function removeTabLine(id){tabLines=tabLines.filter(x=>x.id!==id);renderTabLines()}
 function updateTelLine(id,field,val){
   const l=telLines.find(x=>x.id===id);if(!l)return;
   l[field]=val;
-  if(field==='deviceId'){const d=mobCache.tel.find(x=>x.id===val);if(d){l.marque=d.marque;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;}}
+  if(field==='deviceId'){const d=mobCache.tel.find(x=>x.id===val);if(d){l.marque=d.marque;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;l.numero=d.numero||'';}}
   renderTelLines();
 }
 function updateTabLine(id,field,val){
@@ -1478,6 +1478,10 @@ function renderTelLines(){
     const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
     const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
     const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📱 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
+    const numeroField=sel&&type!=='restitution'?`<div style="margin-top:8px">
+      <label style="font-size:10px;color:#666">Numéro de ligne <span style="color:#c53030">*</span></label>
+      <input type="text" placeholder="06XXXXXXXX" value="${l.numero||''}" onchange="updateTelLine('${l.id}','numero',this.value)" style="${l.numero?'':'border-color:#c53030;background:#fff5f5'}">
+    </div>`:'';
     const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
       <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTelLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
       <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTelLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
@@ -1496,7 +1500,7 @@ function renderTelLines(){
           ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
         </div>
         <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:20px">✕</button>
-      </div>${info}${codeFields}
+      </div>${info}${numeroField}${codeFields}
     </div>`;
   }).join('');
 }
@@ -1732,6 +1736,7 @@ async function validerDotation(){
   const aEpi=epiLines.length>0;
   if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
   if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
+  if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
   const type=document.getElementById('d-type').value;
   const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
   const site=document.getElementById('d-site').value;
@@ -1788,6 +1793,7 @@ async function validerDotation(){
       const patch={statut:newTelStatut};
       const tDev=mobCache.tel.find(x=>x.id===line.deviceId)||{};
       if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}else{patch.collaborateur='';patch.site='';}
+      if(type!=='restitution'&&(line.numero||'').trim())patch.numero=line.numero.trim();
       await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);
       const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};
@@ -1842,7 +1848,7 @@ async function _confirmerDotationPartielle(){
     // Mobilité / badges (toujours traités)
     const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
@@ -1887,7 +1893,7 @@ async function _confirmerDotationPartielle(){
     // Mobilité / badges (toujours traités)
     const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
@@ -2193,7 +2199,7 @@ async function _confirmerDotationPartielle(){
     // Mobilité / badges (toujours traités)
     const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
@@ -2238,7 +2244,7 @@ async function _confirmerDotationPartielle(){
     // Mobilité / badges (toujours traités)
     const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
@@ -2558,7 +2564,7 @@ async function _confirmerDotationPartielle(){
     // Mobilité / badges (toujours traités)
     const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
@@ -2726,7 +2732,7 @@ async function _confirmerDotationPartielle(){
     // Mobilité / badges (toujours traités)
     const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
+    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);

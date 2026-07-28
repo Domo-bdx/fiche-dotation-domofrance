@@ -499,7 +499,7 @@ tr:hover td{background:#f8f9fb}
       </div>
       <div class="tbl-wrap">
         <table><thead><tr>
-          <th>Marque / Modèle</th><th>IMEI</th><th>Ligne SIM</th>
+          <th>Marque / Modèle</th><th>IMEI</th><th>N° de ligne</th>
           <th>Collaborateur</th><th>Site</th><th>Date attr.</th><th>Statut</th><th>Actions</th>
         </tr></thead><tbody id="mob-tel-body"></tbody></table>
       </div>
@@ -569,6 +569,9 @@ tr:hover td{background:#f8f9fb}
         <div><label>Marque</label><input type="text" id="mob-f-marque" placeholder="Samsung, Apple…"></div>
         <div><label>Modèle</label><input type="text" id="mob-f-modele" placeholder="Galaxy A36, Tab A9+…"></div>
         <div><label>IMEI</label><input type="text" id="mob-f-imei" placeholder="15 chiffres"></div>
+      </div>
+      <div class="form-row-3" id="mob-fields-tel-numero" style="display:none">
+        <div><label>Numéro de ligne <span style="color:#c53030">*</span></label><input type="text" id="mob-f-tel-numero" placeholder="06XXXXXXXX"></div>
       </div>
       <div class="form-row-3">
         <div><label>Collaborateur</label><input type="text" id="mob-f-collaborateur" placeholder="Prénom NOM"></div>
@@ -3135,7 +3138,7 @@ function renderMobTel(){
     ?rows.map(d=>`<tr>
         <td>${d.marque||'—'} ${d.modele||''}</td>
         <td><code>${d.imei||'—'}</code></td>
-        <td style="font-size:11px;color:#666">${d.sim||'—'}</td>
+        <td style="font-size:11px;color:#666">${d.numero||'<span style="color:#c53030">manquant</span>'}</td>
         <td style="font-size:11px">${d.collaborateur||'—'}</td>
         <td style="font-size:11px">${d.site||'—'}</td>
         <td style="font-size:11px">${d.date_attribution||'—'}</td>
@@ -3186,7 +3189,8 @@ function openMobForm(type,prefill){
   document.getElementById('mob-form-title').textContent=type==='tel'?'Ajouter un téléphone':type==='tab'?'Ajouter une tablette':'Ajouter un badge';
   document.getElementById('mob-fields-device').style.display=type!=='badge'?'block':'none';
   document.getElementById('mob-fields-badge').style.display=type==='badge'?'block':'none';
-  ['mob-f-marque','mob-f-modele','mob-f-imei','mob-f-numero','mob-f-notes','mob-f-collaborateur','mob-f-site'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  document.getElementById('mob-fields-tel-numero').style.display=type==='tel'?'flex':'none';
+  ['mob-f-marque','mob-f-modele','mob-f-imei','mob-f-numero','mob-f-tel-numero','mob-f-notes','mob-f-collaborateur','mob-f-site'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   const dAttr=document.getElementById('mob-f-date-attr');if(dAttr)dAttr.value='';
   document.getElementById('mob-f-type-badge').value='acces';
   document.getElementById('mob-f-statut').value='disponible';
@@ -3201,10 +3205,12 @@ function editMobDevice(type,id){
   document.getElementById('mob-form-title').textContent=type==='tel'?'Modifier le téléphone':type==='tab'?'Modifier la tablette':'Modifier le badge';
   document.getElementById('mob-fields-device').style.display=type!=='badge'?'block':'none';
   document.getElementById('mob-fields-badge').style.display=type==='badge'?'block':'none';
+  document.getElementById('mob-fields-tel-numero').style.display=type==='tel'?'flex':'none';
   document.getElementById('mob-f-marque').value=d.marque||'';
   document.getElementById('mob-f-modele').value=d.modele||'';
   document.getElementById('mob-f-imei').value=d.imei||'';
   document.getElementById('mob-f-numero').value=d.numero||'';
+  const ftn=document.getElementById('mob-f-tel-numero');if(ftn)ftn.value=d.numero||'';
   document.getElementById('mob-f-type-badge').value=d.type_badge||'acces';
   document.getElementById('mob-f-statut').value=d.statut||'disponible';
   document.getElementById('mob-f-notes').value=d.notes||'';
@@ -3223,7 +3229,11 @@ async function saveMobDevice(){
   const fc2=document.getElementById('mob-f-collaborateur');
   const fs3=document.getElementById('mob-f-site');
   const fd2=document.getElementById('mob-f-date-attr');
-  const payload=isBadge?{numero:document.getElementById('mob-f-numero').value.trim(),type_badge:document.getElementById('mob-f-type-badge').value,statut:document.getElementById('mob-f-statut').value,notes:document.getElementById('mob-f-notes').value.trim()}:{marque:document.getElementById('mob-f-marque').value.trim(),modele:document.getElementById('mob-f-modele').value.trim(),imei:document.getElementById('mob-f-imei').value.trim(),statut:document.getElementById('mob-f-statut').value,notes:document.getElementById('mob-f-notes').value.trim(),collaborateur:fc2?fc2.value.trim():'',site:fs3?fs3.value.trim():'',date_attribution:fd2?fd2.value:''};
+  if(type==='tel'){
+    const telNum=(document.getElementById('mob-f-tel-numero').value||'').trim();
+    if(!telNum){showMsg('mob-form-msg','Le numéro de ligne est obligatoire pour un téléphone.','err');return}
+  }
+  const payload=isBadge?{numero:document.getElementById('mob-f-numero').value.trim(),type_badge:document.getElementById('mob-f-type-badge').value,statut:document.getElementById('mob-f-statut').value,notes:document.getElementById('mob-f-notes').value.trim()}:{marque:document.getElementById('mob-f-marque').value.trim(),modele:document.getElementById('mob-f-modele').value.trim(),imei:document.getElementById('mob-f-imei').value.trim(),numero:type==='tel'?document.getElementById('mob-f-tel-numero').value.trim():(document.getElementById('mob-f-numero')?.value||'').trim(),statut:document.getElementById('mob-f-statut').value,notes:document.getElementById('mob-f-notes').value.trim(),collaborateur:fc2?fc2.value.trim():'',site:fs3?fs3.value.trim():'',date_attribution:fd2?fd2.value:''};
   setSyncStatus('syncing','Sauvegarde…');
   try{
     if(id){

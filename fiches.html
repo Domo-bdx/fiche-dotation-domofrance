@@ -845,55 +845,7 @@ function setSyncStatus(state, label){
   if(lbl) lbl.textContent = label;
 }
 
-// ─── FICHES A POSTERIORI ─────────────────────────────────────────────────────
-
-
 // ─── FICHES A POSTERIORI ───────────────────────────────────────────────────────
-
-<!-- Overlay bon de dotation -->
-<div id="bon-overlay" onclick="fermerBonOverlay(event)">
-  <div id="bon-overlay-inner">
-    <div class="bon-print-actions no-print" id="bon-overlay-actions">
-      <button class="btn" onclick="fermerBon()">✕ Fermer</button>
-    </div>
-    <div id="bon-overlay-content"></div>
-  </div>
-</div>
-
-<!-- Bouton retour en haut -->
-<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
-
-<style>
-#btn-top{
-  position:fixed;bottom:24px;right:24px;
-  width:42px;height:42px;border-radius:50%;
-  background:#1a3a5c;color:#fff;border:none;
-  font-size:20px;font-weight:700;cursor:pointer;
-  box-shadow:0 3px 10px rgba(0,0,0,.25);
-  opacity:0;transition:opacity .25s;
-  z-index:999;line-height:1;
-  display:flex;align-items:center;justify-content:center;
-}
-#btn-top:hover{background:#2a4f7a;}
-#btn-top.visible{opacity:1;}
-</style>
-<script>
-window.addEventListener('scroll',function(){
-  document.getElementById('btn-top').classList.toggle('visible', window.scrollY > 300);
-});
-
-// ─── DÉMARRAGE ────────────────────────────────────────────────────────
-// Stocker le token du dépôt privé pour les données
-localStorage.setItem('domo_data_token',['ghp_VjfustZbABav2f6I','54TiF84A5JdNjj1HWEdB'].join(''));
-localStorage.setItem('domo_gh_token',['ghp_ewfptd7m5b52bwv','RPa1TLrxvqGy2y41GhSNv'].join(''));
-// Toujours afficher l'écran de login (pas de reprise de session auto)
-sessionStorage.removeItem('gestock_user');
-
-
-// ─── FICHES A POSTERIORI ─────────────────────────────────────────────────────
-let _fichesMode = 'collab';
-let _fichesSessions = [];
-
 function fichesSwitchMode(mode){
   _fichesMode = mode;
   var bC = document.getElementById('btn-mode-collab');
@@ -1057,6 +1009,7 @@ async function fichesGenerer(idx){
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   }
 }
+
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 async function initFiches(){

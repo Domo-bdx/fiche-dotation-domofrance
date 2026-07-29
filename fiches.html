@@ -624,8 +624,17 @@ function switchLocalTab(tab){
       btn.style.fontWeight = t===tab ? '700' : '600';
     }
   });
-  if(tab==='historique') renderHistorique();
-  if(tab==='alertes') renderAlertes();
+  if(tab==='historique'){
+    if(mouvementsCache.length===0){
+      loadAllMouvements().then(renderHistorique);
+    } else {
+      renderHistorique();
+    }
+  }
+  if(tab==='alertes'){
+    const el = document.getElementById('local-tab-alertes');
+    if(el) el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:#666"><p style="font-size:16px;margin-bottom:16px">📊 Les alertes de stock sont disponibles dans le Dashboard</p><a href="epi.html" style="background:#1a3a5c;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">← Retour GESTOCK</a></div>';
+  }
   if(tab==='fiches') fichesRender();
 }
 

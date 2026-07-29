@@ -955,20 +955,29 @@ function setSyncStatus(state, msg){
   lbl.textContent = msg;
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
+// ─── INIT PAGE MOBILITÉ ───────────────────────────────────────────────────────
 async function initMobilite(){
-  const raw = sessionStorage.getItem('gestock_user');
   const loginOverlay = document.getElementById('login-overlay');
+
+  // Vérifier si token GitHub présent
+  if(!localStorage.getItem('domo_gh_token')){
+    loginOverlay.style.display = 'flex';
+    return;
+  }
+
+  // Vérifier session utilisateur
+  const raw = sessionStorage.getItem('gestock_user');
   if(!raw){
     loginOverlay.style.display = 'flex';
     return;
   }
+
   loginOverlay.style.display = 'none';
   const u = JSON.parse(raw);
   const badge = document.getElementById('user-badge');
   if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
 
-  setSyncStatus('syncing','Chargement…');
+  setSyncStatus('syncing','Chargement mobilité…');
   try{
     await loadMobDevices();
     setSyncStatus('ok','Base synchronisée');
@@ -978,18 +987,29 @@ async function initMobilite(){
     renderMobBadge();
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);
-    console.error(e);
+    console.error('initMobilite error:', e);
   }
 }
 
-// Override doLogin pour cette page
-const _baseDoLogin = typeof doLogin === 'function' ? doLogin : null;
+// doLogin spécifique à cette page
 async function doLogin(){
-  if(_baseDoLogin) await _baseDoLogin();
-  const raw = sessionStorage.getItem('gestock_user');
-  if(raw){
-    document.getElementById('login-overlay').style.display='none';
+  const login = document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd   = document.getElementById('login-pwd').value;
+  const errEl = document.getElementById('login-error');
+  if(!login||!pwd){errEl.textContent='Veuillez saisir votre identifiant et mot de passe.';return;}
+  errEl.textContent='';
+  try{
+    await loadUsers();
+    const user = usersCache.find(u=>u.login===login);
+    if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';return;}
+    const hash = await sha256(pwd);
+    if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
+    currentUser = {login:user.login,nom:user.nom,role:user.role};
+    sessionStorage.setItem('gestock_user', JSON.stringify(currentUser));
     await initMobilite();
+  }catch(e){
+    errEl.textContent='Erreur connexion : '+e.message;
+    console.error(e);
   }
 }
 

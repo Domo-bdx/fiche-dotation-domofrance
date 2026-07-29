@@ -593,7 +593,21 @@ const CATS=[...new Set(CATALOGUE.map(c=>c.cat))].sort();
 
 // ─── ÉTAT LOCAL ───────────────────────────────────────────────────────────────
 // stockCache déclaré dans common.js
-let mobCache = {tel:[], tab:[], badge:[]};
+// mobCache initialisé dans initFiches()
+
+
+// ─── STUB FONCTIONS EPI (non disponibles dans cette page) ────────────────────
+function getStock(ref, taille){ 
+  const k = ref+'__'+(taille||'Unique');
+  return stockCache[k] || {qte:0, seuil:0, attribues:0};
+}
+function getPEAlertes(){ return []; }
+function getAttentesDisponibles(){ return []; }
+function loadConfig(){ return {}; }
+function getPapeterieStock(id){ return {stock_cartons:0, seuil:0}; }
+function buildMailPreview(){ }
+function genererMailAlerte(){ }
+function genererMailRuptures(){ }
 
 // ─── ONGLETS LOCAUX ───────────────────────────────────────────────────────────
 function switchLocalTab(tab){
@@ -849,10 +863,18 @@ async function initFiches(){
   try{
     await loadAllMouvements();
     // Charger mobCache pour fichesGenerer
-    const [tels,tabs,badges] = await Promise.all([
-      readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges')
+    const [tels,tabs,badges,stockObj] = await Promise.all([
+      readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges'),
+      readObj('stock')
     ]);
     mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[]};
+    // Alimenter stockCache pour getStock()
+    Object.entries(stockObj||{}).forEach(([k,v])=>{
+      const sep=k.lastIndexOf('__');
+      const ref=sep>=0?k.substring(0,sep):k;
+      const taille=sep>=0?k.substring(sep+2):'Unique';
+      stockCache[k]={...v,ref,taille,id:k};
+    });
     setSyncStatus('ok','Base synchronisée');
     fichesRender();
   }catch(e){

@@ -596,6 +596,10 @@ const CATS=[...new Set(CATALOGUE.map(c=>c.cat))].sort();
 // mobCache initialisé dans initFiches()
 
 
+// ─── VARIABLES GLOBALES FICHES ───────────────────────────────────────────────────
+let _fichesMode = 'collab';
+let _fichesSessions = [];
+
 // ─── STUB FONCTIONS EPI (non disponibles dans cette page) ────────────────────
 function getStock(ref, taille){ 
   const k = ref+'__'+(taille||'Unique');
@@ -836,6 +840,7 @@ function loadConfigIntoForm(){
 
 // Stubs fonctions référencées
 function getPapeterieAlertes(){ return []; }
+function renderPapeterieAlertes(){}
 function updateAlerteBadge(){}
 function loadConfig(){ return {}; }
 function setSyncStatus(state, label){

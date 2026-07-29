@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Papeterie — GESTOCK</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;background:#f4f5f7;color:#222}
+.header{background:#1a3a5c;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
+.header h1{font-size:16px;font-weight:600}
+.sync-indicator{margin-left:auto;font-size:11px;opacity:.8;display:flex;align-items:center;gap:6px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4ade80}
+.sync-dot.syncing{background:#fbbf24;animation:pulse 1s infinite}
+.sync-dot.error{background:#f87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav{background:#fff;border-bottom:2px solid #1a3a5c;display:flex;gap:0;flex-wrap:wrap}
+.nav button{padding:10px 16px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#555;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.nav button.active{color:#1a3a5c;border-bottom-color:#1a3a5c}
+.nav button.alert-badge::after{content:attr(data-count);background:#e53e3e;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:middle}
+.content{padding:16px 20px;max-width:1200px}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border:1px solid #dde;border-radius:6px;padding:14px;margin-bottom:14px}
+.card h3{font-size:12px;font-weight:700;color:#1a3a5c;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:10px;text-align:center}
+.stat-n{font-size:24px;font-weight:700;color:#1a3a5c;line-height:1.1}
+.stat-n.warn{color:#c05621}.stat-n.ok{color:#276749}
+.stat-l{font-size:10px;color:#666;margin-top:2px}
+label{font-size:11px;font-weight:600;color:#444;display:block;margin-bottom:3px}
+input,select,textarea{width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:12px;background:#fff;color:#222}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a3a5c}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.btn{padding:7px 14px;border-radius:4px;border:1px solid #ccc;cursor:pointer;font-size:12px;font-weight:600;background:#fff;color:#222;transition:all .12s}
+.btn:hover{background:#f0f0f0}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.btn.primary:hover{background:#2a4f7a}
+.btn.success{background:#276749;color:#fff;border-color:#276749}
+.btn.danger{background:#c53030;color:#fff;border-color:#c53030}
+.btn.small{padding:4px 10px;font-size:11px}
+.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#f0f2f5;text-align:left;padding:7px 8px;font-size:10px;font-weight:700;color:#555;white-space:nowrap;border-bottom:1px solid #dde;text-transform:uppercase}
+td{padding:6px 8px;border-bottom:1px solid #eef;vertical-align:middle}
+tr:hover td{background:#f8f9fb}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge.green{background:#c6f6d5;color:#276749}.badge.red{background:#fed7d7;color:#c53030}
+.badge.yellow{background:#fef3c7;color:#92400e}.badge.blue{background:#dbeafe;color:#1e40af}
+.badge.gray{background:#e2e8f0;color:#4a5568}.badge.purple{background:#e9d8fd;color:#6b21a8}
+.alert-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff8f0;border:1px solid #fbd38d;border-radius:5px;margin-bottom:6px}
+.cat-thumb{width:42px;height:42px;object-fit:contain;border:1px solid #eef;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
+.cat-thumb-empty{display:inline-block;width:42px;height:42px;text-align:center;line-height:42px;color:#ccc;font-size:12px}
+.cat-img-overlay{position:fixed;inset:0;background:rgba(20,20,30,.75);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;padding:20px}
+.cat-img-modal{background:#fff;border-radius:8px;padding:16px;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:default}
+.cat-img-modal img{max-width:min(70vw,500px);max-height:60vh;object-fit:contain}
+.cat-img-caption{font-size:13px;font-weight:600;color:#333;text-align:center}
+.search-bar{margin-bottom:10px}
+.search-bar input{max-width:320px}
+.tbl-wrap{overflow-x:auto}
+.epi-line{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#f8f9fb;border-radius:5px;border:1px solid #eef}
+.empty{color:#888;font-size:12px;text-align:center;padding:24px}
+.loading{color:#888;font-size:12px;text-align:center;padding:24px;display:flex;align-items:center;justify-content:center;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid #dde;border-top-color:#1a3a5c;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bon-preview{background:#fff;border:1px solid #dde;border-radius:6px;padding:20px;max-width:700px}
+.bon-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1a3a5c}
+.bon-title{font-size:16px;font-weight:700;color:#1a3a5c}
+.bon-ref{font-size:10px;color:#888;margin-top:4px}
+.bon-table{width:100%;margin:12px 0;font-size:11px}
+.bon-table th{background:#1a3a5c;color:#fff;padding:6px 8px;text-align:left}
+.bon-table td{padding:6px 8px;border-bottom:1px solid #eef}
+.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px}
+.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px;min-height:80px}
+.sig-box .sig-label{font-size:10px;color:#888;margin-bottom:4px}
+.cat-filter{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.cat-btn{padding:4px 12px;border-radius:20px;border:1px solid #ccc;cursor:pointer;font-size:11px;background:#fff;transition:all .12s}
+.cat-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.stock-low{background:#fff8f0!important}.stock-zero{background:#fff0f0!important}
+.pe-alert{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;margin-bottom:8px}
+.pe-alert.urgent{background:#fff5f5;border-color:#fc8181}
+.mail-preview{background:#f8f9fb;border:1px solid #dde;border-radius:5px;padding:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;max-height:280px;overflow-y:auto;color:#333;line-height:1.6}
+.banner-alerte{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px}
+.banner-alerte.papeterie{background:#f0f7ff;border-color:#90cdf4}
+.settings-section{border-top:1px solid #eef;margin-top:12px;padding-top:12px}
+.msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
+.msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
+@media print{.header,.nav,.no-print{display:none!important}body{background:#fff}}
+/* Overlay bon de dotation */
+#bon-overlay{display:none;position:fixed;inset:0;background:#0005;z-index:9999;overflow-y:auto;padding:24px}
+#bon-overlay.open{display:flex;align-items:flex-start;justify-content:center}
+#bon-overlay-inner{background:#fff;border-radius:8px;box-shadow:0 8px 40px #0004;padding:28px 36px;max-width:860px;width:100%;position:relative}
+.bon-print-actions{display:flex;gap:8px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee}
+/* ── Bon de dotation redesign ── */
+.bon-section-title{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;padding-bottom:4px;border-bottom:2px solid #e8003d}
+.bon-data-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
+.bon-data-table th{background:#1a3a5c;color:#fff;padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.bon-data-table td{padding:6px 10px;border-bottom:1px solid #f0f2f5}
+.bon-data-table tr:last-child td{border-bottom:none}
+.bon-data-table tr:nth-child(even) td{background:#fafbfc}
+.bon-attestation{background:#fff8f0;border-left:3px solid #c05621;border-radius:3px;padding:8px 12px;font-size:10px;color:#444;line-height:1.6;margin-top:6px}
+.bon-note-knox{background:#eef2ff;border-left:3px solid #1a3a5c;border-radius:3px;padding:7px 12px;font-size:10px;color:#444;margin-top:6px}
+.equip-section{background:#f8f9fb;border:1px solid #dde;border-radius:6px;padding:12px;margin-bottom:0}
+.equip-section h4{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.tel-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.tab-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.rec-line{display:grid;grid-template-columns:2fr 1fr 70px auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.mob-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+/* ── PAPETERIE ── */
+.pap-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
+.pap-stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:12px;text-align:center;transition:border-color .2s}
+.pap-stat.alert-low{border-color:#fbd38d;background:#fffbf0}
+.pap-stat.alert-empty{border-color:#fc8181;background:#fff5f5}
+.pap-stat-n{font-size:28px;font-weight:700;color:#1a3a5c;line-height:1.1}
+.pap-stat-n.warn{color:#c05621}
+.pap-stat-l{font-size:11px;font-weight:600;color:#333;margin-top:4px}
+.pap-stat-sub{font-size:10px;color:#888;margin-top:2px}
+.pap-line{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:#f8f9fb;border-radius:5px;border:1px solid #eef}
+.pap-line.insuffisant{border-color:#fc8181;background:#fff5f5}
+
+/* ─── LOGIN ──────────────────────────────────────────────────────────── */
+#login-overlay{position:fixed;inset:0;background:#1a3a5c;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column}
+#login-box{background:#fff;border-radius:12px;padding:40px 48px;width:380px;box-shadow:0 8px 40px rgba(0,0,0,.35)}
+#login-box h2{color:#1a3a5c;font-size:22px;font-weight:700;margin-bottom:4px;text-align:center}
+.login-sub{color:#888;font-size:13px;text-align:center;margin-bottom:28px}
+#login-box label{display:block;font-size:12px;color:#555;font-weight:600;margin-bottom:4px;margin-top:14px}
+#login-box input{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;outline:none}
+#login-box input:focus{border-color:#1a3a5c}
+#login-btn{width:100%;margin-top:24px;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer}
+#login-btn:hover{background:#c0392b}
+#login-error{color:#c0392b;font-size:12px;text-align:center;margin-top:10px;min-height:16px}
+.chgpwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000}
+.chgpwd-box{background:#fff;border-radius:10px;padding:32px 40px;width:360px;box-shadow:0 4px 30px rgba(0,0,0,.2)}
+.chgpwd-box h3{color:#1a3a5c;font-size:18px;font-weight:700;margin-bottom:8px}
+.chgpwd-box p{color:#666;font-size:13px;margin-bottom:20px}
+.chgpwd-box label{display:block;font-size:12px;color:#555;font-weight:600;margin-bottom:4px;margin-top:12px}
+.chgpwd-box input{width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ddd;border-radius:6px;font-size:13px}
+#chgpwd-error{color:#c0392b;font-size:12px;margin-top:8px;min-height:14px}
+#user-badge{display:flex;align-items:center;gap:8px;margin-left:auto;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 12px 4px 8px;cursor:pointer}
+#user-badge:hover{background:rgba(255,255,255,.22)}
+#user-avatar{width:28px;height:28px;border-radius:50%;background:#c0392b;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+#user-name{font-size:12px;color:#fff;font-weight:500}
+#user-role-badge{font-size:10px;color:rgba(255,255,255,.7);background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px}
+.user-card{background:#f8f9fb;border:1px solid #e0e7ef;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.user-card-avatar{width:36px;height:36px;border-radius:50%;background:#1a3a5c;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.user-card-info{flex:1}
+.user-card-info strong{font-size:13px;color:#1a3a5c}
+.user-card-info span{font-size:11px;color:#888;display:block}
+.user-card-actions{display:flex;gap:6px}
+.tag-admin{background:#1a3a5c;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+.tag-gest{background:#2e7d32;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+.tag-inactif{background:#aaa;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+
+/* ─── DASHBOARD ─────────────────────────────────────────────────────── */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.db-kpi{background:#fff;border-radius:10px;border:1px solid #e0e7ef;padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.db-kpi-icon{font-size:22px;margin-bottom:4px}
+.db-kpi-val{font-size:28px;font-weight:700;color:#1a3a5c;line-height:1}
+.db-kpi-lbl{font-size:12px;color:#888;font-weight:500}
+.db-kpi-sub{font-size:11px;color:#c0392b;font-weight:600}
+.db-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.db-chart-card{background:#fff;border-radius:10px;border:1px solid #e0e7ef;padding:16px}
+.db-chart-card h4{font-size:13px;font-weight:600;color:#1a3a5c;margin:0 0 12px 0}
+.db-chart-card canvas{max-height:220px}
+.db-section{font-size:13px;font-weight:700;color:#1a3a5c;margin:20px 0 10px 0;padding-bottom:4px;border-bottom:2px solid #e0e7ef}
+.db-top-table{width:100%;border-collapse:collapse;font-size:12px}
+.db-top-table th{background:#1a3a5c;color:#fff;padding:6px 10px;text-align:left}
+.db-top-table td{padding:6px 10px;border-bottom:1px solid #f0f0f0}
+.db-top-table tr:nth-child(even) td{background:#f8f9fb}
+.db-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.db-charts,.db-row3{grid-template-columns:1fr}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE / TABLETTE
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Menu burger — masqué par défaut, affiché sous 860px */
+#nav-burger{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;margin-left:auto}
+
+@media(max-width:860px){
+  /* ── Header ── */
+  .header{padding:10px 12px;flex-wrap:wrap;gap:8px}
+  .header h1{font-size:14px}
+  .header img{height:34px!important}
+  #nav-burger{display:block}
+  .sync-indicator{display:none}
+  #user-badge{margin-left:0;order:2}
+  #user-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── Nav devient un menu déroulant plein écran ── */
+  .nav{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;
+       background:#1a3a5c;z-index:2000;padding:60px 0 20px;overflow-y:auto;gap:0}
+  .nav.nav-open{display:flex}
+  .nav button{color:#fff;font-size:15px;text-align:left;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.12);
+              border-bottom-width:1px!important;margin-bottom:0;width:100%}
+  .nav button.active{color:#fff;background:rgba(255,255,255,.12);border-bottom-color:rgba(255,255,255,.12)}
+  #nav-close{display:block;position:fixed;top:14px;right:16px;z-index:2001;background:none;border:none;color:#fff;font-size:26px;cursor:pointer}
+
+  /* ── Contenu général ── */
+  .content{padding:10px 10px 70px}
+  .card{padding:12px}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .epi-line,.tel-line,.tab-line,.rec-line,.pap-line{grid-template-columns:1fr}
+  .mob-stats{grid-template-columns:repeat(2,1fr)}
+  .pap-stats{grid-template-columns:repeat(2,1fr)}
+  .sig-zone{grid-template-columns:1fr}
+  .ig{grid-template-columns:1fr}
+  .db-grid{grid-template-columns:repeat(2,1fr)}
+  input,select,textarea,.btn{font-size:14px}
+  .btn{min-height:40px}
+  .btn.small{min-height:32px}
+  #login-box{width:90vw;padding:32px 24px}
+  .chgpwd-box{width:90vw;padding:24px 20px}
+
+  /* ── Tableaux → cartes empilées ── */
+  .tbl-wrap,.content table{overflow-x:visible}
+  table.resp-cards,table.resp-cards thead,table.resp-cards tbody,
+  table.resp-cards th,table.resp-cards td,table.resp-cards tr{display:block;width:100%}
+  table.resp-cards thead{display:none}
+  table.resp-cards tr{background:#fff;border:1px solid #dde;border-radius:6px;padding:10px 12px;margin-bottom:10px}
+  table.resp-cards tr:hover td{background:none}
+  table.resp-cards td{border-bottom:1px solid #f0f2f5;padding:7px 0;text-align:left!important;white-space:normal;word-break:break-word}
+  table.resp-cards td:last-child{border-bottom:none}
+  table.resp-cards td[data-label]::before{content:attr(data-label);display:block;font-size:9px;font-weight:700;
+       color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+}
+
+@media(max-width:480px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .mob-stats,.pap-stats,.db-grid{grid-template-columns:1fr}
+  .header h1{font-size:13px}
+  .header>div:first-child>div{display:none}
+  .cat-filter{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+}
+
+
+
+/* ── Fiches a posteriori ───────────────────────────────────────────────── */
+.fiches-search-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
+.fiches-search-bar label{font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px}
+.fiches-search-bar input{padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px;width:200px}
+.fiches-mode-toggle{display:flex;gap:0;margin-bottom:18px;position:relative;z-index:1}
+.fiches-mode-toggle button{all:unset;box-sizing:border-box;padding:8px 18px;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;display:inline-block}
+.fiches-mode-toggle button:first-child{border-radius:5px 0 0 5px}
+.fiches-mode-toggle button:last-child{border-radius:0 5px 5px 0;border-left:none}
+.fiches-mode-toggle button.active{background:#1a3a5c;color:#fff}
+.fiches-result-list{list-style:none;padding:0;margin:0}
+.fiches-result-list li{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eef;font-size:12px;gap:10px}
+.fiches-result-list li:hover{background:#f6f8fc}
+.fiches-result-list .frl-info{flex:1}
+.fiches-result-list .frl-name{font-weight:700;color:#1a3a5c}
+.fiches-result-list .frl-meta{color:#777;font-size:11px;margin-top:2px}
+.fiches-result-list .frl-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.fiches-result-list .frl-tag{background:#e8f0fe;color:#1a3a5c;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:600}
+.btn-gen-fiche{background:#1a3a5c;color:#fff;border:none;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-gen-fiche:hover{background:#16304d}
+#fiches-empty{color:#999;font-size:12px;padding:20px 0;text-align:center;display:none}
+.inter-nav{display:flex;gap:6px;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid #e0e4ea}
+.inter-nav a{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;color:#1a3a5c;background:#f0f4fa;border:1px solid #d0d8e8}
+.inter-nav a:hover{background:#1a3a5c;color:#fff}
+.inter-nav a.active{background:#1a3a5c;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:#1a2e4a;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:40px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <div style="font-size:22px;font-weight:800;color:#1a3a5c;margin-bottom:4px">GESTOCK</div>
+    <div style="font-size:11px;color:#888;margin-bottom:24px">Pôle Facilities — Domofrance</div>
+    <input id="login-user" type="text" placeholder="Identifiant" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box">
+    <input id="login-pwd" type="password" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box">
+    <button type="button" onclick="doLogin()" style="width:100%;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">Se connecter</button>
+    <div id="login-error" style="color:#c53030;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div style="background:#1a2e4a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div>
+      <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em">Pôle Facilities</div>
+      <div style="font-size:16px;font-weight:800;color:#fff">GESTOCK</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#48bb78;display:inline-block"></div>
+    <span id="sync-label" style="font-size:11px;color:rgba(255,255,255,.7)">Connexion…</span>
+    <span id="user-badge" style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff"></span>
+    <a href="epi.html" style="font-size:11px;color:rgba(255,255,255,.6);text-decoration:none">← Retour GESTOCK</a>
+  </div>
+</div>
+
+<!-- NAV INTER-PAGES -->
+<div class="inter-nav">
+  <a href="epi.html">🏠 Dotation / EPI</a>
+  <a href="mobilite.html">📱 Stock Mobilité</a>
+  <a href="papeterie.html" class="active">📄 Papeterie</a>
+  <a href="fiches.html">📋 Fiches / Historique</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+</div>
+
+<!-- CONTENU -->
+<div style="padding:16px 20px">
+  <div id="pap-msg"></div>
+  <div id="tab-papeterie" class="panel" style="display:block">
+
+  <!-- STATS STOCK -->
+  <div class="pap-stats" id="papeterie-stats"></div>
+
+  <!-- SOUS-ONGLETS -->
+  <div style="display:flex;gap:8px;margin-bottom:14px" id="pap-subtabs">
+    <button class="cat-btn active" onclick="setPapSub('demande',this)">📋 Nouvelle demande</button>
+    <button class="cat-btn" onclick="setPapSub('stock',this)">📦 Stock &amp; réception</button>
+    <button class="cat-btn" onclick="setPapSub('histo',this)">📜 Historique</button>
+  </div>
+
+  <!-- ── PANEL : NOUVELLE DEMANDE ── -->
+  <div id="pap-panel-demande">
+    <div class="card">
+      <h3>Informations demandeur</h3>
+      <div class="form-row-3">
+        <div><label>Nom</label><input type="text" id="pap-nom" placeholder="NOM"></div>
+        <div><label>Prénom</label><input type="text" id="pap-prenom" placeholder="Prénom"></div>
+        <div><label>Service / Direction</label><input type="text" id="pap-service" placeholder="ex: RH, Comptabilité, DSI…"></div>
+      </div>
+      <div class="form-row">
+        <div><label>Site / Agence</label>
+          <select id="pap-site">
+            <option value="">— Sélectionner —</option>
+            <option>Agen</option><option>Bayonne</option><option>Bordeaux</option><option>Boulazac</option><option>Bruges</option><option>Cenon</option><option>Dax</option><option>La Rochelle</option><option>La Teste</option><option>Langon</option><option>Libourne</option><option>Lormont</option><option>Merignac</option><option>Mont-de-Marsan</option><option>Pau</option><option>Pessac</option><option>Siege</option><option>Talence</option><option>Villeneuve-sur-Lot</option>
+          </select>
+        </div>
+        <div><label>Date de la demande</label><input type="date" id="pap-date"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Articles demandés</h3>
+      <div style="font-size:11px;color:#555;margin-bottom:12px;padding:8px 12px;background:#f0f7ff;border-radius:5px;border-left:3px solid #90cdf4;line-height:1.8">
+        📄 <strong>Papier A4 / A3</strong> — cartons de 5 rames &nbsp;·&nbsp; 1 ou 2 cartons par demande<br>
+        ✉️ <strong>Enveloppes</strong> Moyen format / Petit format / Grand format — cartons de 500 enveloppes &nbsp;·&nbsp; 1 ou 2 cartons par demande
+      </div>
+      <div id="papeterie-lines-container"><div class="empty">Aucun article ajouté — cliquez sur "+ Ajouter un article"</div></div>
+      <button class="btn" style="margin-top:8px" onclick="addPapeterieLine()">+ Ajouter un article</button>
+    </div>
+
+    <div class="card no-print">
+      <h3>Actions</h3>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-pap-valider" onclick="validerDemandePapeterie()">✓ Valider et déduire du stock</button>
+        <button class="btn" onclick="resetDemandePapeterie()">Réinitialiser</button>
+      </div>
+      <div id="pap-msg"></div>
+    </div>
+  </div>
+
+  <!-- ── PANEL : STOCK & RÉCEPTION ── -->
+  <div id="pap-panel-stock" style="display:none">
+
+    <div class="card">
+      <h3>Stock actuel — seuils d'alerte</h3>
+      <div style="font-size:11px;color:#888;margin-bottom:10px">Modifiez directement les valeurs dans le tableau — sauvegarde automatique.</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Article</th><th>Type</th><th>Conditionnement</th>
+            <th style="text-align:center">Stock (cartons)</th>
+            <th style="text-align:center">Seuil alerte</th>
+            <th style="text-align:center">Statut</th>
+          </tr></thead>
+          <tbody id="pap-stock-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Réception de cartons</h3>
+      <div style="font-size:11px;color:#888;margin-bottom:10px">Enregistrez une livraison pour créditer le stock.</div>
+      <div id="pap-rec-lines"><div class="empty">Aucun article — cliquez sur "+ Ajouter"</div></div>
+      <button class="btn" style="margin-top:8px" onclick="addPapRecLine()">+ Ajouter un article</button>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-pap-rec-valider" onclick="validerReceptionPapeterie()">✓ Valider la réception</button>
+        <button class="btn" onclick="papRecLines=[];renderPapRecLines()">Réinitialiser</button>
+      </div>
+      <div id="pap-rec-msg"></div>
+    </div>
+
+  </div>
+
+  <!-- ── PANEL : HISTORIQUE ── -->
+  <div id="pap-panel-histo" style="display:none">
+    <div class="card">
+      <h3>Historique des mouvements papeterie</h3>
+      <div class="search-bar"><input type="text" id="papeterie-histo-search" placeholder="Rechercher nom, site, article…" oninput="renderPapeterieHisto()"></div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Date</th><th>Type</th><th>Demandeur</th><th>Service</th><th>Site</th><th>Article</th><th style="text-align:center">Quantité</th>
+        </tr></thead>
+        <tbody id="papeterie-histo-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- ════════════════════════════════════════════════════════════════════ -->
+
+
+<!-- ALERTES -->
+<div id="tab-alertes" class="panel" style="display:block">
+</div>
+
+<script src="common.js"></script>
+<script>
+// ═══ MODULE PAPETERIE ════════════════════════════════════════════════════════
+const PAPETERIE_ARTICLES=[
+  // ── Papier ──
+  {id:'papier_A4',            designation:'Papier A4',                             type:'Papier',     famille:null,        format:'A4',          fenetre:null,  contenu:'5 rames / carton',        icon:'📄'},
+  {id:'papier_A3',            designation:'Papier A3',                             type:'Papier',     famille:null,        format:'A3',          fenetre:null,  contenu:'5 rames / carton',        icon:'📄'},
+  // ── Enveloppes Domofrance ──
+  {id:'env_domo_Moyen format_sf',       designation:'Moyen format sans fenêtre — Domofrance',          type:'Enveloppes', famille:'Domofrance', format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_Moyen format_af',       designation:'Moyen format avec fenêtre — Domofrance',          type:'Enveloppes', famille:'Domofrance', format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A4p3_sf',     designation:'Petit format sans fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A4p3_af',     designation:'Petit format avec fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_gf_sf',       designation:'Grand format sans fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_domo_gf_af',       designation:'Grand format avec fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Agathe ──
+  {id:'env_agathe_Moyen format_sf',     designation:'Moyen format sans fenêtre — Agathe',              type:'Enveloppes', famille:'Agathe',     format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_Moyen format_af',     designation:'Moyen format avec fenêtre — Agathe',              type:'Enveloppes', famille:'Agathe',     format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A4p3_sf',   designation:'Petit format sans fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A4p3_af',   designation:'Petit format avec fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_gf_sf',     designation:'Grand format sans fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_gf_af',     designation:'Grand format avec fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Yellome ──
+  {id:'env_yellome_Moyen format_sf',    designation:'Moyen format sans fenêtre — Yellome',             type:'Enveloppes', famille:'Yellome',    format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_Moyen format_af',    designation:'Moyen format avec fenêtre — Yellome',             type:'Enveloppes', famille:'Yellome',    format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A4p3_sf',  designation:'Petit format sans fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A4p3_af',  designation:'Petit format avec fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_gf_sf',    designation:'Grand format sans fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_gf_af',    designation:'Grand format avec fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Exterra ──
+  {id:'env_exterra_Moyen format_sf',    designation:'Moyen format sans fenêtre — Exterra',             type:'Enveloppes', famille:'Exterra',    format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_Moyen format_af',    designation:'Moyen format avec fenêtre — Exterra',             type:'Enveloppes', famille:'Exterra',    format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A4p3_sf',  designation:'Petit format sans fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A4p3_af',  designation:'Petit format avec fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_gf_sf',    designation:'Grand format sans fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_gf_af',    designation:'Grand format avec fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+];
+// Familles d'enveloppes pour groupage
+const ENV_FAMILLES=['Domofrance','Agathe','Yellome','Exterra'];
+
+let papeterieStockCache={};   // id → { id, stock_cartons, seuil }
+let papeterieMovCache=[];
+let papeterieLines=[];        // lignes demande
+let papRecLines=[];           // lignes réception
+let _papSeuilTimer=null;
+let _papStockTimer=null;
+
+// ── Chargement ────────────────────────────────────────────────────────────────
+async function loadPapeterieStock(){
+  try{
+    const obj=await ghRead('data/papeterie_stock.json')||{};
+    papeterieStockCache={};
+    PAPETERIE_ARTICLES.forEach(a=>{
+      papeterieStockCache[a.id]=obj[a.id]||{id:a.id,stock_cartons:0,seuil:2};
+    });
+  }catch(e){
+    PAPETERIE_ARTICLES.forEach(a=>{papeterieStockCache[a.id]={id:a.id,stock_cartons:0,seuil:2};});
+    console.error('loadPapeterieStock:',e);
+  }
+}
+
+async function loadPapeterieMovements(){
+  try{papeterieMovCache=(await ghRead('data/papeterie_mouvements.json')||[]).slice(0,500);}
+  catch(e){papeterieMovCache=[];console.error(e);}
+}
+
+async function savePapeterieStockToGH(){
+  setSyncStatus('syncing','Sauvegarde papeterie…');
+  try{await ghWrite('data/papeterie_stock.json',papeterieStockCache);setSyncStatus('ok','Sauvegardé');}
+  catch(e){setSyncStatus('error','Erreur: '+e.message);throw e;}
+}
+
+function getPapeterieStock(id){
+  if(!papeterieStockCache[id])papeterieStockCache[id]={id,stock_cartons:0,seuil:2};
+  return papeterieStockCache[id];
+}
+
+// ── Sous-onglets papeterie ─────────────────────────────────────────────────────
+function setPapSub(sub,btn){
+  document.querySelectorAll('#pap-subtabs .cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pap-panel-demande').style.display=sub==='demande'?'block':'none';
+  document.getElementById('pap-panel-stock').style.display=sub==='stock'?'block':'none';
+  document.getElementById('pap-panel-histo').style.display=sub==='histo'?'block':'none';
+  if(sub==='stock'){renderPapeterieStockTable();}
+  if(sub==='histo'){renderPapeterieHisto();}
+}
+
+// ── Stats cards ───────────────────────────────────────────────────────────────
+function renderPapeterieStats(){
+  const el=document.getElementById('papeterie-stats');if(!el)return;
+  // 2 cartes papier + 4 cartes familles enveloppes
+  const papiers=PAPETERIE_ARTICLES.filter(a=>a.type==='Papier');
+  const papierCards=papiers.map(a=>{
+    const s=getPapeterieStock(a.id);
+    const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+    const cls=isEmpty?'pap-stat alert-empty':isLow?'pap-stat alert-low':'pap-stat';
+    return `<div class="${cls}">
+      <div style="font-size:20px;margin-bottom:4px">${a.icon}</div>
+      <div class="pap-stat-n ${isEmpty?'warn':''}">${s.stock_cartons}</div>
+      <div style="font-size:9px;font-weight:700;color:#1a3a5c;margin-top:1px">carton${s.stock_cartons>1?'s':''}</div>
+      <div class="pap-stat-l">${a.designation}</div>
+      <div class="pap-stat-sub">${a.contenu}</div>
+      ${isEmpty?`<div style="font-size:9px;font-weight:700;color:#c53030;margin-top:4px">⚠ RUPTURE</div>`:isLow?`<div style="font-size:9px;font-weight:700;color:#92400e;margin-top:4px">↘ Stock bas</div>`:''}
+    </div>`;
+  }).join('');
+  const familleCards=ENV_FAMILLES.map(fam=>{
+    const arts=PAPETERIE_ARTICLES.filter(a=>a.famille===fam);
+    const total=arts.reduce((s,a)=>s+getPapeterieStock(a.id).stock_cartons,0);
+    const nbRupture=arts.filter(a=>getPapeterieStock(a.id).stock_cartons===0).length;
+    const nbBas=arts.filter(a=>{const s=getPapeterieStock(a.id);return s.stock_cartons>0&&s.stock_cartons<=s.seuil;}).length;
+    const isEmpty=nbRupture===arts.length;const isLow=!isEmpty&&(nbRupture>0||nbBas>0);
+    const cls=isEmpty?'pap-stat alert-empty':isLow?'pap-stat alert-low':'pap-stat';
+    return `<div class="${cls}">
+      <div style="font-size:20px;margin-bottom:4px">✉️</div>
+      <div class="pap-stat-n ${isEmpty?'warn':''}">${total}</div>
+      <div style="font-size:9px;font-weight:700;color:#1a3a5c;margin-top:1px">carton${total>1?'s':''} total</div>
+      <div class="pap-stat-l">${fam}</div>
+      <div class="pap-stat-sub">${arts.length} références</div>
+      ${nbRupture>0?`<div style="font-size:9px;font-weight:700;color:#c53030;margin-top:4px">⚠ ${nbRupture} rupture${nbRupture>1?'s':''}</div>`:nbBas>0?`<div style="font-size:9px;font-weight:700;color:#92400e;margin-top:4px">↘ ${nbBas} stock${nbBas>1?'s':''} bas</div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=papierCards+familleCards;
+}
+
+// ── Table de stock + seuils ───────────────────────────────────────────────────
+function renderPapeterieStockTable(){
+  const el=document.getElementById('pap-stock-table-body');if(!el)return;
+  let rows='';
+  // Papier
+  rows+='<tr><td colspan="6" style="background:#f0f4ff;font-weight:700;color:#1a3a5c;font-size:11px;padding:6px 8px;letter-spacing:.04em">📄 PAPIER</td></tr>';
+  PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').forEach(a=>{
+    const s=getPapeterieStock(a.id);
+    const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+    const rc=isEmpty?'stock-zero':isLow?'stock-low':'';
+    rows+=`<tr class="${rc}"><td style="padding-left:16px">${a.icon} <strong>${a.designation}</strong></td><td><span class="badge blue">Papier</span></td><td style="font-size:11px;color:#666">${a.contenu}</td><td style="text-align:center"><input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)"></td><td style="text-align:center"><span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span></td></tr>`;
+  });
+  // Enveloppes par famille
+  ENV_FAMILLES.forEach(fam=>{
+    rows+=`<tr><td colspan="6" style="background:#f5f0ff;font-weight:700;color:#6b21a8;font-size:11px;padding:6px 8px;letter-spacing:.04em">✉️ ENVELOPPES — ${fam.toUpperCase()}</td></tr>`;
+    PAPETERIE_ARTICLES.filter(a=>a.famille===fam).forEach(a=>{
+      const s=getPapeterieStock(a.id);
+      const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+      const rc=isEmpty?'stock-zero':isLow?'stock-low':'';
+      rows+=`<tr class="${rc}"><td style="padding-left:16px">${a.icon} <strong>${a.format}</strong> ${a.fenetre?'<span class="badge blue" style="font-size:9px">avec fenêtre</span>':'<span class="badge gray" style="font-size:9px">sans fenêtre</span>'}</td><td><span class="badge purple">${fam}</span></td><td style="font-size:11px;color:#666">${a.contenu}</td><td style="text-align:center"><input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)"></td><td style="text-align:center"><span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span></td></tr>`;
+    });
+  });
+  el.innerHTML=rows;
+}
+
+function updatePapStockManuel(id,val){
+  const s=getPapeterieStock(id);
+  s.stock_cartons=Math.max(0,parseInt(val)||0);
+  papeterieStockCache[id]=s;
+  clearTimeout(_papStockTimer);
+  _papStockTimer=setTimeout(()=>{savePapeterieStockToGH().then(()=>{renderPapeterieStats();updateAlerteBadge();});},800);
+}
+
+function updatePapSeuil(id,val){
+  const s=getPapeterieStock(id);
+  s.seuil=Math.max(0,parseInt(val)||0);
+  papeterieStockCache[id]=s;
+  clearTimeout(_papSeuilTimer);
+  _papSeuilTimer=setTimeout(()=>{savePapeterieStockToGH().then(()=>{renderPapeterieStats();updateAlerteBadge();});},800);
+}
+
+// ── Lignes demande ────────────────────────────────────────────────────────────
+function addPapeterieLine(){
+  papeterieLines.push({id:Date.now()+'p',articleId:'',qte:1});
+  renderPapeterieLines();
+}
+function removePapeterieLine(id){papeterieLines=papeterieLines.filter(x=>x.id!==id);renderPapeterieLines();}
+function updatePapeterieLine(id,field,val){
+  const l=papeterieLines.find(x=>x.id===id);if(!l)return;
+  l[field]=field==='qte'?parseInt(val)||1:val;
+  renderPapeterieLines();
+}
+
+function renderPapeterieLines(){
+  const c=document.getElementById('papeterie-lines-container');if(!c)return;
+  if(!papeterieLines.length){c.innerHTML='<div class="empty">Aucun article ajouté — cliquez sur "+ Ajouter un article"</div>';return}
+  c.innerHTML=papeterieLines.map(line=>{
+    const s=line.articleId?getPapeterieStock(line.articleId):null;
+    const insuffisant=s&&line.qte>s.stock_cartons;
+    const stockBadge=s?`<span class="badge ${s.stock_cartons===0?'red':s.stock_cartons<=s.seuil?'yellow':'green'}" style="margin-left:6px">Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''}</span>`:'';
+    return `<div class="pap-line ${insuffisant?'insuffisant':''}">
+      <div>
+        <label>Article ${stockBadge}</label>
+        <select onchange="updatePapeterieLine('${line.id}','articleId',this.value)">
+          <option value="">— Choisir —</option>
+          <optgroup label="📄 Papier">${PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation} — ${a.contenu}</option>`).join('')}</optgroup>
+          ${ENV_FAMILLES.map(fam=>`<optgroup label="✉️ Enveloppes — ${fam}">${PAPETERIE_ARTICLES.filter(a=>a.famille===fam).map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.format} ${a.fenetre?'avec fenêtre':'sans fenêtre'} — ${a.contenu}</option>`).join('')}</optgroup>`).join('')}
+        </select>
+        ${insuffisant?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Stock insuffisant — dispo : ${s.stock_cartons} carton${s.stock_cartons>1?'s':''}</div>`:''}
+      </div>
+      <div>
+        <label>Nb de cartons</label>
+        <select onchange="updatePapeterieLine('${line.id}','qte',this.value)" style="width:120px">
+          <option value="1" ${line.qte===1?'selected':''}>1 carton</option>
+          <option value="2" ${line.qte===2?'selected':''}>2 cartons</option>
+        </select>
+      </div>
+      <div><button class="btn danger small" onclick="removePapeterieLine('${line.id}')" style="margin-top:18px">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Validation demande ────────────────────────────────────────────────────────
+async function validerDemandePapeterie(){
+  const nom=document.getElementById('pap-nom').value.trim();
+  const prenom=document.getElementById('pap-prenom').value.trim();
+  const service=document.getElementById('pap-service').value.trim();
+  const site=document.getElementById('pap-site').value;
+  const date=document.getElementById('pap-date').value||new Date().toISOString().slice(0,10);
+
+  if(!nom){showMsg('pap-msg','Saisissez le nom du demandeur.','err');return}
+  if(!papeterieLines.length){showMsg('pap-msg','Aucun article sélectionné.','err');return}
+  if(papeterieLines.find(l=>!l.articleId)){showMsg('pap-msg','Sélectionnez un article pour chaque ligne.','err');return}
+
+  const err=papeterieLines.filter(l=>{const s=getPapeterieStock(l.articleId);return s.stock_cartons<l.qte;});
+  if(err.length){
+    showMsg('pap-msg',err.map(l=>{const a=PAPETERIE_ARTICLES.find(x=>x.id===l.articleId);const s=getPapeterieStock(l.articleId);return`Stock insuffisant : ${a?a.designation:l.articleId} (dispo: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''})`;}).join('<br>'),'err');
+    return;
+  }
+
+  const btn=document.getElementById('btn-pap-valider');
+  btn.disabled=true;btn.textContent='Enregistrement…';
+  showMsg('pap-msg','Enregistrement en cours…','info');
+
+  try{
+    // Lire stock frais pour éviter les conflits
+    const freshStock=await ghRead('data/papeterie_stock.json')||{};
+    PAPETERIE_ARTICLES.forEach(a=>{if(freshStock[a.id])papeterieStockCache[a.id]=freshStock[a.id];});
+
+    for(const line of papeterieLines){
+      const s=getPapeterieStock(line.articleId);
+      s.stock_cartons=Math.max(0,s.stock_cartons-line.qte);
+      papeterieStockCache[line.articleId]=s;
+    }
+    await savePapeterieStockToGH();
+
+    // Historique
+    const freshMov=await ghRead('data/papeterie_mouvements.json')||[];
+    for(const line of papeterieLines){
+      const art=PAPETERIE_ARTICLES.find(x=>x.id===line.articleId);
+      freshMov.unshift({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2),
+        date,type:'sortie',nom,prenom,service,site,
+        articleId:line.articleId,
+        designation:art?art.designation:line.articleId,
+        qte_cartons:line.qte,
+        createdAt:new Date().toISOString()
+      });
+    }
+    papeterieMovCache=freshMov.slice(0,500);
+    await ghWrite('data/papeterie_mouvements.json',papeterieMovCache);
+
+    renderPapeterieStats();updateAlerteBadge();
+    showMsg('pap-msg',`✓ Demande validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
+    papeterieLines=[];renderPapeterieLines();
+    document.getElementById('pap-nom').value='';
+    document.getElementById('pap-prenom').value='';
+    document.getElementById('pap-service').value='';
+    document.getElementById('pap-site').value='';
+  }catch(e){showMsg('pap-msg','Erreur : '+e.message,'err');}
+  btn.disabled=false;btn.textContent='✓ Valider et déduire du stock';
+}
+
+function resetDemandePapeterie(){
+  ['pap-nom','pap-prenom','pap-service'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pap-site').value='';
+  document.getElementById('pap-date').value=new Date().toISOString().slice(0,10);
+  papeterieLines=[];renderPapeterieLines();
+  document.getElementById('pap-msg').innerHTML='';
+}
+
+// ── Lignes réception ──────────────────────────────────────────────────────────
+function addPapRecLine(){
+  papRecLines.push({id:Date.now()+'pr',articleId:'',qte:1});
+  renderPapRecLines();
+}
+function removePapRecLine(id){papRecLines=papRecLines.filter(x=>x.id!==id);renderPapRecLines();}
+function updatePapRecLine(id,field,val){
+  const l=papRecLines.find(x=>x.id===id);if(!l)return;
+  l[field]=field==='qte'?parseInt(val)||1:val;
+  renderPapRecLines();
+}
+
+function renderPapRecLines(){
+  const c=document.getElementById('pap-rec-lines');if(!c)return;
+  if(!papRecLines.length){c.innerHTML='<div class="empty">Aucun article — cliquez sur "+ Ajouter"</div>';return}
+  c.innerHTML=papRecLines.map(line=>{
+    const s=line.articleId?getPapeterieStock(line.articleId):null;
+    const stockBadge=s?`<span class="badge green" style="margin-left:6px">Stock actuel: ${s.stock_cartons}</span>`:'';
+    return `<div class="pap-line">
+      <div>
+        <label>Article ${stockBadge}</label>
+        <select onchange="updatePapRecLine('${line.id}','articleId',this.value)">
+          <option value="">— Choisir —</option>
+          <optgroup label="📄 Papier">${PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation}</option>`).join('')}</optgroup>
+          ${ENV_FAMILLES.map(fam=>`<optgroup label="✉️ Enveloppes — ${fam}">${PAPETERIE_ARTICLES.filter(a=>a.famille===fam).map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.format} ${a.fenetre?'avec fenêtre':'sans fenêtre'}</option>`).join('')}</optgroup>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label>Nb cartons reçus</label>
+        <input type="number" min="1" value="${line.qte}" style="width:90px" onchange="updatePapRecLine('${line.id}','qte',this.value)">
+      </div>
+      <div><button class="btn danger small" onclick="removePapRecLine('${line.id}')" style="margin-top:18px">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Validation réception ──────────────────────────────────────────────────────
+async function validerReceptionPapeterie(){
+  if(!papRecLines.length){showMsg('pap-rec-msg','Aucun article ajouté.','err');return}
+  if(papRecLines.find(l=>!l.articleId)){showMsg('pap-rec-msg','Sélectionnez un article pour chaque ligne.','err');return}
+
+  const btn=document.getElementById('btn-pap-rec-valider');
+  btn.disabled=true;btn.textContent='Enregistrement…';
+  showMsg('pap-rec-msg','Mise à jour du stock en cours…','info');
+
+  try{
+    const freshStock=await ghRead('data/papeterie_stock.json')||{};
+    PAPETERIE_ARTICLES.forEach(a=>{if(freshStock[a.id])papeterieStockCache[a.id]=freshStock[a.id];});
+
+    for(const line of papRecLines){
+      const s=getPapeterieStock(line.articleId);
+      s.stock_cartons+=line.qte;
+      papeterieStockCache[line.articleId]=s;
+    }
+    await savePapeterieStockToGH();
+
+    const freshMov=await ghRead('data/papeterie_mouvements.json')||[];
+    const date=new Date().toISOString().slice(0,10);
+    for(const line of papRecLines){
+      const art=PAPETERIE_ARTICLES.find(x=>x.id===line.articleId);
+      freshMov.unshift({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2),
+        date,type:'entree',nom:'Réception',prenom:'',site:'',
+        articleId:line.articleId,
+        designation:art?art.designation:line.articleId,
+        qte_cartons:line.qte,
+        createdAt:new Date().toISOString()
+      });
+    }
+    papeterieMovCache=freshMov.slice(0,500);
+    await ghWrite('data/papeterie_mouvements.json',papeterieMovCache);
+
+    renderPapeterieStats();renderPapeterieStockTable();updateAlerteBadge();
+    showMsg('pap-rec-msg',`✓ ${papRecLines.length} article(s) crédité(s) au stock.`,'ok');
+    papRecLines=[];renderPapRecLines();
+  }catch(e){showMsg('pap-rec-msg','Erreur : '+e.message,'err');}
+  btn.disabled=false;btn.textContent='✓ Valider la réception';
+}
+
+// ── Historique papeterie ──────────────────────────────────────────────────────
+function renderPapeterieHisto(){
+  const q=(document.getElementById('papeterie-histo-search')?.value||'').toLowerCase();
+  const rows=papeterieMovCache.filter(m=>!q||JSON.stringify(m).toLowerCase().includes(q));
+  const el=document.getElementById('papeterie-histo-body');if(!el)return;
+  el.innerHTML=rows.length
+    ?rows.map(m=>`<tr>
+        <td>${m.date||'—'}</td>
+        <td><span class="badge ${m.type==='sortie'?'blue':'green'}">${m.type==='sortie'?'Demande':'Réception'}</span></td>
+        <td>${[m.prenom,m.nom].filter(Boolean).join(' ')||'—'}</td>
+        <td>${m.service||'—'}</td>
+        <td>${m.site||'—'}</td>
+        <td>${m.designation||'—'}</td>
+        <td style="text-align:center;font-weight:600;${m.type==='sortie'?'color:#c05621':'color:#276749'}">
+          ${m.type==='sortie'?'−':'+'}${m.qte_cartons} carton${m.qte_cartons>1?'s':''}
+        </td>
+      </tr>`).join('')
+    :'<tr><td colspan="7" class="empty">Aucun mouvement papeterie</td></tr>';
+}
+
+// ── Alertes papeterie ─────────────────────────────────────────────────────────
+function getPapeterieAlertes(){
+  return PAPETERIE_ARTICLES.filter(a=>{const s=getPapeterieStock(a.id);return s.stock_cartons<=s.seuil;});
+}
+
+function renderPapeterieAlertes(){
+  const alertes=getPapeterieAlertes();
+  const el=document.getElementById('pap-alertes-list');if(!el)return;
+  el.innerHTML=alertes.length
+    ?alertes.map(a=>{
+        const s=getPapeterieStock(a.id);
+        return `<div class="alert-item" style="background:${s.stock_cartons===0?'#fff5f5':'#fff8f0'};border-color:${s.stock_cartons===0?'#fc8181':'#fbd38d'}">
+          <div style="font-size:16px">${s.stock_cartons===0?'🔴':'🟡'}</div>
+          <div style="flex:1">
+            <div style="font-weight:600">${a.icon} ${a.designation}</div>
+            <div style="font-size:11px;color:#666">${a.contenu}</div>
+          </div>
+          <span class="badge ${s.stock_cartons===0?'red':'yellow'}">
+            ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} / Seuil : ${s.seuil}
+          </span>
+        </div>`;
+      }).join('')
+    :'<div class="empty">✓ Aucune alerte — stock papeterie au-dessus des seuils.</div>';
+}
+// ═══════════════════════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MODULE ATTENTES ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let attentesCache = [];
+
+
+// Stub updateAlerteBadge (pas de badge dans cette page)
+function updateAlerteBadge(){}
+
+// ─── SYNC STATUS ─────────────────────────────────────────────────────────────
+function setSyncStatus(state, label){
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if(dot) dot.style.background = state==='ok'?'#48bb78':state==='syncing'?'#ed8936':'#e53e3e';
+  if(lbl) lbl.textContent = label;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function initPapeterie(){
+  const loginOverlay = document.getElementById('login-overlay');
+  if(!localStorage.getItem('domo_gh_token')){
+    loginOverlay.style.display = 'flex'; return;
+  }
+  const raw = sessionStorage.getItem('gestock_user');
+  if(!raw){ loginOverlay.style.display = 'flex'; return; }
+  loginOverlay.style.display = 'none';
+  const u = JSON.parse(raw);
+  const badge = document.getElementById('user-badge');
+  if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
+
+  setSyncStatus('syncing','Chargement papeterie…');
+  try{
+    await loadPapeterieStock();
+    await loadPapeterieMovements();
+    setSyncStatus('ok','Base synchronisée');
+    renderPapeterieStats();
+    renderPapeterieAlertes();
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    console.error(e);
+  }
+}
+
+async function doLogin(){
+  const login = document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd   = document.getElementById('login-pwd').value;
+  const errEl = document.getElementById('login-error');
+  if(!login||!pwd){errEl.textContent='Veuillez saisir votre identifiant et mot de passe.';return;}
+  errEl.textContent='';
+  try{
+    await loadUsers();
+    const user = usersCache.find(u=>u.login===login);
+    if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';return;}
+    const hash = await sha256(pwd);
+    if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
+    currentUser = {login:user.login,nom:user.nom,role:user.role};
+    sessionStorage.setItem('gestock_user', JSON.stringify(currentUser));
+    await initPapeterie();
+  }catch(e){
+    errEl.textContent='Erreur connexion : '+e.message;
+  }
+}
+
+initPapeterie();
+</script>
+</body>
+</html>

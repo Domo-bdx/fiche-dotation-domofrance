@@ -267,3 +267,4 @@ function deconnexion(){
   document.getElementById('login-user').value='';
   document.getElementById('login-pwd').value='';
   document.getElementById('login-error').textContent='';
+}

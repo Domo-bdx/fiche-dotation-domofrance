@@ -500,7 +500,7 @@ let _dbCharts = {};
 function destroyChart(id) {
 
 // ─── INITIALISATION ──────────────────────────────────────────────────────────
-async function initApp(){
+async function initEpi(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
   setSyncStatus('syncing','Connexion…');
   if(!localStorage.getItem('domo_gh_token')){
@@ -552,5 +552,4 @@ async function initApp(){
     setSyncStatus('error','Erreur: '+e.message);console.error(e);
   }
 }
-initApp();
-</script>
+// initApp() appelé par chaque page individuellement

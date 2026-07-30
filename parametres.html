@@ -355,6 +355,41 @@ Pôle Facilities — Domofrance</textarea>
     <div class="btn-row" style="margin-top:10px">
       <button class="btn success" onclick="saveConfig()">Sauvegarder</button>
       <button class="btn" onclick="testerMail()">Tester — ouvrir Outlook</button>
+  <div class="card" id="section-gestion-comptes" style="display:none">
+    <h3>👥 Gestion des comptes utilisateurs</h3>
+    <div id="users-list"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn success" onclick="openNewUserForm()">+ Ajouter un utilisateur</button>
+    </div>
+    <div id="new-user-form" style="display:none;margin-top:16px;background:#f4f8fc;border-radius:8px;padding:16px">
+      <h4 style="color:#1a3a5c;margin-bottom:12px">Nouvel utilisateur</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><label>Login</label><input type="text" id="nu-login" placeholder="ex: jmartin"></div>
+        <div><label>Nom complet</label><input type="text" id="nu-nom" placeholder="Jean MARTIN"></div>
+        <div><label>Rôle</label><select id="nu-role"><option value="gestionnaire">Gestionnaire</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div style="margin-top:10px"><label>Mot de passe initial</label><input type="text" id="nu-pwd" value="Domofrance2026!"></div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn success" onclick="saveNewUser()">Créer</button>
+        <button class="btn" onclick="document.getElementById('new-user-form').style.display='none'">Annuler</button>
+      </div>
+      <div id="nu-msg"></div>
+    </div>
+  </div>
+
+  <!-- Mon compte -->
+  <div class="card" id="section-mon-compte">
+    <h3>🔑 Mon compte</h3>
+    <div id="mon-compte-info" style="margin-bottom:12px"></div>
+    <label>Nouveau mot de passe</label>
+    <input type="password" id="mc-new" placeholder="8 caractères minimum" style="max-width:300px">
+    <label style="margin-top:10px;display:block">Confirmer</label>
+    <input type="password" id="mc-confirm" placeholder="Répétez" style="max-width:300px">
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn success" onclick="changerMonMotDePasse()">Modifier mon mot de passe</button>
+    </div>
+    <div id="mc-msg"></div>
+  </div>
 </div>
 
 <script src="common.js"></script>

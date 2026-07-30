@@ -781,6 +781,7 @@ async function initParametres(){
   if(!raw){ loginOverlay.style.display='flex'; return; }
   loginOverlay.style.display = 'none';
   const u = JSON.parse(raw);
+  currentUser = u; // Mettre à jour la variable globale
   const badge = document.getElementById('user-badge');
   if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
   setSyncStatus('ok','Connecté');

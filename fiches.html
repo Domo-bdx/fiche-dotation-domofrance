@@ -313,7 +313,7 @@ tr:hover td{background:#f8f9fb}
 
 <div style="padding:16px 20px">
   <!-- Panneau Fiches -->
-  <div id="local-tab-fiches" style="display:block!important"><div id="tab-fiches" class="panel" style="display:block">
+<div id="local-tab-fiches" style="display:block">
   <div class="card">
     <h3>Régénérer une fiche de dotation</h3>
     <p style="font-size:12px;color:#666;margin-bottom:14px">Retrouvez une dotation passée et régénérez la fiche regroupant tous les articles attribués lors de cette session.</p>
@@ -340,7 +340,9 @@ tr:hover td{background:#f8f9fb}
 
 <div id="tab-historique" class="panel" style="display:block"></div>
   <!-- Panneau Historique -->
-  <div id="local-tab-historique" style="display:none"><div id="tab-historique" class="panel" style="display:block">
+</div>
+
+<div id="local-tab-historique" style="display:none"><div id="tab-historique" class="panel" style="display:block">
   <div class="card">
     <h3>Historique des mouvements</h3>
     <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderHistorique()" id="histo-search"></div>
@@ -461,7 +463,9 @@ tr:hover td{background:#f8f9fb}
 <!-- ALERTES -->
 <div id="tab-alertes" class="panel"></div>
   <!-- Panneau Alertes -->
-  <div id="local-tab-alertes" style="display:none"><div style="display:block"><div id="tab-alertes" class="panel">
+</div></div>
+
+<div id="local-tab-alertes" style="display:none">
 
   <!-- ATTENTES -->
   <div class="card" id="card-attentes">
@@ -483,7 +487,7 @@ tr:hover td{background:#f8f9fb}
   <div class="card" id="card-pap-alertes">
     <h3>📄 Papeterie — stock bas</h3>
     <div id="pap-alertes-list"><div class="empty">✓ Aucune alerte papeterie</div></div>
-  </div>
+</div>
 
   <div class="card" id="card-mail-alerte">
     <h3>📧 Récapitulatif commande — EPI &amp; Papeterie</h3>

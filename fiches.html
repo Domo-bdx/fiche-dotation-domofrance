@@ -313,7 +313,7 @@ tr:hover td{background:#f8f9fb}
 
 <div style="padding:16px 20px">
   <!-- Panneau Fiches -->
-  <div id="local-tab-fiches" style="display:block"><div id="tab-fiches" class="panel" style="display:block">
+  <div id="local-tab-fiches" style="display:block!important"><div id="tab-fiches" class="panel" style="display:block">
   <div class="card">
     <h3>Régénérer une fiche de dotation</h3>
     <p style="font-size:12px;color:#666;margin-bottom:14px">Retrouvez une dotation passée et régénérez la fiche regroupant tous les articles attribués lors de cette session.</p>
@@ -616,7 +616,7 @@ function genererMailRuptures(){ }
 // ─── ONGLETS LOCAUX ───────────────────────────────────────────────────────────
 function switchLocalTab(tab){
   ['fiches','historique','alertes'].forEach(t => {
-    document.getElementById('local-tab-'+t).style.display = t===tab ? '' : 'none';
+    document.getElementById('local-tab-'+t).style.display = t===tab ? 'block' : 'none';
     const btn = document.getElementById('btn-tab-'+t);
     if(btn){
       btn.style.borderBottomColor = t===tab ? '#1a3a5c' : 'transparent';

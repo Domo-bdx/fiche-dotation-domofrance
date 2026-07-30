@@ -675,6 +675,11 @@ function switchLocalTab(tab){
   if(tab==='dashboard'){ renderDashboard(); if(document.getElementById('stock-stats')) renderStockStats(); }
 }
 
+// ─── DESTROY CHART HELPER ────────────────────────────────────────────────────
+function destroyChart(id){
+  if(_dbCharts[id]){ _dbCharts[id].destroy(); delete _dbCharts[id]; }
+}
+
 // ─── ALERTES & STOCK STATS ───────────────────────────────────────────────────
 function renderStockStats(){
   let total=0,bas=0,rupture=0,att=0;

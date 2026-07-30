@@ -822,6 +822,8 @@ async function initParametres(){
   setSyncStatus('ok','Connecté');
   if(u.role==='admin'){
     await loadUsers();
+    const sg = document.getElementById('section-gestion-comptes');
+    if(sg) sg.style.display = 'block';
     renderUsersList();
   }
 }

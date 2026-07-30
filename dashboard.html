@@ -672,7 +672,7 @@ function switchLocalTab(tab){
   });
   if(tab==='alertes')   renderAlertes();
   if(tab==='catalogue') renderCatalogue();
-  if(tab==='dashboard') renderDashboard();
+  if(tab==='dashboard'){ renderDashboard(); if(document.getElementById('stock-stats')) renderStockStats(); }
 }
 
 // ─── ALERTES & STOCK STATS ───────────────────────────────────────────────────
@@ -1160,7 +1160,7 @@ async function initDashboard(){
     });
     setSyncStatus('ok','Base synchronisée');
     renderAlertes();
-    renderStockStats();
+    // renderStockStats() appelé quand on ouvre l'onglet Dashboard
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);
     console.error(e);

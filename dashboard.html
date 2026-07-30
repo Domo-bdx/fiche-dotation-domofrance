@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — GESTOCK</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;background:#f4f5f7;color:#222}
+.header{background:#1a3a5c;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
+.header h1{font-size:16px;font-weight:600}
+.sync-indicator{margin-left:auto;font-size:11px;opacity:.8;display:flex;align-items:center;gap:6px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4ade80}
+.sync-dot.syncing{background:#fbbf24;animation:pulse 1s infinite}
+.sync-dot.error{background:#f87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav{background:#fff;border-bottom:2px solid #1a3a5c;display:flex;gap:0;flex-wrap:wrap}
+.nav button{padding:10px 16px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#555;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.nav button.active{color:#1a3a5c;border-bottom-color:#1a3a5c}
+.nav button.alert-badge::after{content:attr(data-count);background:#e53e3e;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:middle}
+.content{padding:16px 20px;max-width:1200px}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border:1px solid #dde;border-radius:6px;padding:14px;margin-bottom:14px}
+.card h3{font-size:12px;font-weight:700;color:#1a3a5c;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:10px;text-align:center}
+.stat-n{font-size:24px;font-weight:700;color:#1a3a5c;line-height:1.1}
+.stat-n.warn{color:#c05621}.stat-n.ok{color:#276749}
+.stat-l{font-size:10px;color:#666;margin-top:2px}
+label{font-size:11px;font-weight:600;color:#444;display:block;margin-bottom:3px}
+input,select,textarea{width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:12px;background:#fff;color:#222}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a3a5c}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.btn{padding:7px 14px;border-radius:4px;border:1px solid #ccc;cursor:pointer;font-size:12px;font-weight:600;background:#fff;color:#222;transition:all .12s}
+.btn:hover{background:#f0f0f0}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.btn.primary:hover{background:#2a4f7a}
+.btn.success{background:#276749;color:#fff;border-color:#276749}
+.btn.danger{background:#c53030;color:#fff;border-color:#c53030}
+.btn.small{padding:4px 10px;font-size:11px}
+.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#f0f2f5;text-align:left;padding:7px 8px;font-size:10px;font-weight:700;color:#555;white-space:nowrap;border-bottom:1px solid #dde;text-transform:uppercase}
+td{padding:6px 8px;border-bottom:1px solid #eef;vertical-align:middle}
+tr:hover td{background:#f8f9fb}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge.green{background:#c6f6d5;color:#276749}.badge.red{background:#fed7d7;color:#c53030}
+.badge.yellow{background:#fef3c7;color:#92400e}.badge.blue{background:#dbeafe;color:#1e40af}
+.badge.gray{background:#e2e8f0;color:#4a5568}.badge.purple{background:#e9d8fd;color:#6b21a8}
+.alert-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff8f0;border:1px solid #fbd38d;border-radius:5px;margin-bottom:6px}
+.cat-thumb{width:42px;height:42px;object-fit:contain;border:1px solid #eef;border-radius:4px;background:#fff;cursor:zoom-in;display:block}
+.cat-thumb-empty{display:inline-block;width:42px;height:42px;text-align:center;line-height:42px;color:#ccc;font-size:12px}
+.cat-img-overlay{position:fixed;inset:0;background:rgba(20,20,30,.75);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;padding:20px}
+.cat-img-modal{background:#fff;border-radius:8px;padding:16px;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:default}
+.cat-img-modal img{max-width:min(70vw,500px);max-height:60vh;object-fit:contain}
+.cat-img-caption{font-size:13px;font-weight:600;color:#333;text-align:center}
+.search-bar{margin-bottom:10px}
+.search-bar input{max-width:320px}
+.tbl-wrap{overflow-x:auto}
+.epi-line{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#f8f9fb;border-radius:5px;border:1px solid #eef}
+.empty{color:#888;font-size:12px;text-align:center;padding:24px}
+.loading{color:#888;font-size:12px;text-align:center;padding:24px;display:flex;align-items:center;justify-content:center;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid #dde;border-top-color:#1a3a5c;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bon-preview{background:#fff;border:1px solid #dde;border-radius:6px;padding:20px;max-width:700px}
+.bon-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1a3a5c}
+.bon-title{font-size:16px;font-weight:700;color:#1a3a5c}
+.bon-ref{font-size:10px;color:#888;margin-top:4px}
+.bon-table{width:100%;margin:12px 0;font-size:11px}
+.bon-table th{background:#1a3a5c;color:#fff;padding:6px 8px;text-align:left}
+.bon-table td{padding:6px 8px;border-bottom:1px solid #eef}
+.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px}
+.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px;min-height:80px}
+.sig-box .sig-label{font-size:10px;color:#888;margin-bottom:4px}
+.cat-filter{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.cat-btn{padding:4px 12px;border-radius:20px;border:1px solid #ccc;cursor:pointer;font-size:11px;background:#fff;transition:all .12s}
+.cat-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.stock-low{background:#fff8f0!important}.stock-zero{background:#fff0f0!important}
+.pe-alert{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;margin-bottom:8px}
+.pe-alert.urgent{background:#fff5f5;border-color:#fc8181}
+.mail-preview{background:#f8f9fb;border:1px solid #dde;border-radius:5px;padding:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;max-height:280px;overflow-y:auto;color:#333;line-height:1.6}
+.banner-alerte{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px}
+.banner-alerte.papeterie{background:#f0f7ff;border-color:#90cdf4}
+.settings-section{border-top:1px solid #eef;margin-top:12px;padding-top:12px}
+.msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
+.msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
+@media print{.header,.nav,.no-print{display:none!important}body{background:#fff}}
+/* Overlay bon de dotation */
+#bon-overlay{display:none;position:fixed;inset:0;background:#0005;z-index:9999;overflow-y:auto;padding:24px}
+#bon-overlay.open{display:flex;align-items:flex-start;justify-content:center}
+#bon-overlay-inner{background:#fff;border-radius:8px;box-shadow:0 8px 40px #0004;padding:28px 36px;max-width:860px;width:100%;position:relative}
+.bon-print-actions{display:flex;gap:8px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee}
+/* ── Bon de dotation redesign ── */
+.bon-section-title{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;padding-bottom:4px;border-bottom:2px solid #e8003d}
+.bon-data-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
+.bon-data-table th{background:#1a3a5c;color:#fff;padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.bon-data-table td{padding:6px 10px;border-bottom:1px solid #f0f2f5}
+.bon-data-table tr:last-child td{border-bottom:none}
+.bon-data-table tr:nth-child(even) td{background:#fafbfc}
+.bon-attestation{background:#fff8f0;border-left:3px solid #c05621;border-radius:3px;padding:8px 12px;font-size:10px;color:#444;line-height:1.6;margin-top:6px}
+.bon-note-knox{background:#eef2ff;border-left:3px solid #1a3a5c;border-radius:3px;padding:7px 12px;font-size:10px;color:#444;margin-top:6px}
+.equip-section{background:#f8f9fb;border:1px solid #dde;border-radius:6px;padding:12px;margin-bottom:0}
+.equip-section h4{font-size:11px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.tel-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.tab-line{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.rec-line{display:grid;grid-template-columns:2fr 1fr 70px auto;gap:8px;align-items:end;margin-bottom:8px;padding:8px;background:#fff;border-radius:5px;border:1px solid #eef}
+.mob-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+/* ── PAPETERIE ── */
+.pap-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
+.pap-stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:12px;text-align:center;transition:border-color .2s}
+.pap-stat.alert-low{border-color:#fbd38d;background:#fffbf0}
+.pap-stat.alert-empty{border-color:#fc8181;background:#fff5f5}
+.pap-stat-n{font-size:28px;font-weight:700;color:#1a3a5c;line-height:1.1}
+.pap-stat-n.warn{color:#c05621}
+.pap-stat-l{font-size:11px;font-weight:600;color:#333;margin-top:4px}
+.pap-stat-sub{font-size:10px;color:#888;margin-top:2px}
+.pap-line{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;padding:10px;background:#f8f9fb;border-radius:5px;border:1px solid #eef}
+.pap-line.insuffisant{border-color:#fc8181;background:#fff5f5}
+
+/* ─── LOGIN ──────────────────────────────────────────────────────────── */
+#login-overlay{position:fixed;inset:0;background:#1a3a5c;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column}
+#login-box{background:#fff;border-radius:12px;padding:40px 48px;width:380px;box-shadow:0 8px 40px rgba(0,0,0,.35)}
+#login-box h2{color:#1a3a5c;font-size:22px;font-weight:700;margin-bottom:4px;text-align:center}
+.login-sub{color:#888;font-size:13px;text-align:center;margin-bottom:28px}
+#login-box label{display:block;font-size:12px;color:#555;font-weight:600;margin-bottom:4px;margin-top:14px}
+#login-box input{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;outline:none}
+#login-box input:focus{border-color:#1a3a5c}
+#login-btn{width:100%;margin-top:24px;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer}
+#login-btn:hover{background:#c0392b}
+#login-error{color:#c0392b;font-size:12px;text-align:center;margin-top:10px;min-height:16px}
+.chgpwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000}
+.chgpwd-box{background:#fff;border-radius:10px;padding:32px 40px;width:360px;box-shadow:0 4px 30px rgba(0,0,0,.2)}
+.chgpwd-box h3{color:#1a3a5c;font-size:18px;font-weight:700;margin-bottom:8px}
+.chgpwd-box p{color:#666;font-size:13px;margin-bottom:20px}
+.chgpwd-box label{display:block;font-size:12px;color:#555;font-weight:600;margin-bottom:4px;margin-top:12px}
+.chgpwd-box input{width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ddd;border-radius:6px;font-size:13px}
+#chgpwd-error{color:#c0392b;font-size:12px;margin-top:8px;min-height:14px}
+#user-badge{display:flex;align-items:center;gap:8px;margin-left:auto;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 12px 4px 8px;cursor:pointer}
+#user-badge:hover{background:rgba(255,255,255,.22)}
+#user-avatar{width:28px;height:28px;border-radius:50%;background:#c0392b;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+#user-name{font-size:12px;color:#fff;font-weight:500}
+#user-role-badge{font-size:10px;color:rgba(255,255,255,.7);background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px}
+.user-card{background:#f8f9fb;border:1px solid #e0e7ef;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.user-card-avatar{width:36px;height:36px;border-radius:50%;background:#1a3a5c;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.user-card-info{flex:1}
+.user-card-info strong{font-size:13px;color:#1a3a5c}
+.user-card-info span{font-size:11px;color:#888;display:block}
+.user-card-actions{display:flex;gap:6px}
+.tag-admin{background:#1a3a5c;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+.tag-gest{background:#2e7d32;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+.tag-inactif{background:#aaa;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px}
+
+/* ─── DASHBOARD ─────────────────────────────────────────────────────── */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.db-kpi{background:#fff;border-radius:10px;border:1px solid #e0e7ef;padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.db-kpi-icon{font-size:22px;margin-bottom:4px}
+.db-kpi-val{font-size:28px;font-weight:700;color:#1a3a5c;line-height:1}
+.db-kpi-lbl{font-size:12px;color:#888;font-weight:500}
+.db-kpi-sub{font-size:11px;color:#c0392b;font-weight:600}
+.db-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.db-chart-card{background:#fff;border-radius:10px;border:1px solid #e0e7ef;padding:16px}
+.db-chart-card h4{font-size:13px;font-weight:600;color:#1a3a5c;margin:0 0 12px 0}
+.db-chart-card canvas{max-height:220px}
+.db-section{font-size:13px;font-weight:700;color:#1a3a5c;margin:20px 0 10px 0;padding-bottom:4px;border-bottom:2px solid #e0e7ef}
+.db-top-table{width:100%;border-collapse:collapse;font-size:12px}
+.db-top-table th{background:#1a3a5c;color:#fff;padding:6px 10px;text-align:left}
+.db-top-table td{padding:6px 10px;border-bottom:1px solid #f0f0f0}
+.db-top-table tr:nth-child(even) td{background:#f8f9fb}
+.db-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.db-charts,.db-row3{grid-template-columns:1fr}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE / TABLETTE
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Menu burger — masqué par défaut, affiché sous 860px */
+#nav-burger{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;margin-left:auto}
+
+@media(max-width:860px){
+  /* ── Header ── */
+  .header{padding:10px 12px;flex-wrap:wrap;gap:8px}
+  .header h1{font-size:14px}
+  .header img{height:34px!important}
+  #nav-burger{display:block}
+  .sync-indicator{display:none}
+  #user-badge{margin-left:0;order:2}
+  #user-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── Nav devient un menu déroulant plein écran ── */
+  .nav{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;
+       background:#1a3a5c;z-index:2000;padding:60px 0 20px;overflow-y:auto;gap:0}
+  .nav.nav-open{display:flex}
+  .nav button{color:#fff;font-size:15px;text-align:left;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.12);
+              border-bottom-width:1px!important;margin-bottom:0;width:100%}
+  .nav button.active{color:#fff;background:rgba(255,255,255,.12);border-bottom-color:rgba(255,255,255,.12)}
+  #nav-close{display:block;position:fixed;top:14px;right:16px;z-index:2001;background:none;border:none;color:#fff;font-size:26px;cursor:pointer}
+
+  /* ── Contenu général ── */
+  .content{padding:10px 10px 70px}
+  .card{padding:12px}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .epi-line,.tel-line,.tab-line,.rec-line,.pap-line{grid-template-columns:1fr}
+  .mob-stats{grid-template-columns:repeat(2,1fr)}
+  .pap-stats{grid-template-columns:repeat(2,1fr)}
+  .sig-zone{grid-template-columns:1fr}
+  .ig{grid-template-columns:1fr}
+  .db-grid{grid-template-columns:repeat(2,1fr)}
+  input,select,textarea,.btn{font-size:14px}
+  .btn{min-height:40px}
+  .btn.small{min-height:32px}
+  #login-box{width:90vw;padding:32px 24px}
+  .chgpwd-box{width:90vw;padding:24px 20px}
+
+  /* ── Tableaux → cartes empilées ── */
+  .tbl-wrap,.content table{overflow-x:visible}
+  table.resp-cards,table.resp-cards thead,table.resp-cards tbody,
+  table.resp-cards th,table.resp-cards td,table.resp-cards tr{display:block;width:100%}
+  table.resp-cards thead{display:none}
+  table.resp-cards tr{background:#fff;border:1px solid #dde;border-radius:6px;padding:10px 12px;margin-bottom:10px}
+  table.resp-cards tr:hover td{background:none}
+  table.resp-cards td{border-bottom:1px solid #f0f2f5;padding:7px 0;text-align:left!important;white-space:normal;word-break:break-word}
+  table.resp-cards td:last-child{border-bottom:none}
+  table.resp-cards td[data-label]::before{content:attr(data-label);display:block;font-size:9px;font-weight:700;
+       color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+}
+
+@media(max-width:480px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .mob-stats,.pap-stats,.db-grid{grid-template-columns:1fr}
+  .header h1{font-size:13px}
+  .header>div:first-child>div{display:none}
+  .cat-filter{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+}
+
+
+
+/* ── Fiches a posteriori ───────────────────────────────────────────────── */
+.fiches-search-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
+.fiches-search-bar label{font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px}
+.fiches-search-bar input{padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px;width:200px}
+.fiches-mode-toggle{display:flex;gap:0;margin-bottom:18px;position:relative;z-index:1}
+.fiches-mode-toggle button{all:unset;box-sizing:border-box;padding:8px 18px;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;display:inline-block}
+.fiches-mode-toggle button:first-child{border-radius:5px 0 0 5px}
+.fiches-mode-toggle button:last-child{border-radius:0 5px 5px 0;border-left:none}
+.fiches-mode-toggle button.active{background:#1a3a5c;color:#fff}
+.fiches-result-list{list-style:none;padding:0;margin:0}
+.fiches-result-list li{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eef;font-size:12px;gap:10px}
+.fiches-result-list li:hover{background:#f6f8fc}
+.fiches-result-list .frl-info{flex:1}
+.fiches-result-list .frl-name{font-weight:700;color:#1a3a5c}
+.fiches-result-list .frl-meta{color:#777;font-size:11px;margin-top:2px}
+.fiches-result-list .frl-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.fiches-result-list .frl-tag{background:#e8f0fe;color:#1a3a5c;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:600}
+.btn-gen-fiche{background:#1a3a5c;color:#fff;border:none;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-gen-fiche:hover{background:#16304d}
+#fiches-empty{color:#999;font-size:12px;padding:20px 0;text-align:center;display:none}
+.inter-nav{display:flex;gap:6px;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid #e0e4ea}
+.inter-nav a{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;color:#1a3a5c;background:#f0f4fa;border:1px solid #d0d8e8}
+.inter-nav a:hover{background:#1a3a5c;color:#fff}
+.inter-nav a.active{background:#1a3a5c;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:#1a2e4a;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:40px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <div style="font-size:22px;font-weight:800;color:#1a3a5c;margin-bottom:4px">GESTOCK</div>
+    <div style="font-size:11px;color:#888;margin-bottom:24px">Pôle Facilities — Domofrance</div>
+    <input id="login-user" type="text" placeholder="Identifiant" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box">
+    <input id="login-pwd" type="password" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box">
+    <button type="button" onclick="doLogin()" style="width:100%;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">Se connecter</button>
+    <div id="login-error" style="color:#c53030;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div style="background:#1a2e4a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">
+  <div>
+    <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em">Pôle Facilities</div>
+    <div style="font-size:16px;font-weight:800;color:#fff">GESTOCK</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#48bb78;display:inline-block"></div>
+    <span id="sync-label" style="font-size:11px;color:rgba(255,255,255,.7)">Connexion…</span>
+    <span id="user-badge" style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff"></span>
+    <a href="epi.html" style="font-size:11px;color:rgba(255,255,255,.6);text-decoration:none">← Retour GESTOCK</a>
+  </div>
+</div>
+
+<!-- NAV INTER-PAGES -->
+<div class="inter-nav">
+  <a href="epi.html">🏠 Dotation / EPI</a>
+  <a href="mobilite.html">📱 Stock Mobilité</a>
+  <a href="papeterie.html">📄 Papeterie</a>
+  <a href="fiches.html">📋 Fiches / Historique</a>
+  <a href="dashboard.html" class="active">📊 Dashboard</a>
+</div>
+
+<!-- ONGLETS LOCAUX -->
+<div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:0 20px;display:flex;gap:4px">
+  <button type="button" id="btn-tab-alertes" onclick="switchLocalTab('alertes')"
+    style="padding:10px 18px;border:none;border-bottom:3px solid #1a3a5c;background:none;font-size:12px;font-weight:700;color:#1a3a5c;cursor:pointer">🔔 Alertes</button>
+  <button type="button" id="btn-tab-catalogue" onclick="switchLocalTab('catalogue')"
+    style="padding:10px 18px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">📦 Catalogue</button>
+  <button type="button" id="btn-tab-dashboard" onclick="switchLocalTab('dashboard')"
+    style="padding:10px 18px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">📊 Dashboard</button>
+</div>
+
+<div style="padding:16px 20px">
+  <div id="local-tab-alertes" style="display:block"><div id="tab-alertes" class="panel" style="display:block">
+
+  <!-- ATTENTES -->
+  <div class="card" id="card-attentes">
+    <h3>⏳ EPI en attente — stock reconstitué</h3>
+    <div style="font-size:11px;color:#555;margin-bottom:10px">Articles commandés lors d'une dotation mais non disponibles au moment de l'attribution. Le stock est maintenant suffisant pour les envoyer.</div>
+    <div id="attentes-list"><div class="empty">✓ Aucun article en attente de livraison</div></div>
+  </div>
+
+  <div class="card" id="card-pe-alertes">
+    <h3>🎓 Fins de période d'essai — Pack Complément à envoyer</h3>
+    <div id="pe-alertes-list"><div class="empty">Aucune alerte période d'essai</div></div>
+  </div>
+
+  <div class="card">
+    <h3>🦺 EPI — articles en alerte stock bas</h3>
+    <div id="alertes-list"></div>
+  </div>
+
+  <div class="card" id="card-pap-alertes">
+    <h3>📄 Papeterie — stock bas</h3>
+    <div id="pap-alertes-list"><div class="empty">✓ Aucune alerte papeterie</div></div>
+  </div>
+
+  <div class="card" id="card-mail-alerte">
+    <h3>📧 Récapitulatif commande — EPI &amp; Papeterie</h3>
+    <div style="margin-bottom:8px;font-size:11px;color:#555" id="mail-to-preview"></div>
+    <div id="mail-body-preview" class="mail-preview"></div>
+    <div class="btn-row" style="margin-top:10px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px">
+          <div style="font-weight:700;color:#856404;margin-bottom:6px">🚨 Mail RUPTURES uniquement</div>
+          <div style="font-size:11px;color:#856404;margin-bottom:8px">Uniquement les articles à 0 en stock</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" style="background:#c0392b" onclick="ouvrirMailAlerte('ruptures')">📧 Ouvrir Outlook</button>
+            <button class="btn" onclick="copierMailAlerte('ruptures')">Copier texte</button>
+          </div>
+        </div>
+        <div style="background:#e8f4f8;border:1px solid #0369a1;border-radius:8px;padding:12px 16px">
+          <div style="font-weight:700;color:#1a3a5c;margin-bottom:6px">📦 Mail COMPLET (ruptures + stock bas)</div>
+          <div style="font-size:11px;color:#555;margin-bottom:8px">Tous les articles sous le seuil d'alerte</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" onclick="ouvrirMailAlerte('tout')">📧 Ouvrir Outlook</button>
+            <button class="btn" onclick="copierMailAlerte('tout')">Copier texte</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:6px">Le texte est copié automatiquement — faites <strong>Ctrl+V</strong> dans le corps du mail Outlook.</div>
+    <div id="mail-msg"></div>
+  </div>
+</div>
+
+<!-- CATALOGUE -->
+<div id="tab-catalogue" class="panel"></div>
+  <div id="local-tab-catalogue" style="display:none"><div id="tab-catalogue" class="panel" style="display:block">
+  <div class="card">
+    <h3>Catalogue EPI Domofrance — Groupe RG 2026</h3>
+    <div class="cat-filter" id="cat-filter-cat"></div>
+    <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderCatalogue()" id="cat-search"></div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>Photo</th><th>Ref</th><th>Désignation</th><th>Catégorie</th><th>Tailles</th><th>Fabricant</th><th>Prix 2025</th><th>Action</th>
+      </tr></thead><tbody id="cat-body"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PARAMETRES -->
+
+<!-- ─── PANEL DASHBOARD ────────────────────────────────────────────── -->
+<div id="tab-dashboard" class="panel"></div>
+  <div id="local-tab-dashboard" style="display:none"><div id="tab-dashboard" class="panel" style="display:block">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h2 style="margin:0;color:#1a3a5c">📊 Tableau de bord</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label style="font-size:12px;color:#666">Site :</label>
+      <select id="db-filter-site" onchange="renderDashboard()" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #ddd">
+        <option value="">Tous les sites</option>
+      </select>
+      <button class="btn" onclick="renderDashboard()" style="font-size:12px">🔄 Actualiser</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="db-grid" id="db-kpis"></div>
+
+  <!-- Graphiques ligne 1 -->
+  <div class="db-charts">
+    <div class="db-chart-card">
+      <h4>📱 Parc téléphones — Répartition par modèle</h4>
+      <canvas id="chart-tel-modeles"></canvas>
+    </div>
+    <div class="db-chart-card">
+      <h4>🪪 Badges — Répartition par type</h4>
+      <canvas id="chart-badges-types"></canvas>
+    </div>
+  </div>
+
+  <!-- Graphiques ligne 2 -->
+  <div class="db-charts">
+    <div class="db-chart-card">
+      <h4>📦 Stock EPI — Top 10 articles par valeur</h4>
+      <canvas id="chart-epi-valeur"></canvas>
+    </div>
+    <div class="db-chart-card">
+      <h4>📅 Mouvements mobilité — Par mois</h4>
+      <canvas id="chart-mouvements-mois"></canvas>
+    </div>
+  </div>
+
+  <!-- Ligne 3 : tableaux -->
+  <div class="db-row3">
+    <div class="db-chart-card">
+      <h4>🏆 Top articles EPI attribués</h4>
+      <table class="db-top-table" id="db-top-epi"></table>
+    </div>
+    <div class="db-chart-card">
+      <h4>🏢 Dotations par site</h4>
+      <table class="db-top-table" id="db-top-sites"></table>
+    </div>
+    <div class="db-chart-card">
+      <h4>⚠️ Stock EPI sous seuil</h4>
+      <table class="db-top-table" id="db-alertes-epi"></table>
+    </div>
+  </div>
+
+  <!-- Tablettes -->
+  <div class="db-charts">
+    <div class="db-chart-card">
+      <h4>📟 Tablettes — Répartition par modèle</h4>
+      <canvas id="chart-tab-modeles"></canvas>
+    </div>
+    <div class="db-chart-card">
+      <h4>📊 Mobilité — Attribution vs Disponible</h4>
+      <canvas id="chart-mob-attrib"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="tab-parametres" class="panel">
+  <div class="card">
+    <h3>🔑 Token GitHub — connexion à la base de données</h3>
+    <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.6">
+      Ce token permet à l'outil de lire et écrire les données EPI sur GitHub.<br>
+      Il est stocké <strong>uniquement dans ce navigateur</strong> — jamais envoyé ailleurs.
+    </div>
+    <div class="form-row">
+      <div><label>GitHub Personal Access Token (classic, scope: repo)</label>
+        <input type="password" id="cfg-gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end">
+        <button class="btn primary" onclick="saveGhToken()" style="height:34px">Enregistrer le token</button>
+      </div>
+    </div>
+    <div id="cfg-token-status" style="font-size:11px;margin-top:6px;color:#888"></div>
+    <div style="font-size:11px;color:#888;margin-top:6px">
+      Obtenir un token : <a href="https://github.com/settings/tokens" target="_blank" style="color:#1a3a5c">github.com/settings/tokens</a> → Tokens (classic) → scope <strong>repo</strong>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Configuration des destinataires — alertes stock</h3>
+    <div class="form-row">
+      <div><label>Ton adresse mail (Laurent)</label>
+        <input type="email" id="cfg-mail-moi" placeholder="laurent.brunel@domofrance.fr">
+      </div>
+      <div><label>Adresse Antoine (en copie)</label>
+        <input type="email" id="cfg-mail-cc" placeholder="antoine.colas@domofrance.fr">
+      </div>
+    </div>
+    <div class="form-row">
+      <div><label>Équipe Facilities (en copie)</label>
+        <input type="email" id="cfg-mail-rg" value="GD-ORG_Facilities@domofrance.fr">
+      </div>
+      <div><label>Objet du mail</label>
+        <input type="text" id="cfg-mail-sujet" value="ALERTE STOCK EPI — Domofrance Pôle Facilities">
+      </div>
+    </div>
+    <div class="settings-section">
+      <label>Message d'introduction</label>
+      <textarea id="cfg-mail-intro" rows="3">Bonjour,
+
+Veuillez trouver ci-dessous le récapitulatif des EPI dont le stock est passé sous le seuil d'alerte.</textarea>
+    </div>
+    <div class="settings-section">
+      <label>Signature</label>
+      <textarea id="cfg-mail-signature" rows="2">Cordialement,
+Pôle Facilities — Domofrance</textarea>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn success" onclick="saveConfig()">Sauvegarder</button>
+      <button class="btn" onclick="testerMail()">Tester — ouvrir Outlook</button>
+    </div>
+    <div id="cfg-msg"></div>
+  </div>
+  <div class="card">
+    <h3>Base de données GitHub</h3>
+    <div style="font-size:12px;line-height:1.8;color:#444">
+      <p>Stockage : <code>GitHub — Domo-bdx/fiche-dotation-domofrance/data/</code></p>
+      <p>Fichiers EPI : <strong>stock.json</strong> · <strong>mouvements.json</strong> · <strong>mob_telephones.json</strong> · <strong>mob_tablettes.json</strong> · <strong>mob_badges.json</strong> · <strong>attentes.json</strong></p>
+      <p>Fichiers Papeterie : <strong>papeterie_stock.json</strong> · <strong>papeterie_mouvements.json</strong></p>
+      <p>Accès partagé : toute personne ayant ce fichier HTML accède à la même base en temps réel.</p>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn" onclick="forceSyncStock()">🔄 Resynchroniser tout</button>
+    </div>
+    <div id="sync-msg"></div>
+  </div>
+
+
+
+
+</div>
+
+
+  <!-- Gestion des comptes — admin uniquement -->
+  <div class="card" id="section-gestion-comptes" style="display:none">
+    <h3>👥 Gestion des comptes utilisateurs</h3>
+    <div id="users-list"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn success" onclick="openNewUserForm()">+ Ajouter un utilisateur</button>
+    </div>
+    <div id="new-user-form" style="display:none;margin-top:16px;background:#f4f8fc;border-radius:8px;padding:16px">
+      <h4 style="color:#1a3a5c;margin-bottom:12px">Nouvel utilisateur</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><label>Login</label><input type="text" id="nu-login" placeholder="ex: jmartin"></div>
+        <div><label>Nom complet</label><input type="text" id="nu-nom" placeholder="Jean MARTIN"></div>
+        <div><label>Rôle</label><select id="nu-role"><option value="gestionnaire">Gestionnaire</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div style="margin-top:10px"><label>Mot de passe initial</label><input type="text" id="nu-pwd" value="Domofrance2026!"></div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn success" onclick="saveNewUser()">Créer</button>
+        <button class="btn" onclick="document.getElementById('new-user-form').style.display='none'">Annuler</button>
+      </div>
+      <div id="nu-msg"></div>
+    </div>
+  </div>
+
+  <!-- Mon compte -->
+  <div class="card" id="section-mon-compte">
+    <h3>🔑 Mon compte</h3>
+    <div id="mon-compte-info" style="margin-bottom:12px"></div>
+    <label>Nouveau mot de passe</label>
+    <input type="password" id="mc-new" placeholder="8 caractères minimum" style="max-width:300px">
+    <label style="margin-top:10px;display:block">Confirmer</label>
+    <input type="password" id="mc-confirm" placeholder="Répétez" style="max-width:300px">
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn success" onclick="changerMonMotDePasse()">Modifier mon mot de passe</button>
+    </div>
+    <div id="mc-msg"></div>
+  </div>
+</div><!-- end content --></div>
+</div>
+
+<script src="common.js"></script>
+<script>
+// ─── ÉTAT LOCAL ───────────────────────────────────────────────────────────────
+let _dbCharts = {};
+let mobCache = {tel:[], tab:[], badge:[]};
+
+// ─── CATALOGUE EPI ────────────────────────────────────────────────────────────
+const CATALOGUE = [
+const CATALOGUE=[
+ {ref:'658200',img:'images/epi/658200.jpg',nom:'Gilet Jaune',cat:'Vêtements HV',tailles:['S','M','L','XL','2XL','3XL'],fab:'Groupe RG',prix:1.88},
+ {ref:'658101',img:'images/epi/658101.jpg',nom:'Parka Chantier',cat:'Vêtements HV',tailles:['S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Groupe RG',prix:50.82},
+ {ref:'03-024844',img:'images/epi/03-024844.jpg',nom:'Pantalon Homme Hiver',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56','58','60'],fab:'WK Designed To Work',prix:28.69},
+ {ref:'03-024845',img:'images/epi/03-024845.jpg',nom:'Pantalon Femme Hiver',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56'],fab:'WK Designed To Work',prix:24.07},
+ {ref:'03-024846',img:'images/epi/03-024846.jpg',nom:'Veste softshell',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL','5XL'],fab:'WK Designed To Work',prix:32.89},
+ {ref:'0TOPK677',img:'images/epi/0TOPK677.jpg',nom:'Parka Kariban',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL'],fab:'Top Tex',prix:31.53},
+ {ref:'03-017207',img:'images/epi/03-017207.jpg',nom:'Bodywarmer',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:25.93},
+ {ref:'03-016334',img:'images/epi/03-016334.jpg',nom:'Sweat-shirt',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'],fab:'Top Tex',prix:12.94},
+ {ref:'03-006208',img:'images/epi/03-006208.jpg',nom:'T-shirt',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:3.32},
+ {ref:'0TOPRU599MCMAR',img:'images/epi/0TOPRU599MCMAR.jpg',nom:'Polo',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL','3XL','4XL','5XL'],fab:'Top Tex',prix:10.85},
+ {ref:'03-023219',img:'images/epi/03-023219.jpg',nom:'Sweat femme',cat:'Vêtements',tailles:['XS','S','M','L','XL','2XL'],fab:'Top Tex',prix:13.93},
+ {ref:'03-022637',img:'images/epi/03-022637.jpg',nom:'Pantalon Femme été',cat:'Vêtements',tailles:['34','36','38','40','42','44','46','48','50','52'],fab:'Blaklader',prix:80.00},
+ {ref:'03-023538',img:'images/epi/03-023538.jpg',nom:'Pantalon Homme été',cat:'Vêtements',tailles:['36','38','40','42','44','46','48','50','52','54','56','58','60'],fab:'Blaklader',prix:80.00},
+ {ref:'643100',img:'images/epi/643100.jpg',nom:'Ensemble pluie Robson 2 Vert',cat:'Vêtements',tailles:['S','M','L','XL','2XL','3XL'],fab:'Ergos',prix:22.88},
+ {ref:'PONCHO01',nom:'Poncho de pluie',cat:'Vêtements',tailles:['Unique'],fab:'',prix:0},
+ {ref:'04-000537',img:'images/epi/04-000537.jpg',nom:'Semelles TechniGel',cat:'Chaussures',tailles:['36/37','38/39','40/41','42/43','44/45','46/47'],fab:'Groupe JLF',prix:8.77},
+ {ref:'610025',img:'images/epi/610025.jpg',nom:'Semelles Fresh Cut Maxi',cat:'Chaussures',tailles:['Unique'],fab:'Groupe RG',prix:4.15},
+ {ref:'0EN412802',img:'images/epi/0EN412802.jpg',nom:'Lampe frontale Vision HD+',cat:'Hygiène & Sécurité',tailles:['Unique'],fab:'Energizer',prix:22.35},
+ {ref:'GTS-FORESTIER',nom:'Gants Forestiers 2SA5',cat:'Gants',tailles:['8','9','11'],fab:'SIP',prix:0},
+ {ref:'POWERFLEX80600',nom:'Gants Powerflex 80600',cat:'Gants',tailles:['7','8','9','10'],fab:'Ansell',prix:0},
+ {ref:'0AN63864',nom:'Gants Microflex 63-864',cat:'Gants',tailles:['6','7','8','10'],fab:'Ansell',prix:11.78},
+ {ref:'CUIR-HYDRO-520',nom:'Gants cuir hydrofuge renforcé BUCH520',cat:'Gants',tailles:['8','9','10','11'],fab:'Delta Plus',prix:0},
+ {ref:'0RIRGT350',img:'images/epi/0RIRGT350.jpg',nom:'Gants Tricoton Light RGT350',cat:'Gants',tailles:['Unique'],fab:'Honeywell',prix:0.96},
+ {ref:'SURCHA-VISIT',nom:'Sur Chaussure Visiteur',cat:'Chaussures',tailles:['35/39','40/44','45/48'],fab:'',prix:37},
+ {ref:'0TOP031MAR',img:'images/epi/0TOP031MAR.jpg',nom:'Bonnet KP031 Marine',cat:'Protection tête',tailles:['Unique'],fab:'Top Tex',prix:2.15},
+ {ref:'01-001707',img:'images/epi/01-001707.jpg',nom:'Casquette KP124 Navy/White',cat:'Protection tête',tailles:['Unique'],fab:'Top Tex',prix:2.06},
+ {ref:'CHARLOTTE01',nom:'Charlotte protection usage unique',cat:'Protection tête',tailles:['Unique'],fab:'',prix:0},
+ {ref:'07-000592',img:'images/epi/07-000592.jpg',nom:'Sac à dos Multisport',cat:'Hygiène & Sécurité',tailles:['Unique'],fab:'Top Tex',prix:23.60},
+ {ref:'750003BT',img:'images/epi/750003BT.jpg',nom:'Couvre-chaussures antidérapants PP',cat:'Chaussures',tailles:['Unique'],fab:'Groupe RG',prix:0.2684},
+ {ref:'0MICWH15S00111',img:'images/epi/0MICWH15S00111.jpg',nom:'Combinaison protection SMS Blanc',cat:'Vêtements',tailles:['M','L','XL','2XL','3XL','4XL'],fab:'Ansell Comasec',prix:2.88},
+ {ref:'544303',img:'images/epi/544303.jpg',catalogOnly:true,nom:'Chaussures Denver 2 S1PS SR FO',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:50.79},
+ {ref:'544302',img:'images/epi/544302.jpg',catalogOnly:true,nom:'Chaussures Dallas 2 S1PS SR FO',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:47.50},
+ {ref:'544225',img:'images/epi/544225.jpg',nom:'Chaussures Hautes',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:64.93},
+ {ref:'544224',img:'images/epi/544224.jpg',nom:'Chaussures Basses',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:61.20},
+ {ref:'544229',img:'images/epi/544229.jpg',catalogOnly:true,nom:'Chaussures Zeus 2 ESD S3S',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:null},
+ {ref:'586072',img:'images/epi/586072.jpg',nom:'Bottes fourrées Bergen S3',cat:'Chaussures',tailles:['38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:55.27},
+ {ref:'582001A',img:'images/epi/582001A.jpg',catalogOnly:true,nom:'Bottes sécurité Oslo 2 S3 CI SRC',cat:'Chaussures',tailles:['38','39','40','41','42','43','44','45','46','47'],fab:'Groupe RG',prix:45.80},
+ {ref:'608020',img:'images/epi/608020.jpg',nom:'Bottes pluie Bronze2 S5',cat:'Chaussures',tailles:['36','37','38','39','40','41','42','43','44','45','46','47'],fab:'Delta Plus',prix:15.12},
+ {ref:'04-004648',img:'images/epi/04-004648.jpg',catalogOnly:true,nom:'Chaussures basses Belina 6726 Noir/Rose',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42'],fab:'Parade',prix:44.23},
+ {ref:'04-007696',img:'images/epi/04-007696.jpg',catalogOnly:true,nom:'Chaussures hautes Briana 2735 S3S Noire',cat:'Chaussures',tailles:['35','36','37','38','39','40','41','42'],fab:'Parade',prix:59.95},
+ {ref:'357001',img:'images/epi/357001.jpg',nom:'Gants fleur bovin naturel',cat:'Gants',tailles:['8','9','10','11'],fab:'Groupe RG',prix:3.15},
+ {ref:'398201',img:'images/epi/398201.jpg',nom:'Gants anticoupure Kev/acier latex crêpé',cat:'Gants',tailles:['8','9','10','11','12'],fab:'Groupe RG',prix:6.27},
+ {ref:'398308',img:'images/epi/398308.jpg',nom:'Gants anticoupure HPPE J18 mousse nitrile',cat:'Gants',tailles:['6','7','8','9','10','11'],fab:'Groupe RG',prix:4.68},
+ {ref:'398500',img:'images/epi/398500.jpg',nom:'Gants RGO2 gris',cat:'Gants',tailles:['6','7','8','9','10','11'],fab:'Groupe RG',prix:3.27},
+ {ref:'425003',img:'images/epi/425003.jpg',nom:'Gants Ultranitril 492 Vert',cat:'Gants',tailles:['7','8','9','10','11'],fab:'MAPA',prix:1.68},
+ {ref:'490001',img:'images/epi/490001.jpg',nom:'Gants isolants électriciens CL.00',cat:'Gants',tailles:['6','8','9','10','11'],fab:'Sibille Factory',prix:18.84},
+ {ref:'02-000651',img:'images/epi/02-000651.jpg',nom:'Gants Maxiflex Endurance 42-847 Noir',cat:'Gants',tailles:['6','7','8','11'],fab:'Difac',prix:4.91},
+ {ref:'02-000653',img:'images/epi/02-000653.jpg',nom:'Gants anticoupure 2XD3 Rouge/Noir',cat:'Gants',tailles:['8','9','10','11','12'],fab:'Sioen',prix:25.37},
+ {ref:'02-001648',img:'images/epi/02-001648.jpg',nom:'Gants usage unique 6110PF EBT Vert (bte 100)',cat:'Gants',tailles:['7','8','9','10','11'],fab:'Showa',prix:8.77},
+ {ref:'365001E',img:'images/epi/365001E.jpg',nom:'Gants fleur hydro paille élastique',cat:'Gants',tailles:['9','11'],fab:'Groupe RG',prix:5.80},
+ {ref:'240009',img:'images/epi/240009.jpg',nom:'Casque EVO 2 avec porte-badge',cat:'Casques',tailles:['Unique'],fab:'JSP',prix:9.96},
+ {ref:'01-002199',img:'images/epi/01-002199.jpg',nom:'Casque EVO2 ventilé Blanc',cat:'Casques',tailles:['Unique'],fab:'JSP',prix:4.52},
+ {ref:'0BOSPHERPI',img:'images/epi/0BOSPHERPI.jpg',nom:'Écran facial Sphère PC incolore',cat:'Casques',tailles:['Unique'],fab:'Bollé',prix:15.49},
+ {ref:'0DMoyen format720',nom:'Arceau antibruit Percap 5720',cat:'Protection auditive',tailles:['Unique'],fab:'Honeywell',prix:3.41},
+ {ref:'292010',img:'images/epi/292010.jpg',nom:'Casque antibruit Optime III H540A',cat:'Protection auditive',tailles:['Unique'],fab:'3M',prix:20.60},
+ {ref:'110001',img:'images/epi/110001.jpg',nom:'Lunettes Rafale incolore AR',cat:'Lunettes',tailles:['Unique'],fab:'Groupe RG',prix:3.78},
+ {ref:'110007',img:'images/epi/110007.jpg',nom:'Lunettes Rafale gris solaire AR',cat:'Lunettes',tailles:['Unique'],fab:'Groupe RG',prix:4.46},
+ {ref:'157131',img:'images/epi/157131.jpg',nom:'Lunette-masque Ultrasonic PC incolore',cat:'Lunettes',tailles:['Unique'],fab:'Uvex Heckel',prix:10.27},
+ {ref:'190901',img:'images/epi/190901.jpg',nom:'Masque jetable FFP1 NR D Classics (ctn 240)',cat:'Masques',tailles:['Unique'],fab:'Moldex',prix:2.06},
+ {ref:'MASQUE-FFP2',nom:'Masque FFP2',cat:'Masques',tailles:['Unique'],fab:'',prix:0},
+ {ref:'01-006820',img:'images/epi/01-006820.jpg',nom:'Masques chirurgicaux IIR (bte 50)',cat:'Masques',tailles:['Unique'],fab:'GCE Lighting',prix:3.34},
+ {ref:'0MOL5230',img:'images/epi/0MOL5230.jpg',nom:'Demi-masque Compact Mask FFA2P3',cat:'Masques',tailles:['Unique'],fab:'Moldex',prix:25.79},
+];
+const CATS=[...new Set(CATALOGUE.map(c=>c.cat))].sort();
+
+// ─── SYNC / LOAD ─────────────────────────────────────────────────────────────
+
+// ─── SYNC STATUS ─────────────────────────────────────────────────────────────
+function setSyncStatus(state, label){
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if(dot) dot.style.background = state==='ok'?'#48bb78':state==='syncing'?'#ed8936':'#e53e3e';
+  if(lbl) lbl.textContent = label;
+}
+
+// ─── FONCTIONS STUBS ─────────────────────────────────────────────────────────
+function getStock(ref, taille){
+  const k = ref+'__'+(taille||'Unique');
+  return stockCache[k] || {qte:0, seuil:0, attribues:0};
+}
+function getPEAlertes(){ return []; }
+function getAttentesDisponibles(){ return []; }
+function getPapeterieAlertes(){ return []; }
+function renderPapeterieAlertes(){}
+function renderAttentesAlertes(){}
+function updateAlerteBadge(){}
+
+// ─── ONGLETS LOCAUX ──────────────────────────────────────────────────────────
+function switchLocalTab(tab){
+  ['alertes','catalogue','dashboard'].forEach(t => {
+    document.getElementById('local-tab-'+t).style.display = t===tab ? 'block' : 'none';
+    const btn = document.getElementById('btn-tab-'+t);
+    if(btn){
+      btn.style.borderBottomColor = t===tab ? '#1a3a5c' : 'transparent';
+      btn.style.color = t===tab ? '#1a3a5c' : '#666';
+      btn.style.fontWeight = t===tab ? '700' : '600';
+    }
+  });
+  if(tab==='alertes')   renderAlertes();
+  if(tab==='catalogue') renderCatalogue();
+  if(tab==='dashboard') renderDashboard();
+}
+
+// ─── ALERTES & STOCK STATS ───────────────────────────────────────────────────
+function renderStockStats(){
+  let total=0,bas=0,rupture=0,att=0;
+  Object.values(stockCache).forEach(s=>{
+    const qte=Number(s.qte)||0;
+    const seuil=Number(s.seuil)||0;
+    total+=qte;att+=Number(s.attribues)||0;
+    if(qte===0)rupture++;else if(qte<=seuil)bas++;
+  });
+  console.log('[renderStockStats] stockCache entries:',Object.keys(stockCache).length,'total:',total);
+  document.getElementById('stock-stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Unités en stock</div></div>
+    <div class="stat"><div class="stat-n">${att}</div><div class="stat-l">Attribués</div></div>
+    <div class="stat"><div class="stat-n ${bas>0?'warn':''}">${bas}</div><div class="stat-l">Stock bas</div></div>
+    <div class="stat"><div class="stat-n ${rupture>0?'warn':''}">${rupture}</div><div class="stat-l">Ruptures</div></div>
+    <div class="stat"><div class="stat-n ok">${CATALOGUE.length}</div><div class="stat-l">Références</div></div>`;
+}
+
+function buildCatFilter(id,active,fn){
+  document.getElementById(id).innerHTML=['Tous',...CATS].map(c=>`<button class="cat-btn ${active===c?'active':''}" onclick="${fn}('${c}',this)">${c}</button>`).join('');
+}
+function setStockCat(cat,btn){activeStockCat=cat;document.querySelectorAll('#cat-filter-stock .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderStock();}
+function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
+
+function renderStock(){
+  buildCatFilter('cat-filter-stock',activeStockCat,'setStockCat');
+  const q=(document.getElementById('stock-search')?.value||'').toLowerCase();
+  let rows='';
+  CATALOGUE.filter(a=>!a.catalogOnly).filter(a=>activeStockCat==='Tous'||a.cat===activeStockCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q))
+    .forEach(art=>{
+      art.tailles.forEach(t=>{
+        const s=getStock(art.ref,t);
+        const rc=s.qte===0?'stock-zero':s.qte<=s.seuil?'stock-low':'';
+        rows+=`<tr class="${rc}"><td><code>${art.ref}</code></td><td title="${art.nom}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${art.nom}</td><td><span class="badge blue">${art.cat}</span></td><td style="text-align:center">${t}</td><td style="text-align:center"><input type="number" min="0" value="${s.qte}" style="width:60px;text-align:center;${s.qte===0?'color:#c53030':s.qte<=s.seuil?'color:#92400e':''}" onchange="updateStockField('${art.ref}','${t}','qte',+this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:50px;text-align:center" onchange="updateStockField('${art.ref}','${t}','seuil',+this.value)"></td><td style="text-align:center;color:#666">${s.attribues||0}</td><td><button class="btn small success" onclick="entreeStock('${art.ref}','${t}')">+ Entrée</button></td></tr>`;
+      });
+    });
+  document.getElementById('stock-body').innerHTML=rows||'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
+}
+
+let _saveTimer={};
+function updateStockField(ref,taille,field,val){
+  const s=getStock(ref,taille);s[field]=val;
+  const k=ref+'__'+taille;
+  clearTimeout(_saveTimer[k]);
+  _saveTimer[k]=setTimeout(()=>{saveStockRow(ref,taille,{[field]:val});updateAlerteBadge();renderStockStats();renderAttentesAlertes();},800);
+}
+
+function entreeStock(ref,taille){
+  const s=getStock(ref,taille);
+  const art=CATALOGUE.find(x=>x.ref===ref);
+  const v=prompt(`Entrée stock : ${art?art.nom:ref} — Taille ${taille}\nStock actuel : ${s.qte}\n\nQuantité reçue :`);
+  if(v===null||v==='')return;
+  const n=parseInt(v);
+  if(isNaN(n)||n<=0){alert('Quantité invalide');return}
+  saveStockRow(ref,taille,{qte:s.qte+n}).then(()=>{renderStockStats();renderStock();updateAlerteBadge();renderAttentesAlertes();});
+}
+
+// ─── HISTORIQUE EPI ───────────────────────────────────────────────────────────
+function renderHistorique(){
+  const q=(document.getElementById('histo-search')?.value||'').toLowerCase();
+  const rows=mouvementsCache.filter(m=>!q||JSON.stringify(m).toLowerCase().includes(q));
+  const typeBadge={
+    dotation:'blue', restitution:'green', remplacement:'yellow', reception:'purple',
+    attribution_tel:'blue', restitution_tel:'green',
+    attribution_tab:'blue', restitution_tab:'green',
+    attribution_badge:'blue', restitution_badge:'green'
+  };
+  const typeLabel={
+    dotation:'Dotation EPI', restitution:'Restitution EPI', remplacement:'Remplacement', reception:'Réception',
+    attribution_tel:'📱 Attribution tél.', restitution_tel:'📱 Restitution tél.',
+    attribution_tab:'📟 Attribution tab.', restitution_tab:'📟 Restitution tab.',
+    attribution_badge:'🪪 Attribution badge', restitution_badge:'🪪 Restitution badge'
+  };
+  document.getElementById('histo-body').innerHTML=rows.length
+    ?rows.map(m=>{
+      const label=typeLabel[m.type]||m.type;
+      const badgeCls=typeBadge[m.type]||'gray';
+      const desig=(m.designation||m.ref||'—');
+      const isDevice=m.type&&(m.type.endsWith('_tel')||m.type.endsWith('_tab')||m.type.endsWith('_badge'));
+      const detail=isDevice?(m.imei||m.numero||'—'):(m.taille||'—');
+      const qteInfo=isDevice?1:(m.qte!=null?m.qte:'—');
+      return `<tr>
+        <td>${m.date||'—'}</td>
+        <td><span class="badge ${badgeCls}" style="white-space:nowrap">${label}</span></td>
+        <td>${[m.prenom,m.nom].filter(Boolean).join(' ')||'—'}</td>
+        <td>${m.site||'—'}</td>
+        <td title="${desig}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${desig.length>45?desig.slice(0,43)+'…':desig}</td>
+        <td style="font-size:11px;color:#666">${detail}</td>
+        <td style="text-align:center">${qteInfo}</td>
+      </tr>`;
+    }).join('')
+    :'<tr><td colspan="7" class="empty">Aucun mouvement</td></tr>';
+}
+
+// ─── ALERTES EPI ─────────────────────────────────────────────────────────────
+function getAlertes(){
+  const out=[];
+  CATALOGUE.forEach(art=>art.tailles.forEach(t=>{
+    const s=getStock(art.ref,t);
+    if(s.qte<=s.seuil)out.push({ref:art.ref,nom:art.nom,cat:art.cat,taille:t,qte:s.qte,seuil:s.seuil});
+  }));
+  return out;
+}
+
+function renderAlertes(){
+  const alertes=getAlertes();
+  // Toujours afficher la carte mail (prévisualisation et envoi)
+  buildMailPreview(alertes);
+  document.getElementById('alertes-list').innerHTML=alertes.length
+    ?alertes.map(a=>`<div class="alert-item"><div style="font-size:16px">${a.qte===0?'🔴':'🟡'}</div><div style="flex:1"><div style="font-weight:600">${a.nom}</div><div style="font-size:11px;color:#666">Réf. ${a.ref} — Taille ${a.taille}</div></div><span class="badge ${a.qte===0?'red':'yellow'}">Stock: ${a.qte} / Seuil: ${a.seuil}</span></div>`).join('')
+    :'<div class="empty">✓ Aucune alerte EPI — tout le stock est au-dessus des seuils.</div>';
+  renderPapeterieAlertes();
+  renderAttentesAlertes();
+}
+
+function updateAlerteBadge(){
+  const n=getAlertes().length+getPEAlertes().length+getPapeterieAlertes().length+getAttentesDisponibles().length;
+  const btn=document.getElementById('btn-alertes');
+  if(n>0){btn.setAttribute('data-count',n);btn.classList.add('alert-badge')}
+  else{btn.removeAttribute('data-count');btn.classList.remove('alert-badge')}
+}
+
+function buildMailPreview(alertesEpi, mode='tout'){
+  const cfg=loadConfig();
+  const date=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const sign=cfg.signature||'Cordialement,\nPôle Facilities — Domofrance';
+  const intro=cfg.intro||'Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif des articles dont le stock est passé sous le seuil d\'alerte.';
+
+  const alertesPap = getPapeterieAlertes();
+  const hasEpi = alertesEpi&&alertesEpi.length>0;
+  const hasPap = alertesPap&&alertesPap.length>0;
+
+  if(!hasEpi&&!hasPap){
+    document.getElementById('mail-body-preview').textContent='✓ Aucune alerte EPI ni papeterie — aucun mail à envoyer pour le moment.';
+    document.getElementById('mail-to-preview').innerHTML='';
+    window._mailCorps='';
+    window._mailSujet=cfg.sujet||'ALERTE STOCK — Domofrance Pôle Facilities';
+    return;
+  }
+
+  const sujet = mode==='ruptures'
+    ? 'RUPTURES DE STOCK EPI — Domofrance Pôle Facilities'
+    : hasEpi&&hasPap
+      ? 'ALERTE STOCK EPI & PAPETERIE — Domofrance Pôle Facilities'
+      : hasEpi
+        ? (cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities')
+        : 'ALERTE STOCK PAPETERIE — Domofrance Pôle Facilities';
+
+  let corps = intro + '\n\n';
+
+  // ── Section EPI ──────────────────────────────────────────────────────────────
+  if(hasEpi){
+    const byCat={};alertesEpi.forEach(a=>{if(!byCat[a.cat])byCat[a.cat]=[];byCat[a.cat].push(a)});
+    corps+=`ÉQUIPEMENTS DE PROTECTION INDIVIDUELLE (EPI)\n${'─'.repeat(52)}\n`;
+    Object.entries(byCat).forEach(([cat,items])=>{
+      corps+=`\n${cat.toUpperCase()}\n`;
+      items.forEach(a=>{corps+=`  • ${a.ref} — ${a.nom}\n    Taille ${a.taille} | Stock: ${a.qte} | Seuil: ${a.seuil} | ${a.qte===0?'⚠ RUPTURE':'↘ Stock bas'}\n`});
+    });
+    corps+=`\nNombre d'articles EPI concernés : ${alertesEpi.length}\n`;
+  }
+
+  // ── Section Papeterie ─────────────────────────────────────────────────────────
+  if(hasPap){
+    if(hasEpi) corps+='\n';
+    corps+=`PAPETERIE\n${'─'.repeat(52)}\n`;
+    alertesPap.forEach(a=>{
+      const s=getPapeterieStock(a.id);
+      corps+=`  • ${a.designation}\n    Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} | Seuil: ${s.seuil} | ${s.stock_cartons===0?'⚠ RUPTURE':'↘ Stock bas'}\n`;
+    });
+    corps+=`\nNombre d'articles papeterie concernés : ${alertesPap.length}\n`;
+  }
+
+  corps += `\n${'─'.repeat(52)}\nRécapitulatif généré le ${date}\n\n${sign}`;
+
+  document.getElementById('mail-body-preview').textContent=corps;
+  const ccParts=[cfg.cc,cfg.rg].filter(Boolean);
+  document.getElementById('mail-to-preview').innerHTML=`<strong>À :</strong> ${cfg.moi||'[Non configuré]'}${ccParts.length?' &nbsp;|&nbsp; <strong>Cc :</strong> '+ccParts.join(', '):''}`;
+  window._mailCorps=corps;
+  window._mailSujet=sujet;
+}
+
+function ouvrirMailAlerte(mode='tout'){
+  const cfg=loadConfig();
+  let alertesEpi=getAlertes();
+  const alertesPap=getPapeterieAlertes();
+  if(mode==='ruptures'){
+    alertesEpi=alertesEpi.filter(a=>a.qte===0);
+    if(!alertesEpi.length){showMsg('mail-msg','✓ Aucune rupture EPI en ce moment.','ok');return}
+  } else {
+    if(!alertesEpi.length&&!alertesPap.length){showMsg('mail-msg','✓ Aucune alerte EPI ni papeterie en ce moment.','ok');return}
+  }
+  buildMailPreview(alertesEpi, mode);
+  navigator.clipboard.writeText(window._mailCorps||'').catch(()=>{});
+  _openOutlook(cfg,window._mailSujet);
+  showMsg('mail-msg','✓ Texte copié — Outlook s\'ouvre, collez avec Ctrl+V.','ok');
+}
+function copierMailAlerte(mode='tout'){
+  let alertesEpi=getAlertes();
+  if(mode==='ruptures') alertesEpi=alertesEpi.filter(a=>a.qte===0);
+  buildMailPreview(alertesEpi, mode);
+  navigator.clipboard.writeText(window._mailCorps||'').then(()=>{showMsg('mail-msg','✓ Texte copié — collez avec Ctrl+V dans Outlook.','ok');setTimeout(()=>document.getElementById('mail-msg').innerHTML='',4000);});
+}
+function _openOutlook(cfg,sujet){
+  const a=document.createElement('a');
+  const cc=[cfg.cc,cfg.rg].filter(Boolean);
+  a.href=`mailto:${encodeURIComponent(cfg.moi||'')}?${cc.length?'cc='+encodeURIComponent(cc.join(';'))+'&':''}subject=${encodeURIComponent(sujet||'')}`;
+  a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>document.body.removeChild(a),500);
+}
+function testerMail(){
+  const cfg=loadConfig();
+  if(!cfg.moi){showMsg('cfg-msg','Saisis d\'abord ton adresse mail.','err');return}
+  navigator.clipboard.writeText('Test — Gestion EPI Domofrance.\n\nConfiguration correcte.').catch(()=>{});
+  _openOutlook(cfg,'Test — Gestion EPI Domofrance');showMsg('cfg-msg','Outlook s\'ouvre — colle le texte avec Ctrl+V.','ok');
+}
+
+// ─── CATALOGUE EPI ────────────────────────────────────────────────────────────
+
+// ─── CATALOGUE ───────────────────────────────────────────────────────────────
+function renderCatalogue(){
+  buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
+  const q=(document.getElementById('cat-search')?.value||'').toLowerCase();
+  const rows=CATALOGUE.filter(a=>activeCatCat==='Tous'||a.cat===activeCatCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q));
+  document.getElementById('cat-body').innerHTML=rows.length
+    ?rows.map(a=>`<tr><td>${a.img?`<img src="${a.img}" alt="${a.nom}" class="cat-thumb" onclick="zoomCatImg('${a.img}','${a.nom.replace(/'/g,"\\'")}')">`:`<span class="cat-thumb-empty">—</span>`}</td><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
+}
+function zoomCatImg(src,nom){
+  const ov=document.createElement('div');
+  ov.className='cat-img-overlay';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML=`<div class="cat-img-modal"><img src="${src}" alt="${nom}"><div class="cat-img-caption">${nom}</div></div>`;
+  document.body.appendChild(ov);
+}
+function addFromCat(ref){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-dotation').classList.add('active');
+  setTimeout(()=>addEpiLine(ref),50);
+}
+
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const CFG_KEY='domo_epi_cfg_v2';
+function loadConfig(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch{return{}}}
+function saveConfig(){
+  const cfg={moi:document.getElementById('cfg-mail-moi').value.trim(),cc:document.getElementById('cfg-mail-cc').value.trim(),rg:document.getElementById('cfg-mail-rg').value.trim(),sujet:document.getElementById('cfg-mail-sujet').value.trim(),intro:document.getElementById('cfg-mail-intro').value,signature:document.getElementById('cfg-mail-signature').value};
+  localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  showMsg('cfg-msg','✓ Paramètres sauvegardés.','ok');
+  setTimeout(()=>document.getElementById('cfg-msg').innerHTML='',3000);
+}
+function loadConfigIntoForm(){
+  const cfg=loadConfig();
+  document.getElementById('cfg-mail-moi').value=cfg.moi||'';
+  document.getElementById('cfg-mail-cc').value=cfg.cc||'';
+  document.getElementById('cfg-mail-rg').value=cfg.rg||'GD-ORG_Facilities@domofrance.fr';
+  document.getElementById('cfg-mail-sujet').value=cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities';
+  document.getElementById('cfg-mail-intro').value=cfg.intro||'Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif des EPI dont le stock est passé sous le seuil d\'alerte.';
+  document.getElementById('cfg-mail-signature').value=cfg.signature||'Cordialement,\nPôle Facilities — Domofrance';
+}
+
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const filterSite = document.getElementById('db-filter-site')?.value || '';
+
+  // Alimenter le filtre sites — reconstruction complète à chaque appel
+  const cleanSite = s => {
+    if (!s || typeof s !== 'string') return '';
+    // Supprimer toute chaîne contenant des caractères mal encodés
+    if (s.includes('Ã') || s.includes('Â') || s.includes('�')) return '';
+    return s.trim();
+  };
+  const siteSet = new Set();
+  [...(mobCache.tel||[]), ...(mobCache.badge||[]), ...(mobCache.tab||[])]
+    .forEach(x => { const s=cleanSite(x.site||''); if(s) siteSet.add(s); });
+  mouvementsCache.forEach(m => { const s=cleanSite(m.site||''); if(s) siteSet.add(s); });
+  const selSite = document.getElementById('db-filter-site');
+  if (selSite) {
+    // Vider complètement avant de repeupler
+    const currentVal = selSite.value;
+    while(selSite.options.length > 0) selSite.remove(0);
+    const allOpt = document.createElement('option');
+    allOpt.value = ''; allOpt.textContent = 'Tous les sites';
+    selSite.appendChild(allOpt);
+    [...siteSet].sort().forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      selSite.appendChild(o);
+    });
+    // Restaurer la valeur si encore disponible
+    if(currentVal && [...siteSet].includes(currentVal)) selSite.value = currentVal;
+  }
+
+  const tels   = filterSite ? (mobCache.tel||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tel||[]);
+  const tabs   = filterSite ? (mobCache.tab||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tab||[]);
+  const badges = filterSite ? (mobCache.badge||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.badge||[]);
+  const mouvs  = filterSite ? mouvementsCache.filter(m=>cleanSite(m.site||'')===filterSite) : mouvementsCache;
+
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  const totalTel   = tels.length;
+  const attribTel  = tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const totalTab   = tabs.length;
+  const attribTab  = tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const totalBadge = badges.length;
+  const attribBadge= badges.filter(x=>x.statut==='Attribué'||x.statut==='Disponible'?false:true).length;
+  const dispoBadge = badges.filter(x=>x.statut==='Disponible'||x.statut==='disponible').length;
+
+  // Valeur stock EPI
+  let valeurStock = 0;
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const s = stockCache[a.ref+'__'+t]||{};
+      if ((s.qte||0)>0 && (a.prix||0)>0) valeurStock += (s.qte||0) * a.prix;
+    });
+  });
+
+  // Articles en alerte
+  let alertesEPI = 0;
+  Object.entries(stockCache).forEach(([k,v])=>{
+    if ((v.seuil||0)>0 && (v.qte||0) <= (v.seuil||0)) alertesEPI++;
+  });
+
+  document.getElementById('db-kpis').innerHTML = `
+    <div class="db-kpi"><div class="db-kpi-icon">📱</div><div class="db-kpi-val">${totalTel}</div><div class="db-kpi-lbl">Téléphones</div><div class="db-kpi-sub" style="color:#0369a1">${attribTel} attribués · ${totalTel-attribTel} dispo</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📟</div><div class="db-kpi-val">${totalTab}</div><div class="db-kpi-lbl">Tablettes</div><div class="db-kpi-sub" style="color:#0369a1">${attribTab} attribuées · ${totalTab-attribTab} dispo</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">🪪</div><div class="db-kpi-val">${totalBadge}</div><div class="db-kpi-lbl">Badges</div><div class="db-kpi-sub" style="color:#276749">${dispoBadge} disponibles</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">💶</div><div class="db-kpi-val">${valeurStock.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €</div><div class="db-kpi-lbl">Valeur stock EPI</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📦</div><div class="db-kpi-val">${Object.values(stockCache).reduce((a,v)=>a+(v.qte||0),0)}</div><div class="db-kpi-lbl">Articles EPI en stock</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">⚠️</div><div class="db-kpi-val" style="color:#c0392b">${alertesEPI}</div><div class="db-kpi-lbl">Références EPI sous seuil</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📋</div><div class="db-kpi-val">${mouvs.length}</div><div class="db-kpi-lbl">Mouvements enregistrés</div></div>
+  `;
+
+  // ── Graphique 1 : téléphones par modèle ───────────────────────────────
+  destroyChart('chart-tel-modeles');
+  const telModels = {};
+  tels.forEach(t => { const m=t.modele||'Inconnu'; telModels[m]=(telModels[m]||0)+1; });
+  const telEntries = Object.entries(telModels).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ctx1 = document.getElementById('chart-tel-modeles');
+  if (ctx1 && telEntries.length) {
+    _dbCharts['chart-tel-modeles'] = new Chart(ctx1, { type:'doughnut', data:{
+      labels: telEntries.map(([m])=>m.replace(/\s*\([^)]+\)/g,'')),
+      datasets:[{data:telEntries.map(([,v])=>v),backgroundColor:['#1a3a5c','#2e5d8e','#0369a1','#0891b2','#c0392b','#e67e22','#276749','#6b21a8'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 2 : badges par type ─────────────────────────────────────
+  destroyChart('chart-badges-types');
+  const badgeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',telecommande_siege:'Acces Siege',autre:'Autre'};
+  const badgeTypes = {};
+  badges.forEach(b => { const t=badgeLabels[b.type_badge]||b.type_badge||'Autre'; badgeTypes[t]=(badgeTypes[t]||0)+1; });
+  const ctx2 = document.getElementById('chart-badges-types');
+  if (ctx2 && Object.keys(badgeTypes).length) {
+    _dbCharts['chart-badges-types'] = new Chart(ctx2, { type:'pie', data:{
+      labels: Object.keys(badgeTypes),
+      datasets:[{data:Object.values(badgeTypes),backgroundColor:['#1a3a5c','#0369a1','#c0392b','#6b21a8','#888'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 3 : Top 10 EPI par valeur stock ──────────────────────────
+  destroyChart('chart-epi-valeur');
+  const epiValeurs = {};
+  CATALOGUE.filter(a=>!a.catalogOnly && a.prix>0).forEach(a=>{
+    let qteTotal=0;
+    (a.tailles||['Unique']).forEach(t=>{ qteTotal+=(stockCache[a.ref+'__'+t]||{qte:0}).qte||0; });
+    if (qteTotal>0) epiValeurs[a.nom] = qteTotal * a.prix;
+  });
+  const epiTop = Object.entries(epiValeurs).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ctx3 = document.getElementById('chart-epi-valeur');
+  if (ctx3 && epiTop.length) {
+    _dbCharts['chart-epi-valeur'] = new Chart(ctx3, { type:'bar', data:{
+      labels: epiTop.map(([n])=>n.length>20?n.slice(0,20)+'…':n),
+      datasets:[{label:'Valeur (€)',data:epiTop.map(([,v])=>Math.round(v*100)/100),backgroundColor:'rgba(26,58,92,0.8)',borderColor:'#1a3a5c',borderWidth:1}]
+    }, options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{color:'#f0f0f0'}},y:{ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Graphique 4 : Mouvements par mois ─────────────────────────────────
+  destroyChart('chart-mouvements-mois');
+  const parMois = {};
+  mouvs.forEach(m=>{
+    const mois=(m.date||m.createdAt||'').slice(0,7);
+    if(!mois)return;
+    if(!parMois[mois])parMois[mois]={attribution:0,restitution:0};
+    if(m.type&&m.type.includes('attribution'))parMois[mois].attribution++;
+    else if(m.type&&m.type.includes('restitution'))parMois[mois].restitution++;
+  });
+  const moisSorted = Object.keys(parMois).sort();
+  const ctx4 = document.getElementById('chart-mouvements-mois');
+  if (ctx4 && moisSorted.length) {
+    _dbCharts['chart-mouvements-mois'] = new Chart(ctx4, { type:'bar', data:{
+      labels: moisSorted.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][parseInt(mo)-1]+' '+y.slice(2); }),
+      datasets:[
+        {label:'Attributions',data:moisSorted.map(m=>parMois[m].attribution),backgroundColor:'rgba(26,58,92,0.8)'},
+        {label:'Restitutions',data:moisSorted.map(m=>parMois[m].restitution),backgroundColor:'rgba(192,57,43,0.7)'},
+      ]
+    }, options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{x:{stacked:false,ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Graphique 5 : Tablettes par modèle ────────────────────────────────
+  destroyChart('chart-tab-modeles');
+  const tabModels = {};
+  tabs.forEach(t=>{ const m=t.modele||'Inconnu'; tabModels[m]=(tabModels[m]||0)+1; });
+  const ctx5 = document.getElementById('chart-tab-modeles');
+  if (ctx5 && Object.keys(tabModels).length) {
+    _dbCharts['chart-tab-modeles'] = new Chart(ctx5, { type:'doughnut', data:{
+      labels: Object.keys(tabModels).map(m=>m.replace(/\s*\([^)]+\)/g,'')),
+      datasets:[{data:Object.values(tabModels),backgroundColor:['#0891b2','#0369a1','#1a3a5c','#276749'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 6 : Mobilité attribution vs disponible ──────────────────
+  destroyChart('chart-mob-attrib');
+  const ctx6 = document.getElementById('chart-mob-attrib');
+  if (ctx6) {
+    const isDispo = x=>x.statut==='Disponible'||x.statut==='disponible';
+    const isAttrib= x=>x.statut==='Attribué'||x.statut==='attribue';
+    _dbCharts['chart-mob-attrib'] = new Chart(ctx6, { type:'bar', data:{
+      labels:['Téléphones','Tablettes','Badges'],
+      datasets:[
+        {label:'Disponibles',data:[tels.filter(isDispo).length,tabs.filter(isDispo).length,badges.filter(isDispo).length],backgroundColor:'rgba(39,103,73,0.8)'},
+        {label:'Attribués',data:[tels.filter(isAttrib).length,tabs.filter(isAttrib).length,badges.filter(isAttrib).length],backgroundColor:'rgba(192,57,43,0.7)'},
+      ]
+    }, options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Tableau 1 : Top EPI attribués ─────────────────────────────────────
+  const epiAttrib = {};
+  mouvs.filter(m=>m.type==='dotation'||m.type==='attribution').forEach(m=>{
+    if(m.ref){const a=CATALOGUE.find(x=>x.ref===m.ref);if(a){epiAttrib[a.nom]=(epiAttrib[a.nom]||0)+(m.qte||1);}}
+  });
+  const epiTopAttrib = Object.entries(epiAttrib).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('db-top-epi').innerHTML =
+    '<thead><tr><th>Article</th><th style="text-align:right">Attribués</th></tr></thead><tbody>' +
+    (epiTopAttrib.length ? epiTopAttrib.map(([n,v])=>`<tr><td>${n}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`).join('') :
+    '<tr><td colspan="2" style="color:#888;font-style:italic">Aucun mouvement EPI enregistré</td></tr>') + '</tbody>';
+
+  // ── Tableau 2 : Dotations par site ────────────────────────────────────
+  const siteCount = {};
+  mouvs.forEach(m=>{ if(m.site){siteCount[m.site]=(siteCount[m.site]||0)+1;} });
+  const siteTop = Object.entries(siteCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('db-top-sites').innerHTML =
+    '<thead><tr><th>Site / Agence</th><th style="text-align:right">Mouvements</th></tr></thead><tbody>' +
+    (siteTop.length ? siteTop.map(([s,v])=>`<tr><td>${s}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`).join('') :
+    '<tr><td colspan="2" style="color:#888;font-style:italic">Aucune donnée</td></tr>') + '</tbody>';
+
+  // ── Tableau 3 : Articles EPI sous seuil ───────────────────────────────
+  const alertes = [];
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const s=stockCache[a.ref+'__'+t]||{};
+      if((s.seuil||0)>0&&(s.qte||0)<=(s.seuil||0)) alertes.push({nom:a.nom,taille:t,qte:s.qte||0,seuil:s.seuil||0});
+    });
+  });
+  alertes.sort((a,b)=>a.qte-b.qte);
+  document.getElementById('db-alertes-epi').innerHTML =
+    '<thead><tr><th>Article</th><th>Taille</th><th style="text-align:right">Qté</th></tr></thead><tbody>' +
+    (alertes.length ? alertes.slice(0,10).map(a=>`<tr><td>${a.nom.length>20?a.nom.slice(0,20)+'…':a.nom}</td><td>${a.taille}</td><td style="text-align:right;font-weight:600;color:${a.qte===0?'#c0392b':'#e67e22'}">${a.qte}</td></tr>`).join('') :
+    '<tr><td colspan="3" style="color:#276749;font-style:italic">✅ Aucune alerte</td></tr>') + '</tbody>';
+}
+
+
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function initDashboard(){
+  const loginOverlay = document.getElementById('login-overlay');
+  if(!localStorage.getItem('domo_gh_token')){ loginOverlay.style.display='flex'; return; }
+  const raw = sessionStorage.getItem('gestock_user');
+  if(!raw){ loginOverlay.style.display='flex'; return; }
+  loginOverlay.style.display = 'none';
+  const u = JSON.parse(raw);
+  const badge = document.getElementById('user-badge');
+  if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
+
+  setSyncStatus('syncing','Chargement…');
+  try{
+    await loadAllMouvements();
+    const [tels,tabs,badges,stockObj] = await Promise.all([
+      readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges'),
+      readObj('stock')
+    ]);
+    mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[]};
+    Object.entries(stockObj||{}).forEach(([k,v])=>{
+      stockCache[k] = {...v, id:k};
+    });
+    setSyncStatus('ok','Base synchronisée');
+    renderAlertes();
+    renderStockStats();
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    console.error(e);
+  }
+}
+
+async function doLogin(){
+  const login = document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd   = document.getElementById('login-pwd').value;
+  const errEl = document.getElementById('login-error');
+  if(!login||!pwd){errEl.textContent='Identifiant et mot de passe requis.';return;}
+  errEl.textContent='';
+  try{
+    await loadUsers();
+    const user = usersCache.find(u=>u.login===login);
+    if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';return;}
+    const hash = await sha256(pwd);
+    if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
+    currentUser = {login:user.login,nom:user.nom,role:user.role};
+    sessionStorage.setItem('gestock_user', JSON.stringify(currentUser));
+    await initDashboard();
+  }catch(e){
+    errEl.textContent='Erreur: '+e.message;
+  }
+}
+
+initDashboard();
+</script>
+</body>
+</html>

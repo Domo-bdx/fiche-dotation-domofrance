@@ -840,6 +840,7 @@ async function initMobilite(){
 
   loginOverlay.style.display = 'none';
   const u = JSON.parse(raw);
+  currentUser = u; // Synchroniser avec common.js
   const badge = document.getElementById('user-badge');
   if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
 

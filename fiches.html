@@ -1035,7 +1035,7 @@ async function fichesGenerer(idx){
 async function initFiches(){
   const loginOverlay = document.getElementById('login-overlay');
   if(!localStorage.getItem('domo_gh_token')){ loginOverlay.style.display='flex'; return; }
-  const raw = sessionStorage.getItem('gestock_user');
+  const raw = localStorage.getItem('gestock_user');
   if(!raw){ loginOverlay.style.display='flex'; return; }
   loginOverlay.style.display = 'none';
   const u = JSON.parse(raw);
@@ -1079,7 +1079,7 @@ async function doLogin(){
     const hash = await sha256(pwd);
     if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
     currentUser = {login:user.login,nom:user.nom,role:user.role};
-    sessionStorage.setItem('gestock_user', JSON.stringify(currentUser));
+    localStorage.setItem('gestock_user', JSON.stringify(currentUser));
     await initFiches();
   }catch(e){
     errEl.textContent='Erreur connexion : '+e.message;

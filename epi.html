@@ -318,14 +318,14 @@ tr:hover td{background:#f8f9fb}
   <button class="nav-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
   <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
   <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
-  <a class="nav-btn" href="mobilite.html">📱 Mobilité</a>
-  <a class="nav-btn" href="papeterie.html">📄 Papeterie</a>
+  <button class="nav-btn" onclick="goTab('mobilite',this)">Stock Mobilité</button>
+  <button class="nav-btn" id="btn-papeterie" onclick="goTab('papeterie',this)">📄 Papeterie</button>
   <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
   <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
-  <a class="nav-btn" href="fiches.html">📋 Fiches</a>
+  <button class="nav-btn" onclick="goTab('fiches',this)">📋 Fiches</button>
 <button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
-  <a class="nav-btn" href="dashboard.html">📊 Dashboard</a>
-  <a class="nav-btn" href="parametres.html">⚙ Paramètres</a>
+  <button class="nav-btn" id="btn-dashboard" onclick="goTab('dashboard',this)">📊 Dashboard</button>
+  <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
 </div>
 
 <div class="content">
@@ -1342,19 +1342,19 @@ async function saveStockRow(ref,taille,fields){
 function goTab(t,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-
-
+  if(t==='parametres'&&currentUser&&currentUser.role==='admin'&&usersCache.length>0){renderUsersList();}
+  if(t==='dashboard'){renderDashboard();}
   document.getElementById('tab-'+t).classList.add('active');
   if(btn)btn.classList.add('active');
   if(t==='stock'){if(Object.keys(stockCache).length===0){loadAllStock().then(()=>{renderStockStats();renderStock();});}else{renderStockStats();renderStock();}}
-
-
-
-
+  if(t==='historique'){loadAllMouvements().then(renderHistorique)}
+  if(t==='fiches'){loadAllMouvements().then(fichesRender);}
+  if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();buildMailPreview(getAlertes());}
+  if(t==='catalogue')renderCatalogue();
   if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
-
-
+  if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab();renderMobBadge()})}
+  if(t==='papeterie'){renderPapeterieStats();renderPapeterieAlertes();}
   closeMobileNav();
   setTimeout(applyResponsiveLabels,80);
 }
@@ -1578,6 +1578,27 @@ function getPEAlertes(){
   });
 }
 
+function renderPEAlertes(){
+  const alertes=getPEAlertes();
+  const today=new Date();today.setHours(0,0,0,0);
+  const el=document.getElementById('pe-alertes-list');if(!el)return;
+  if(!alertes.length){el.innerHTML='<div class="empty">Aucune fin de période d\'essai en attente</div>';return;}
+  el.innerHTML=alertes.map(co=>{
+    const embauche=new Date(co.date_embauche);
+    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);
+    const joursDepuis=Math.floor((today-finPE)/(1000*60*60*24));
+    const urgent=joursDepuis>7;
+    const dateStr=finPE.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+    return `<div class="pe-alert ${urgent?'urgent':''}">
+      <div style="font-size:18px">${urgent?'🔴':'🟢'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
+        <div style="font-size:11px;color:#555">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}${joursDepuis>0?' · <span style="color:#c53030;font-weight:600">En retard de '+joursDepuis+' jour(s)</span>':' · <span style="color:#276749;font-weight:600">Aujourd\'hui</span>'}</div>
+      </div>
+      <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>
+    </div>`;
+  }).join('');
+}
 
 // ─── PACKS PRÉDÉFINIS ─────────────────────────────────────────────────────────
 const PACKS={
@@ -1663,6 +1684,33 @@ function searchEpiLine(id, val){
   }
 }
 
+function searchMobLine(type, id, val){
+  // Met à jour le champ search et refiltre le select sans re-render complet
+  let lines, renderFn, selLookup;
+  if(type==='tel'){
+    lines=telLines; renderFn=renderTelLines;
+    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  } else if(type==='tab'){
+    lines=tabLines; renderFn=renderTabLines;
+    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  } else {
+    lines=badgeLines; renderFn=renderBadgeLines;
+    const tl={acces:'Acces',watchdoc:'WatchDoc',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
+    selLookup=(pool,q)=>pool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
+  }
+  const l=lines.find(x=>x.id===id);
+  if(!l)return;
+  l.search=val;
+  // Re-render complet pour le type (focus sur l'input de recherche, pas sur le select)
+  renderFn();
+  // Redonner le focus sur le bon champ de recherche après re-render
+  const inputs=document.querySelectorAll(`input[oninput*="searchMobLine('${type}','${id}"]`);
+  if(inputs.length){
+    const inp=inputs[0];
+    inp.focus();
+    inp.setSelectionRange(val.length,val.length);
+  }
+}
 
 function updateLine(id,field,val){const l=epiLines.find(x=>x.id===id);if(!l)return;l[field]=val;if(field==='ref')l.taille='';renderEpiLines();}
 function removeLine(id){epiLines=epiLines.filter(x=>x.id!==id);renderEpiLines()}
@@ -1763,6 +1811,7 @@ async function validerDotation(){
     }
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche&&nom){addCollab(nom,prenom,matricule,site,date);}
+    updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
@@ -1803,6 +1852,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -1847,6 +1897,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2152,6 +2203,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2196,6 +2248,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2515,6 +2568,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2682,6 +2736,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2888,6 +2943,7 @@ async function validerReception(){
       const art=CATALOGUE.find(x=>x.ref===line.ref);
       await sbPost('mouvements',{date,type:'reception',nom:fourn,prenom:bl,matricule:'',site:comment,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte,motif:bl});
     }
+    updateAlerteBadge();
     showMsg('rec-msg',`✓ ${recLines.length} article(s) crédité(s) au stock. BL : ${bl}`,'ok');
     renderRecHisto();recLines=[];renderRecLines();
   }catch(e){showMsg('rec-msg','Erreur : '+e.message,'err');}
@@ -2908,6 +2964,18 @@ function renderRecHisto(){
 let mobCache={tel:[],tab:[],badge:[]};
 let currentMobSub='tel';
 
+async function loadMobDevices(){
+  setSyncStatus('syncing','Chargement mobilité…');
+  try{
+    const [tels,tabs,badges]=await Promise.all([readData('mob_telephones'),readData('mob_tablettes'),readData('mob_badges')]);
+    mobCache.tel=tels||[];mobCache.tab=tabs||[];mobCache.badge=badges||[];
+    setSyncStatus('ok','Base synchronisée');
+  }catch(e){
+    if(e.message&&e.message.includes('does not exist')){setSyncStatus('error','Tables manquantes — voir Paramètres');}
+    else{setSyncStatus('error','Erreur connexion');}
+    console.error(e);
+  }
+}
 
 function setMobSub(sub,btn){
   currentMobSub=sub;
@@ -2936,6 +3004,82 @@ function getBadgeCat(b){
   return'autre';
 }
 
+function renderMobStats(){
+  const tels=mobCache.tel,tabs=mobCache.tab,badges=mobCache.badge;
+  const telAtt=tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue'||x.statut==='Attribué').length;
+  const tabAtt=tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue'||x.statut==='Attribué').length;
+  const badgeAtt=badges.filter(x=>x.statut==='Attribué'||x.statut==='attribue'||x.statut==='Attribué').length;
+
+  // Nom court (sans le code SM-xxx)
+  const shortModel=m=>m.replace(/\s*\([^)]+\)/g,'').trim();
+
+  // Compteurs téléphones par modèle
+  const telModelCount={},telModelAtt={};
+  tels.forEach(t=>{
+    const m=t.modele||'Inconnu';
+    telModelCount[m]=(telModelCount[m]||0)+1;
+    if(t.statut==='Attribué'||t.statut==='attribue')telModelAtt[m]=(telModelAtt[m]||0)+1;
+  });
+  const telModels=Object.entries(telModelCount).sort((a,b)=>b[1]-a[1]).map(([m,total])=>{
+    const att=telModelAtt[m]||0,dispo=total-att;
+    return `<div class="stat" style="border-left:3px solid #0369a1;min-width:110px">
+      <div style="font-size:11px;margin-bottom:2px">📱</div>
+      <div class="stat-n" style="font-size:18px">${total}</div>
+      <div class="stat-l" style="font-size:10px">${shortModel(m)}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
+    </div>`;
+  }).join('');
+
+  // Compteurs tablettes par modèle
+  const tabModelCount={},tabModelAtt={};
+  tabs.forEach(t=>{
+    const m=t.modele||'Inconnu';
+    tabModelCount[m]=(tabModelCount[m]||0)+1;
+    if(t.statut==='Attribué'||t.statut==='attribue')tabModelAtt[m]=(tabModelAtt[m]||0)+1;
+  });
+  const tabModels=Object.entries(tabModelCount).sort((a,b)=>b[1]-a[1]).map(([m,total])=>{
+    const att=tabModelAtt[m]||0,dispo=total-att;
+    return `<div class="stat" style="border-left:3px solid #0891b2;min-width:110px">
+      <div style="font-size:11px;margin-bottom:2px">📟</div>
+      <div class="stat-n" style="font-size:18px">${total}</div>
+      <div class="stat-l" style="font-size:10px">${shortModel(m)}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
+    </div>`;
+  }).join('');
+
+  // Compteurs par catégorie badge
+  const cats={libourne:0,siege:0,watchdoc:0,alarme:0,telecommande_siege:0,castel:0,autre:0};
+  const catsAtt={libourne:0,siege:0,watchdoc:0,alarme:0,telecommande_siege:0,castel:0,autre:0};
+  badges.forEach(b=>{
+    const c=getBadgeCat(b);
+    if(cats[c]!==undefined)cats[c]++;
+    if((b.statut==='Attribué'||b.statut==='attribue')&&catsAtt[c]!==undefined)catsAtt[c]++;
+  });
+
+  const badgeStat=(label,icon,cat,color)=>{
+    const total=cats[cat]||0,att=catsAtt[cat]||0,dispo=total-att;
+    return `<div class="stat" style="border-left:3px solid ${color}">
+      <div style="font-size:14px;margin-bottom:2px">${icon}</div>
+      <div class="stat-n" style="font-size:18px">${total}</div>
+      <div class="stat-l">${label}</div>
+      <div style="font-size:10px;color:#888;margin-top:2px">${dispo} dispo · <span style="color:#c05621">${att} attrib.</span></div>
+    </div>`;
+  };
+
+  document.getElementById('mob-stats-bar').innerHTML=`
+    <div class="stat"><div class="stat-n">${tels.length}</div><div class="stat-l">Téléphones</div><div style="font-size:10px;color:#888;margin-top:2px">${tels.length-telAtt} dispo · <span style="color:#c05621">${telAtt} attrib.</span></div></div>
+    ${telModels}
+    <div class="stat"><div class="stat-n">${tabs.length}</div><div class="stat-l">Tablettes</div><div style="font-size:10px;color:#888;margin-top:2px">${tabs.length-tabAtt} dispo · <span style="color:#c05621">${tabAtt} attrib.</span></div></div>
+    ${tabModels}
+    <div class="stat" style="border-left:3px solid #1a3a5c"><div class="stat-n" style="font-size:18px">${badges.length}</div><div class="stat-l">Badges total</div><div style="font-size:10px;color:#888;margin-top:2px">${badges.length-badgeAtt} dispo · <span style="color:#c05621">${badgeAtt} attrib.</span></div></div>
+    ${badgeStat('Libourne','🏠','libourne','#276749')}
+    ${badgeStat('Siege','🏢','siege','#1a3a5c')}
+    ${badgeStat('WatchDoc','📄','watchdoc','#0369a1')}
+    ${badgeStat('Unaverse','🚨','alarme','#c53030')}
+    ${badgeStat('Acces Siege','🔑','telecommande_siege','#6b21a8')}
+    ${badgeStat('Castel','🔐','castel','#92400e')}
+    ${cats.autre>0?badgeStat('Autre','🪪','autre','#888'):''}`;
+}
 
 
 function statutSelectMob(type, id, current){
@@ -2992,8 +3136,58 @@ function statutBadge(s){
   return `<span class="badge ${map[s]||'gray'}">${labels[s]||s}</span>`;
 }
 
+function renderMobTel(){
+  const q=(document.getElementById('mob-tel-search')?.value||'').toLowerCase();
+  const fs=document.getElementById('mob-tel-filter-statut')?.value||'';
+  let rows=mobCache.tel.filter(d=>(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
+  document.getElementById('mob-tel-body').innerHTML=rows.length
+    ?rows.map(d=>`<tr>
+        <td>${d.marque||'—'} ${d.modele||''}</td>
+        <td><code>${d.imei||'—'}</code></td>
+        <td style="font-size:11px;color:#666">${d.numero||'<span style="color:#c53030">manquant</span>'}</td>
+        <td style="font-size:11px">${d.collaborateur||'—'}</td>
+        <td style="font-size:11px">${d.site||'—'}</td>
+        <td style="font-size:11px">${d.date_attribution||'—'}</td>
+        <td>${statutSelectMob('tel',d.id,d.statut||'disponible')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn small" onclick="editMobDevice('tel','${d.id}')">✏</button>
+          <button class="btn small danger" onclick="deleteMobDevice('tel','${d.id}')">✕</button>
+        </td>
+      </tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun téléphone enregistré</td></tr>';
+}
 
+function renderMobTab(){
+  const q=(document.getElementById('mob-tab-search')?.value||'').toLowerCase();
+  const fs=document.getElementById('mob-tab-filter-statut')?.value||'';
+  let rows=mobCache.tab.filter(d=>(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
+  document.getElementById('mob-tab-body').innerHTML=rows.length
+    ?rows.map(d=>`<tr>
+        <td>${d.marque||'—'} ${d.modele||''}</td>
+        <td><code>${d.imei||'—'}</code></td>
+        <td style="font-size:11px;color:#666">${d.nom||d.sim||'—'}</td>
+        <td style="font-size:11px">${d.collaborateur||'—'}</td>
+        <td style="font-size:11px">${d.site||'—'}</td>
+        <td style="font-size:11px">${d.date_attribution||'—'}</td>
+        <td>${statutSelectMob('tab',d.id,d.statut||'disponible')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn small" onclick="editMobDevice('tab','${d.id}')">✏</button>
+          <button class="btn small danger" onclick="deleteMobDevice('tab','${d.id}')">✕</button>
+        </td>
+      </tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucune tablette enregistrée</td></tr>';
+}
 
+function renderMobBadge(){
+  const q=(document.getElementById('mob-badge-search')?.value||'').toLowerCase();
+  const ft=document.getElementById('mob-badge-filter-type')?.value||'';
+  const fs=document.getElementById('mob-badge-filter-statut')?.value||'';
+  const typeLabel={acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
+  let rows=mobCache.badge.filter(d=>(!ft||d.type_badge===ft)&&(!fs||d.statut===fs)&&(!q||JSON.stringify(d).toLowerCase().includes(q)));
+  document.getElementById('mob-badge-body').innerHTML=rows.length
+    ?rows.map(d=>`<tr><td><strong>${d.numero||'—'}</strong></td><td><span class="badge ${d.type_badge==='watchdoc'?'blue':d.type_badge==='acces'?'green':d.type_badge==='alarme'?'red':'gray'}">${typeLabel[d.type_badge]||d.type_badge||'—'}</span></td><td>${statutSelectMob('badge',d.id,d.statut||'disponible')}</td><td style="font-size:11px;color:#666">${d.notes||'—'}</td><td style="white-space:nowrap"><button class="btn small" onclick="editMobDevice('badge','${d.id}')">✏</button><button class="btn small danger" onclick="deleteMobDevice('badge','${d.id}')">✕</button></td></tr>`).join('')
+    :'<tr><td colspan="5" class="empty">Aucun badge enregistré</td></tr>';
+}
 
 function openMobForm(type,prefill){
   document.getElementById('mob-form-type').value=type;
@@ -3010,12 +3204,89 @@ function openMobForm(type,prefill){
   document.getElementById('mob-form-card').scrollIntoView({behavior:'smooth'});
 }
 
+function editMobDevice(type,id){
+  const d=mobCache[type].find(x=>x.id===id);if(!d)return;
+  openMobForm(type);
+  document.getElementById('mob-form-id').value=id;
+  document.getElementById('mob-form-title').textContent=type==='tel'?'Modifier le téléphone':type==='tab'?'Modifier la tablette':'Modifier le badge';
+  document.getElementById('mob-fields-device').style.display=type!=='badge'?'block':'none';
+  document.getElementById('mob-fields-badge').style.display=type==='badge'?'block':'none';
+  document.getElementById('mob-fields-tel-numero').style.display=type==='tel'?'flex':'none';
+  document.getElementById('mob-f-marque').value=d.marque||'';
+  document.getElementById('mob-f-modele').value=d.modele||'';
+  document.getElementById('mob-f-imei').value=d.imei||'';
+  document.getElementById('mob-f-numero').value=d.numero||'';
+  const ftn=document.getElementById('mob-f-tel-numero');if(ftn)ftn.value=d.numero||'';
+  document.getElementById('mob-f-type-badge').value=d.type_badge||'acces';
+  document.getElementById('mob-f-statut').value=d.statut||'disponible';
+  document.getElementById('mob-f-notes').value=d.notes||'';
+  const fc=document.getElementById('mob-f-collaborateur');if(fc)fc.value=d.collaborateur||'';
+  const fs2=document.getElementById('mob-f-site');if(fs2)fs2.value=d.site||'';
+  const fd=document.getElementById('mob-f-date-attr');if(fd)fd.value=d.date_attribution||'';
+}
 
 function closeMobForm(){document.getElementById('mob-form-card').style.display='none';}
 
+async function saveMobDevice(){
+  const type=document.getElementById('mob-form-type').value;
+  const id=document.getElementById('mob-form-id').value;
+  const table=type==='tel'?'mob_telephones':type==='tab'?'mob_tablettes':'mob_badges';
+  const isBadge=type==='badge';
+  const fc2=document.getElementById('mob-f-collaborateur');
+  const fs3=document.getElementById('mob-f-site');
+  const fd2=document.getElementById('mob-f-date-attr');
+  if(type==='tel'){
+    const telNum=(document.getElementById('mob-f-tel-numero').value||'').trim();
+    if(!telNum){showMsg('mob-form-msg','Le numéro de ligne est obligatoire pour un téléphone.','err');return}
+  }
+  const payload=isBadge?{numero:document.getElementById('mob-f-numero').value.trim(),type_badge:document.getElementById('mob-f-type-badge').value,statut:document.getElementById('mob-f-statut').value,notes:document.getElementById('mob-f-notes').value.trim()}:{marque:document.getElementById('mob-f-marque').value.trim(),modele:document.getElementById('mob-f-modele').value.trim(),imei:document.getElementById('mob-f-imei').value.trim(),numero:type==='tel'?document.getElementById('mob-f-tel-numero').value.trim():(document.getElementById('mob-f-numero')?.value||'').trim(),statut:document.getElementById('mob-f-statut').value,notes:document.getElementById('mob-f-notes').value.trim(),collaborateur:fc2?fc2.value.trim():'',site:fs3?fs3.value.trim():'',date_attribution:fd2?fd2.value:''};
+  setSyncStatus('syncing','Sauvegarde…');
+  try{
+    if(id){
+      const arr=await readData(table);
+      const idx2=arr.findIndex(x=>x.id===id);
+      if(idx2>=0){arr[idx2]={...arr[idx2],...payload};await writeData(table,arr);}
+      const idx=mobCache[type].findIndex(x=>x.id===id);
+      if(idx>=0)mobCache[type][idx]={...mobCache[type][idx],...payload};
+    }else{
+      const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
+      const entry={...payload,id:newId,createdAt:new Date().toISOString()};
+      const arr=await readData(table);arr.unshift(entry);
+      await writeData(table,arr);mobCache[type].unshift(entry);
+    }
+    setSyncStatus('ok','Sauvegardé');closeMobForm();renderMobStats();
+    if(type==='tel')renderMobTel();else if(type==='tab')renderMobTab();else renderMobBadge();
+  }catch(e){setSyncStatus('error','Erreur sauvegarde');showMsg('mob-form-msg','Erreur : '+e.message,'err');}
+}
 
+async function deleteMobDevice(type,id){
+  if(!confirm('Supprimer cet appareil définitivement ?'))return;
+  const table=type==='tel'?'mob_telephones':type==='tab'?'mob_tablettes':'mob_badges';
+  try{
+    const arr=await readData(table);
+    await writeData(table,arr.filter(x=>x.id!==id));
+    mobCache[type]=mobCache[type].filter(x=>x.id!==id);
+    renderMobStats();if(type==='tel')renderMobTel();else renderMobTab();
+  }catch(e){showMsg('mob-form-msg','Erreur suppression : '+e.message,'err')}
+}
 
 // ─── STOCK EPI ────────────────────────────────────────────────────────────────
+function renderStockStats(){
+  let total=0,bas=0,rupture=0,att=0;
+  Object.values(stockCache).forEach(s=>{
+    const qte=Number(s.qte)||0;
+    const seuil=Number(s.seuil)||0;
+    total+=qte;att+=Number(s.attribues)||0;
+    if(qte===0)rupture++;else if(qte<=seuil)bas++;
+  });
+  console.log('[renderStockStats] stockCache entries:',Object.keys(stockCache).length,'total:',total);
+  document.getElementById('stock-stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Unités en stock</div></div>
+    <div class="stat"><div class="stat-n">${att}</div><div class="stat-l">Attribués</div></div>
+    <div class="stat"><div class="stat-n ${bas>0?'warn':''}">${bas}</div><div class="stat-l">Stock bas</div></div>
+    <div class="stat"><div class="stat-n ${rupture>0?'warn':''}">${rupture}</div><div class="stat-l">Ruptures</div></div>
+    <div class="stat"><div class="stat-n ok">${CATALOGUE.length}</div><div class="stat-l">Références</div></div>`;
+}
 
 function buildCatFilter(id,active,fn){
   document.getElementById(id).innerHTML=['Tous',...CATS].map(c=>`<button class="cat-btn ${active===c?'active':''}" onclick="${fn}('${c}',this)">${c}</button>`).join('');
@@ -3057,11 +3328,128 @@ function entreeStock(ref,taille){
 }
 
 // ─── HISTORIQUE EPI ───────────────────────────────────────────────────────────
+function renderHistorique(){
+  const q=(document.getElementById('histo-search')?.value||'').toLowerCase();
+  const rows=mouvementsCache.filter(m=>!q||JSON.stringify(m).toLowerCase().includes(q));
+  const typeBadge={
+    dotation:'blue', restitution:'green', remplacement:'yellow', reception:'purple',
+    attribution_tel:'blue', restitution_tel:'green',
+    attribution_tab:'blue', restitution_tab:'green',
+    attribution_badge:'blue', restitution_badge:'green'
+  };
+  const typeLabel={
+    dotation:'Dotation EPI', restitution:'Restitution EPI', remplacement:'Remplacement', reception:'Réception',
+    attribution_tel:'📱 Attribution tél.', restitution_tel:'📱 Restitution tél.',
+    attribution_tab:'📟 Attribution tab.', restitution_tab:'📟 Restitution tab.',
+    attribution_badge:'🪪 Attribution badge', restitution_badge:'🪪 Restitution badge'
+  };
+  document.getElementById('histo-body').innerHTML=rows.length
+    ?rows.map(m=>{
+      const label=typeLabel[m.type]||m.type;
+      const badgeCls=typeBadge[m.type]||'gray';
+      const desig=(m.designation||m.ref||'—');
+      const isDevice=m.type&&(m.type.endsWith('_tel')||m.type.endsWith('_tab')||m.type.endsWith('_badge'));
+      const detail=isDevice?(m.imei||m.numero||'—'):(m.taille||'—');
+      const qteInfo=isDevice?1:(m.qte!=null?m.qte:'—');
+      return `<tr>
+        <td>${m.date||'—'}</td>
+        <td><span class="badge ${badgeCls}" style="white-space:nowrap">${label}</span></td>
+        <td>${[m.prenom,m.nom].filter(Boolean).join(' ')||'—'}</td>
+        <td>${m.site||'—'}</td>
+        <td title="${desig}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${desig.length>45?desig.slice(0,43)+'…':desig}</td>
+        <td style="font-size:11px;color:#666">${detail}</td>
+        <td style="text-align:center">${qteInfo}</td>
+      </tr>`;
+    }).join('')
+    :'<tr><td colspan="7" class="empty">Aucun mouvement</td></tr>';
+}
 
 // ─── ALERTES EPI ─────────────────────────────────────────────────────────────
+function getAlertes(){
+  const out=[];
+  CATALOGUE.forEach(art=>art.tailles.forEach(t=>{
+    const s=getStock(art.ref,t);
+    if(s.qte<=s.seuil)out.push({ref:art.ref,nom:art.nom,cat:art.cat,taille:t,qte:s.qte,seuil:s.seuil});
+  }));
+  return out;
+}
 
+function renderAlertes(){
+  const alertes=getAlertes();
+  // Toujours afficher la carte mail (prévisualisation et envoi)
+  buildMailPreview(alertes);
+  document.getElementById('alertes-list').innerHTML=alertes.length
+    ?alertes.map(a=>`<div class="alert-item"><div style="font-size:16px">${a.qte===0?'🔴':'🟡'}</div><div style="flex:1"><div style="font-weight:600">${a.nom}</div><div style="font-size:11px;color:#666">Réf. ${a.ref} — Taille ${a.taille}</div></div><span class="badge ${a.qte===0?'red':'yellow'}">Stock: ${a.qte} / Seuil: ${a.seuil}</span></div>`).join('')
+    :'<div class="empty">✓ Aucune alerte EPI — tout le stock est au-dessus des seuils.</div>';
+  renderPapeterieAlertes();
+  renderAttentesAlertes();
+}
 
+function updateAlerteBadge(){
+  const n=getAlertes().length+getPEAlertes().length+getPapeterieAlertes().length+getAttentesDisponibles().length;
+  const btn=document.getElementById('btn-alertes');
+  if(n>0){btn.setAttribute('data-count',n);btn.classList.add('alert-badge')}
+  else{btn.removeAttribute('data-count');btn.classList.remove('alert-badge')}
+}
 
+function buildMailPreview(alertesEpi, mode='tout'){
+  const cfg=loadConfig();
+  const date=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const sign=cfg.signature||'Cordialement,\nPôle Facilities — Domofrance';
+  const intro=cfg.intro||'Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif des articles dont le stock est passé sous le seuil d\'alerte.';
+
+  const alertesPap = getPapeterieAlertes();
+  const hasEpi = alertesEpi&&alertesEpi.length>0;
+  const hasPap = alertesPap&&alertesPap.length>0;
+
+  if(!hasEpi&&!hasPap){
+    document.getElementById('mail-body-preview').textContent='✓ Aucune alerte EPI ni papeterie — aucun mail à envoyer pour le moment.';
+    document.getElementById('mail-to-preview').innerHTML='';
+    window._mailCorps='';
+    window._mailSujet=cfg.sujet||'ALERTE STOCK — Domofrance Pôle Facilities';
+    return;
+  }
+
+  const sujet = mode==='ruptures'
+    ? 'RUPTURES DE STOCK EPI — Domofrance Pôle Facilities'
+    : hasEpi&&hasPap
+      ? 'ALERTE STOCK EPI & PAPETERIE — Domofrance Pôle Facilities'
+      : hasEpi
+        ? (cfg.sujet||'ALERTE STOCK EPI — Domofrance Pôle Facilities')
+        : 'ALERTE STOCK PAPETERIE — Domofrance Pôle Facilities';
+
+  let corps = intro + '\n\n';
+
+  // ── Section EPI ──────────────────────────────────────────────────────────────
+  if(hasEpi){
+    const byCat={};alertesEpi.forEach(a=>{if(!byCat[a.cat])byCat[a.cat]=[];byCat[a.cat].push(a)});
+    corps+=`ÉQUIPEMENTS DE PROTECTION INDIVIDUELLE (EPI)\n${'─'.repeat(52)}\n`;
+    Object.entries(byCat).forEach(([cat,items])=>{
+      corps+=`\n${cat.toUpperCase()}\n`;
+      items.forEach(a=>{corps+=`  • ${a.ref} — ${a.nom}\n    Taille ${a.taille} | Stock: ${a.qte} | Seuil: ${a.seuil} | ${a.qte===0?'⚠ RUPTURE':'↘ Stock bas'}\n`});
+    });
+    corps+=`\nNombre d'articles EPI concernés : ${alertesEpi.length}\n`;
+  }
+
+  // ── Section Papeterie ─────────────────────────────────────────────────────────
+  if(hasPap){
+    if(hasEpi) corps+='\n';
+    corps+=`PAPETERIE\n${'─'.repeat(52)}\n`;
+    alertesPap.forEach(a=>{
+      const s=getPapeterieStock(a.id);
+      corps+=`  • ${a.designation}\n    Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} | Seuil: ${s.seuil} | ${s.stock_cartons===0?'⚠ RUPTURE':'↘ Stock bas'}\n`;
+    });
+    corps+=`\nNombre d'articles papeterie concernés : ${alertesPap.length}\n`;
+  }
+
+  corps += `\n${'─'.repeat(52)}\nRécapitulatif généré le ${date}\n\n${sign}`;
+
+  document.getElementById('mail-body-preview').textContent=corps;
+  const ccParts=[cfg.cc,cfg.rg].filter(Boolean);
+  document.getElementById('mail-to-preview').innerHTML=`<strong>À :</strong> ${cfg.moi||'[Non configuré]'}${ccParts.length?' &nbsp;|&nbsp; <strong>Cc :</strong> '+ccParts.join(', '):''}`;
+  window._mailCorps=corps;
+  window._mailSujet=sujet;
+}
 
 function ouvrirMailAlerte(mode='tout'){
   const cfg=loadConfig();
@@ -3098,6 +3486,14 @@ function testerMail(){
 }
 
 // ─── CATALOGUE EPI ────────────────────────────────────────────────────────────
+function renderCatalogue(){
+  buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
+  const q=(document.getElementById('cat-search')?.value||'').toLowerCase();
+  const rows=CATALOGUE.filter(a=>activeCatCat==='Tous'||a.cat===activeCatCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q));
+  document.getElementById('cat-body').innerHTML=rows.length
+    ?rows.map(a=>`<tr><td>${a.img?`<img src="${a.img}" alt="${a.nom}" class="cat-thumb" onclick="zoomCatImg('${a.img}','${a.nom.replace(/'/g,"\\'")}')">`:`<span class="cat-thumb-empty">—</span>`}</td><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
+}
 function zoomCatImg(src,nom){
   const ov=document.createElement('div');
   ov.className='cat-img-overlay';
@@ -3184,7 +3580,23 @@ let _papSeuilTimer=null;
 let _papStockTimer=null;
 
 // ── Chargement ────────────────────────────────────────────────────────────────
+async function loadPapeterieStock(){
+  try{
+    const obj=await ghRead('data/papeterie_stock.json')||{};
+    papeterieStockCache={};
+    PAPETERIE_ARTICLES.forEach(a=>{
+      papeterieStockCache[a.id]=obj[a.id]||{id:a.id,stock_cartons:0,seuil:2};
+    });
+  }catch(e){
+    PAPETERIE_ARTICLES.forEach(a=>{papeterieStockCache[a.id]={id:a.id,stock_cartons:0,seuil:2};});
+    console.error('loadPapeterieStock:',e);
+  }
+}
 
+async function loadPapeterieMovements(){
+  try{papeterieMovCache=(await ghRead('data/papeterie_mouvements.json')||[]).slice(0,500);}
+  catch(e){papeterieMovCache=[];console.error(e);}
+}
 
 async function savePapeterieStockToGH(){
   setSyncStatus('syncing','Sauvegarde papeterie…');
@@ -3209,8 +3621,66 @@ function setPapSub(sub,btn){
 }
 
 // ── Stats cards ───────────────────────────────────────────────────────────────
+function renderPapeterieStats(){
+  const el=document.getElementById('papeterie-stats');if(!el)return;
+  // 2 cartes papier + 4 cartes familles enveloppes
+  const papiers=PAPETERIE_ARTICLES.filter(a=>a.type==='Papier');
+  const papierCards=papiers.map(a=>{
+    const s=getPapeterieStock(a.id);
+    const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+    const cls=isEmpty?'pap-stat alert-empty':isLow?'pap-stat alert-low':'pap-stat';
+    return `<div class="${cls}">
+      <div style="font-size:20px;margin-bottom:4px">${a.icon}</div>
+      <div class="pap-stat-n ${isEmpty?'warn':''}">${s.stock_cartons}</div>
+      <div style="font-size:9px;font-weight:700;color:#1a3a5c;margin-top:1px">carton${s.stock_cartons>1?'s':''}</div>
+      <div class="pap-stat-l">${a.designation}</div>
+      <div class="pap-stat-sub">${a.contenu}</div>
+      ${isEmpty?`<div style="font-size:9px;font-weight:700;color:#c53030;margin-top:4px">⚠ RUPTURE</div>`:isLow?`<div style="font-size:9px;font-weight:700;color:#92400e;margin-top:4px">↘ Stock bas</div>`:''}
+    </div>`;
+  }).join('');
+  const familleCards=ENV_FAMILLES.map(fam=>{
+    const arts=PAPETERIE_ARTICLES.filter(a=>a.famille===fam);
+    const total=arts.reduce((s,a)=>s+getPapeterieStock(a.id).stock_cartons,0);
+    const nbRupture=arts.filter(a=>getPapeterieStock(a.id).stock_cartons===0).length;
+    const nbBas=arts.filter(a=>{const s=getPapeterieStock(a.id);return s.stock_cartons>0&&s.stock_cartons<=s.seuil;}).length;
+    const isEmpty=nbRupture===arts.length;const isLow=!isEmpty&&(nbRupture>0||nbBas>0);
+    const cls=isEmpty?'pap-stat alert-empty':isLow?'pap-stat alert-low':'pap-stat';
+    return `<div class="${cls}">
+      <div style="font-size:20px;margin-bottom:4px">✉️</div>
+      <div class="pap-stat-n ${isEmpty?'warn':''}">${total}</div>
+      <div style="font-size:9px;font-weight:700;color:#1a3a5c;margin-top:1px">carton${total>1?'s':''} total</div>
+      <div class="pap-stat-l">${fam}</div>
+      <div class="pap-stat-sub">${arts.length} références</div>
+      ${nbRupture>0?`<div style="font-size:9px;font-weight:700;color:#c53030;margin-top:4px">⚠ ${nbRupture} rupture${nbRupture>1?'s':''}</div>`:nbBas>0?`<div style="font-size:9px;font-weight:700;color:#92400e;margin-top:4px">↘ ${nbBas} stock${nbBas>1?'s':''} bas</div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=papierCards+familleCards;
+}
 
 // ── Table de stock + seuils ───────────────────────────────────────────────────
+function renderPapeterieStockTable(){
+  const el=document.getElementById('pap-stock-table-body');if(!el)return;
+  let rows='';
+  // Papier
+  rows+='<tr><td colspan="6" style="background:#f0f4ff;font-weight:700;color:#1a3a5c;font-size:11px;padding:6px 8px;letter-spacing:.04em">📄 PAPIER</td></tr>';
+  PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').forEach(a=>{
+    const s=getPapeterieStock(a.id);
+    const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+    const rc=isEmpty?'stock-zero':isLow?'stock-low':'';
+    rows+=`<tr class="${rc}"><td style="padding-left:16px">${a.icon} <strong>${a.designation}</strong></td><td><span class="badge blue">Papier</span></td><td style="font-size:11px;color:#666">${a.contenu}</td><td style="text-align:center"><input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)"></td><td style="text-align:center"><span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span></td></tr>`;
+  });
+  // Enveloppes par famille
+  ENV_FAMILLES.forEach(fam=>{
+    rows+=`<tr><td colspan="6" style="background:#f5f0ff;font-weight:700;color:#6b21a8;font-size:11px;padding:6px 8px;letter-spacing:.04em">✉️ ENVELOPPES — ${fam.toUpperCase()}</td></tr>`;
+    PAPETERIE_ARTICLES.filter(a=>a.famille===fam).forEach(a=>{
+      const s=getPapeterieStock(a.id);
+      const isEmpty=s.stock_cartons===0;const isLow=!isEmpty&&s.stock_cartons<=s.seuil;
+      const rc=isEmpty?'stock-zero':isLow?'stock-low':'';
+      rows+=`<tr class="${rc}"><td style="padding-left:16px">${a.icon} <strong>${a.format}</strong> ${a.fenetre?'<span class="badge blue" style="font-size:9px">avec fenêtre</span>':'<span class="badge gray" style="font-size:9px">sans fenêtre</span>'}</td><td><span class="badge purple">${fam}</span></td><td style="font-size:11px;color:#666">${a.contenu}</td><td style="text-align:center"><input type="number" min="0" value="${s.stock_cartons}" style="width:70px;text-align:center;${isEmpty?'color:#c53030':isLow?'color:#92400e':''}" onchange="updatePapStockManuel('${a.id}',this.value)"></td><td style="text-align:center"><input type="number" min="0" value="${s.seuil}" style="width:60px;text-align:center" onchange="updatePapSeuil('${a.id}',this.value)"></td><td style="text-align:center"><span class="badge ${isEmpty?'red':isLow?'yellow':'green'}">${isEmpty?'Rupture':isLow?'Stock bas':'OK'}</span></td></tr>`;
+    });
+  });
+  el.innerHTML=rows;
+}
 
 function updatePapStockManuel(id,val){
   const s=getPapeterieStock(id);
@@ -3240,8 +3710,95 @@ function updatePapeterieLine(id,field,val){
   renderPapeterieLines();
 }
 
+function renderPapeterieLines(){
+  const c=document.getElementById('papeterie-lines-container');if(!c)return;
+  if(!papeterieLines.length){c.innerHTML='<div class="empty">Aucun article ajouté — cliquez sur "+ Ajouter un article"</div>';return}
+  c.innerHTML=papeterieLines.map(line=>{
+    const s=line.articleId?getPapeterieStock(line.articleId):null;
+    const insuffisant=s&&line.qte>s.stock_cartons;
+    const stockBadge=s?`<span class="badge ${s.stock_cartons===0?'red':s.stock_cartons<=s.seuil?'yellow':'green'}" style="margin-left:6px">Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''}</span>`:'';
+    return `<div class="pap-line ${insuffisant?'insuffisant':''}">
+      <div>
+        <label>Article ${stockBadge}</label>
+        <select onchange="updatePapeterieLine('${line.id}','articleId',this.value)">
+          <option value="">— Choisir —</option>
+          <optgroup label="📄 Papier">${PAPETERIE_ARTICLES.filter(a=>a.type==='Papier').map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.designation} — ${a.contenu}</option>`).join('')}</optgroup>
+          ${ENV_FAMILLES.map(fam=>`<optgroup label="✉️ Enveloppes — ${fam}">${PAPETERIE_ARTICLES.filter(a=>a.famille===fam).map(a=>`<option value="${a.id}" ${a.id===line.articleId?'selected':''}>${a.format} ${a.fenetre?'avec fenêtre':'sans fenêtre'} — ${a.contenu}</option>`).join('')}</optgroup>`).join('')}
+        </select>
+        ${insuffisant?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Stock insuffisant — dispo : ${s.stock_cartons} carton${s.stock_cartons>1?'s':''}</div>`:''}
+      </div>
+      <div>
+        <label>Nb de cartons</label>
+        <select onchange="updatePapeterieLine('${line.id}','qte',this.value)" style="width:120px">
+          <option value="1" ${line.qte===1?'selected':''}>1 carton</option>
+          <option value="2" ${line.qte===2?'selected':''}>2 cartons</option>
+        </select>
+      </div>
+      <div><button class="btn danger small" onclick="removePapeterieLine('${line.id}')" style="margin-top:18px">✕</button></div>
+    </div>`;
+  }).join('');
+}
 
 // ── Validation demande ────────────────────────────────────────────────────────
+async function validerDemandePapeterie(){
+  const nom=document.getElementById('pap-nom').value.trim();
+  const prenom=document.getElementById('pap-prenom').value.trim();
+  const service=document.getElementById('pap-service').value.trim();
+  const site=document.getElementById('pap-site').value;
+  const date=document.getElementById('pap-date').value||new Date().toISOString().slice(0,10);
+
+  if(!nom){showMsg('pap-msg','Saisissez le nom du demandeur.','err');return}
+  if(!papeterieLines.length){showMsg('pap-msg','Aucun article sélectionné.','err');return}
+  if(papeterieLines.find(l=>!l.articleId)){showMsg('pap-msg','Sélectionnez un article pour chaque ligne.','err');return}
+
+  const err=papeterieLines.filter(l=>{const s=getPapeterieStock(l.articleId);return s.stock_cartons<l.qte;});
+  if(err.length){
+    showMsg('pap-msg',err.map(l=>{const a=PAPETERIE_ARTICLES.find(x=>x.id===l.articleId);const s=getPapeterieStock(l.articleId);return`Stock insuffisant : ${a?a.designation:l.articleId} (dispo: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''})`;}).join('<br>'),'err');
+    return;
+  }
+
+  const btn=document.getElementById('btn-pap-valider');
+  btn.disabled=true;btn.textContent='Enregistrement…';
+  showMsg('pap-msg','Enregistrement en cours…','info');
+
+  try{
+    // Lire stock frais pour éviter les conflits
+    const freshStock=await ghRead('data/papeterie_stock.json')||{};
+    PAPETERIE_ARTICLES.forEach(a=>{if(freshStock[a.id])papeterieStockCache[a.id]=freshStock[a.id];});
+
+    for(const line of papeterieLines){
+      const s=getPapeterieStock(line.articleId);
+      s.stock_cartons=Math.max(0,s.stock_cartons-line.qte);
+      papeterieStockCache[line.articleId]=s;
+    }
+    await savePapeterieStockToGH();
+
+    // Historique
+    const freshMov=await ghRead('data/papeterie_mouvements.json')||[];
+    for(const line of papeterieLines){
+      const art=PAPETERIE_ARTICLES.find(x=>x.id===line.articleId);
+      freshMov.unshift({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2),
+        date,type:'sortie',nom,prenom,service,site,
+        articleId:line.articleId,
+        designation:art?art.designation:line.articleId,
+        qte_cartons:line.qte,
+        createdAt:new Date().toISOString()
+      });
+    }
+    papeterieMovCache=freshMov.slice(0,500);
+    await ghWrite('data/papeterie_mouvements.json',papeterieMovCache);
+
+    renderPapeterieStats();updateAlerteBadge();
+    showMsg('pap-msg',`✓ Demande validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
+    papeterieLines=[];renderPapeterieLines();
+    document.getElementById('pap-nom').value='';
+    document.getElementById('pap-prenom').value='';
+    document.getElementById('pap-service').value='';
+    document.getElementById('pap-site').value='';
+  }catch(e){showMsg('pap-msg','Erreur : '+e.message,'err');}
+  btn.disabled=false;btn.textContent='✓ Valider et déduire du stock';
+}
 
 function resetDemandePapeterie(){
   ['pap-nom','pap-prenom','pap-service'].forEach(id=>document.getElementById(id).value='');
@@ -3331,12 +3888,49 @@ async function validerReceptionPapeterie(){
 }
 
 // ── Historique papeterie ──────────────────────────────────────────────────────
+function renderPapeterieHisto(){
+  const q=(document.getElementById('papeterie-histo-search')?.value||'').toLowerCase();
+  const rows=papeterieMovCache.filter(m=>!q||JSON.stringify(m).toLowerCase().includes(q));
+  const el=document.getElementById('papeterie-histo-body');if(!el)return;
+  el.innerHTML=rows.length
+    ?rows.map(m=>`<tr>
+        <td>${m.date||'—'}</td>
+        <td><span class="badge ${m.type==='sortie'?'blue':'green'}">${m.type==='sortie'?'Demande':'Réception'}</span></td>
+        <td>${[m.prenom,m.nom].filter(Boolean).join(' ')||'—'}</td>
+        <td>${m.service||'—'}</td>
+        <td>${m.site||'—'}</td>
+        <td>${m.designation||'—'}</td>
+        <td style="text-align:center;font-weight:600;${m.type==='sortie'?'color:#c05621':'color:#276749'}">
+          ${m.type==='sortie'?'−':'+'}${m.qte_cartons} carton${m.qte_cartons>1?'s':''}
+        </td>
+      </tr>`).join('')
+    :'<tr><td colspan="7" class="empty">Aucun mouvement papeterie</td></tr>';
+}
 
 // ── Alertes papeterie ─────────────────────────────────────────────────────────
 function getPapeterieAlertes(){
   return PAPETERIE_ARTICLES.filter(a=>{const s=getPapeterieStock(a.id);return s.stock_cartons<=s.seuil;});
 }
 
+function renderPapeterieAlertes(){
+  const alertes=getPapeterieAlertes();
+  const el=document.getElementById('pap-alertes-list');if(!el)return;
+  el.innerHTML=alertes.length
+    ?alertes.map(a=>{
+        const s=getPapeterieStock(a.id);
+        return `<div class="alert-item" style="background:${s.stock_cartons===0?'#fff5f5':'#fff8f0'};border-color:${s.stock_cartons===0?'#fc8181':'#fbd38d'}">
+          <div style="font-size:16px">${s.stock_cartons===0?'🔴':'🟡'}</div>
+          <div style="flex:1">
+            <div style="font-weight:600">${a.icon} ${a.designation}</div>
+            <div style="font-size:11px;color:#666">${a.contenu}</div>
+          </div>
+          <span class="badge ${s.stock_cartons===0?'red':'yellow'}">
+            ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} / Seuil : ${s.seuil}
+          </span>
+        </div>`;
+      }).join('')
+    :'<div class="empty">✓ Aucune alerte — stock papeterie au-dessus des seuils.</div>';
+}
 // ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -3391,6 +3985,7 @@ async function marquerAttenteEnvoyee(id){
     }
     attentesCache = attentesCache.filter(x=>x.id!==id);
     renderAttentesAlertes();
+    updateAlerteBadge();
     showMsg('attentes-msg-'+id, '', 'ok'); // cleanup
   }catch(e){ alert('Erreur : '+e.message); }
 }
@@ -3409,6 +4004,42 @@ function getToutesAttentes(){
   return attentesCache.filter(a=>a.statut==='en_attente');
 }
 
+function renderAttentesAlertes(){
+  const el = document.getElementById('attentes-list');
+  if(!el) return;
+  const toutes = getToutesAttentes();
+  const dispos = getAttentesDisponibles();
+  if(!toutes.length){
+    el.innerHTML='<div class="empty">✓ Aucun article en attente de livraison</div>';
+    document.getElementById('card-attentes').style.borderColor='';
+    return;
+  }
+  // Surligner la carte si des articles sont disponibles
+  document.getElementById('card-attentes').style.borderColor = dispos.length>0?'#276749':'';
+
+  el.innerHTML = toutes.map(a=>{
+    const s = getStock(a.ref, a.taille);
+    const stockOk = s.qte >= a.qte;
+    const dateStr = a.date ? new Date(a.date+'T12:00:00').toLocaleDateString('fr-FR') : '—';
+    const createdStr = new Date(a.createdAt).toLocaleDateString('fr-FR');
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:${stockOk?'#f0fff4':'#f8f9fb'};border:1px solid ${stockOk?'#9ae6b4':'#dde'};border-radius:6px;margin-bottom:8px">
+      <div style="font-size:18px;flex-shrink:0;margin-top:2px">${stockOk?'🟢':'⏳'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12px">${a.designation||a.ref} — Taille ${a.taille} × ${a.qte}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">
+          👤 <strong>${a.prenom||''} ${a.nom||''}</strong>${a.matricule?' ('+a.matricule+')':''} — ${a.site||'—'}
+          &nbsp;·&nbsp; Dotation du ${dateStr}
+          &nbsp;·&nbsp; Mis en attente le ${createdStr}
+        </div>
+        ${stockOk
+          ? `<div style="font-size:11px;color:#276749;font-weight:600;margin-top:4px">✅ Stock disponible (${s.qte} en stock) — prêt à envoyer</div>`
+          : `<div style="font-size:11px;color:#c05621;margin-top:4px">Stock actuel : ${s.qte} / ${a.qte} nécessaire${s.qte>0?' — stock partiel':' — rupture'}</div>`
+        }
+      </div>
+      ${stockOk?`<button class="btn success small" style="flex-shrink:0" onclick="marquerAttenteEnvoyee('${a.id}')">✓ Envoyé</button>`:''}
+    </div>`;
+  }).join('');
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -3631,6 +4262,9 @@ async function loadUsers(){
   }catch(e){console.error('loadUsers',e);}
 }
 
+async function saveUsers(){
+  await ghWrite('data/users.json', usersCache);
+}
 
 async function doLogin(){
   const login=document.getElementById('login-user').value.trim().toLowerCase();
@@ -3654,6 +4288,21 @@ async function doLogin(){
   }catch(e){errEl.textContent='Erreur : '+e.message;btn.textContent='Se connecter';btn.disabled=false;}
 }
 
+async function doChangePassword(){
+  const newPwd=document.getElementById('chgpwd-new').value;
+  const conf=document.getElementById('chgpwd-confirm').value;
+  const errEl=document.getElementById('chgpwd-error');
+  if(newPwd.length<8){errEl.textContent='8 caractères minimum.';return;}
+  if(newPwd!==conf){errEl.textContent='Les mots de passe ne correspondent pas.';return;}
+  try{
+    const hash=await sha256(newPwd);
+    const idx=usersCache.findIndex(u=>u.login===currentUser.login);
+    if(idx>=0){usersCache[idx].hash=hash;usersCache[idx].premiere_connexion=false;}
+    await saveUsers();
+    document.getElementById('chgpwd-overlay').style.display='none';
+    loginSuccess();
+  }catch(e){document.getElementById('chgpwd-error').textContent='Erreur : '+e.message;}
+}
 
 function loginSuccess(){
   document.getElementById('login-overlay').style.display='none';
@@ -3683,6 +4332,26 @@ function deconnexion(){
 
 // ─── GESTION COMPTES (admin) ───────────────────────────────────────────
 
+function renderUsersList(){
+  const el=document.getElementById('users-list');
+  if(!el)return;
+  el.innerHTML=usersCache.map(u=>`
+    <div class="user-card" style="${!u.actif?'opacity:.5':''}">
+      <div class="user-card-avatar">${u.nom.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div class="user-card-info">
+        <strong>${u.nom}</strong>
+        <span>${u.login} &nbsp;·&nbsp; ${u.role==='admin'?'<span class=\"tag-admin\">Admin</span>':'<span class=\"tag-gest\">Gestionnaire</span>'}
+        ${u.premiere_connexion?'&nbsp;<span style=\"color:#c0392b;font-size:10px\">⚠ Mdp non changé</span>':''}
+        ${!u.actif?'&nbsp;<span class=\"tag-inactif\">Inactif</span>':''}</span>
+      </div>
+      <div class="user-card-actions">
+        ${u.login!==currentUser.login?`
+          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="toggleUserActif('${u.login}')"> ${u.actif?'Désactiver':'Activer'}</button>
+          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="resetUserPassword('${u.login}')">Réinit. mdp</button>
+        `:'<span style=\"font-size:11px;color:#888\">Mon compte</span>'}
+      </div>
+    </div>`).join('');
+}
 
 async function toggleUserActif(login){
   const idx=usersCache.findIndex(u=>u.login===login);
@@ -3798,7 +4467,206 @@ function exportStockMobilite(){
 
 let _dbCharts = {};
 
+function destroyChart(id) {
+  if (_dbCharts[id]) { _dbCharts[id].destroy(); delete _dbCharts[id]; }
+}
 
+function renderDashboard() {
+  const filterSite = document.getElementById('db-filter-site')?.value || '';
+
+  // Alimenter le filtre sites — reconstruction complète à chaque appel
+  const cleanSite = s => {
+    if (!s || typeof s !== 'string') return '';
+    // Supprimer toute chaîne contenant des caractères mal encodés
+    if (s.includes('Ã') || s.includes('Â') || s.includes('�')) return '';
+    return s.trim();
+  };
+  const siteSet = new Set();
+  [...(mobCache.tel||[]), ...(mobCache.badge||[]), ...(mobCache.tab||[])]
+    .forEach(x => { const s=cleanSite(x.site||''); if(s) siteSet.add(s); });
+  mouvementsCache.forEach(m => { const s=cleanSite(m.site||''); if(s) siteSet.add(s); });
+  const selSite = document.getElementById('db-filter-site');
+  if (selSite) {
+    // Vider complètement avant de repeupler
+    const currentVal = selSite.value;
+    while(selSite.options.length > 0) selSite.remove(0);
+    const allOpt = document.createElement('option');
+    allOpt.value = ''; allOpt.textContent = 'Tous les sites';
+    selSite.appendChild(allOpt);
+    [...siteSet].sort().forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      selSite.appendChild(o);
+    });
+    // Restaurer la valeur si encore disponible
+    if(currentVal && [...siteSet].includes(currentVal)) selSite.value = currentVal;
+  }
+
+  const tels   = filterSite ? (mobCache.tel||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tel||[]);
+  const tabs   = filterSite ? (mobCache.tab||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.tab||[]);
+  const badges = filterSite ? (mobCache.badge||[]).filter(x=>cleanSite(x.site||'')===filterSite) : (mobCache.badge||[]);
+  const mouvs  = filterSite ? mouvementsCache.filter(m=>cleanSite(m.site||'')===filterSite) : mouvementsCache;
+
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  const totalTel   = tels.length;
+  const attribTel  = tels.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const totalTab   = tabs.length;
+  const attribTab  = tabs.filter(x=>x.statut==='Attribué'||x.statut==='attribue').length;
+  const totalBadge = badges.length;
+  const attribBadge= badges.filter(x=>x.statut==='Attribué'||x.statut==='Disponible'?false:true).length;
+  const dispoBadge = badges.filter(x=>x.statut==='Disponible'||x.statut==='disponible').length;
+
+  // Valeur stock EPI
+  let valeurStock = 0;
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const s = stockCache[a.ref+'__'+t]||{};
+      if ((s.qte||0)>0 && (a.prix||0)>0) valeurStock += (s.qte||0) * a.prix;
+    });
+  });
+
+  // Articles en alerte
+  let alertesEPI = 0;
+  Object.entries(stockCache).forEach(([k,v])=>{
+    if ((v.seuil||0)>0 && (v.qte||0) <= (v.seuil||0)) alertesEPI++;
+  });
+
+  document.getElementById('db-kpis').innerHTML = `
+    <div class="db-kpi"><div class="db-kpi-icon">📱</div><div class="db-kpi-val">${totalTel}</div><div class="db-kpi-lbl">Téléphones</div><div class="db-kpi-sub" style="color:#0369a1">${attribTel} attribués · ${totalTel-attribTel} dispo</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📟</div><div class="db-kpi-val">${totalTab}</div><div class="db-kpi-lbl">Tablettes</div><div class="db-kpi-sub" style="color:#0369a1">${attribTab} attribuées · ${totalTab-attribTab} dispo</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">🪪</div><div class="db-kpi-val">${totalBadge}</div><div class="db-kpi-lbl">Badges</div><div class="db-kpi-sub" style="color:#276749">${dispoBadge} disponibles</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">💶</div><div class="db-kpi-val">${valeurStock.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €</div><div class="db-kpi-lbl">Valeur stock EPI</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📦</div><div class="db-kpi-val">${Object.values(stockCache).reduce((a,v)=>a+(v.qte||0),0)}</div><div class="db-kpi-lbl">Articles EPI en stock</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">⚠️</div><div class="db-kpi-val" style="color:#c0392b">${alertesEPI}</div><div class="db-kpi-lbl">Références EPI sous seuil</div></div>
+    <div class="db-kpi"><div class="db-kpi-icon">📋</div><div class="db-kpi-val">${mouvs.length}</div><div class="db-kpi-lbl">Mouvements enregistrés</div></div>
+  `;
+
+  // ── Graphique 1 : téléphones par modèle ───────────────────────────────
+  destroyChart('chart-tel-modeles');
+  const telModels = {};
+  tels.forEach(t => { const m=t.modele||'Inconnu'; telModels[m]=(telModels[m]||0)+1; });
+  const telEntries = Object.entries(telModels).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ctx1 = document.getElementById('chart-tel-modeles');
+  if (ctx1 && telEntries.length) {
+    _dbCharts['chart-tel-modeles'] = new Chart(ctx1, { type:'doughnut', data:{
+      labels: telEntries.map(([m])=>m.replace(/\s*\([^)]+\)/g,'')),
+      datasets:[{data:telEntries.map(([,v])=>v),backgroundColor:['#1a3a5c','#2e5d8e','#0369a1','#0891b2','#c0392b','#e67e22','#276749','#6b21a8'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 2 : badges par type ─────────────────────────────────────
+  destroyChart('chart-badges-types');
+  const badgeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',telecommande_siege:'Acces Siege',autre:'Autre'};
+  const badgeTypes = {};
+  badges.forEach(b => { const t=badgeLabels[b.type_badge]||b.type_badge||'Autre'; badgeTypes[t]=(badgeTypes[t]||0)+1; });
+  const ctx2 = document.getElementById('chart-badges-types');
+  if (ctx2 && Object.keys(badgeTypes).length) {
+    _dbCharts['chart-badges-types'] = new Chart(ctx2, { type:'pie', data:{
+      labels: Object.keys(badgeTypes),
+      datasets:[{data:Object.values(badgeTypes),backgroundColor:['#1a3a5c','#0369a1','#c0392b','#6b21a8','#888'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 3 : Top 10 EPI par valeur stock ──────────────────────────
+  destroyChart('chart-epi-valeur');
+  const epiValeurs = {};
+  CATALOGUE.filter(a=>!a.catalogOnly && a.prix>0).forEach(a=>{
+    let qteTotal=0;
+    (a.tailles||['Unique']).forEach(t=>{ qteTotal+=(stockCache[a.ref+'__'+t]||{qte:0}).qte||0; });
+    if (qteTotal>0) epiValeurs[a.nom] = qteTotal * a.prix;
+  });
+  const epiTop = Object.entries(epiValeurs).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ctx3 = document.getElementById('chart-epi-valeur');
+  if (ctx3 && epiTop.length) {
+    _dbCharts['chart-epi-valeur'] = new Chart(ctx3, { type:'bar', data:{
+      labels: epiTop.map(([n])=>n.length>20?n.slice(0,20)+'…':n),
+      datasets:[{label:'Valeur (€)',data:epiTop.map(([,v])=>Math.round(v*100)/100),backgroundColor:'rgba(26,58,92,0.8)',borderColor:'#1a3a5c',borderWidth:1}]
+    }, options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{color:'#f0f0f0'}},y:{ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Graphique 4 : Mouvements par mois ─────────────────────────────────
+  destroyChart('chart-mouvements-mois');
+  const parMois = {};
+  mouvs.forEach(m=>{
+    const mois=(m.date||m.createdAt||'').slice(0,7);
+    if(!mois)return;
+    if(!parMois[mois])parMois[mois]={attribution:0,restitution:0};
+    if(m.type&&m.type.includes('attribution'))parMois[mois].attribution++;
+    else if(m.type&&m.type.includes('restitution'))parMois[mois].restitution++;
+  });
+  const moisSorted = Object.keys(parMois).sort();
+  const ctx4 = document.getElementById('chart-mouvements-mois');
+  if (ctx4 && moisSorted.length) {
+    _dbCharts['chart-mouvements-mois'] = new Chart(ctx4, { type:'bar', data:{
+      labels: moisSorted.map(m=>{ const [y,mo]=m.split('-'); return ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][parseInt(mo)-1]+' '+y.slice(2); }),
+      datasets:[
+        {label:'Attributions',data:moisSorted.map(m=>parMois[m].attribution),backgroundColor:'rgba(26,58,92,0.8)'},
+        {label:'Restitutions',data:moisSorted.map(m=>parMois[m].restitution),backgroundColor:'rgba(192,57,43,0.7)'},
+      ]
+    }, options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{x:{stacked:false,ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Graphique 5 : Tablettes par modèle ────────────────────────────────
+  destroyChart('chart-tab-modeles');
+  const tabModels = {};
+  tabs.forEach(t=>{ const m=t.modele||'Inconnu'; tabModels[m]=(tabModels[m]||0)+1; });
+  const ctx5 = document.getElementById('chart-tab-modeles');
+  if (ctx5 && Object.keys(tabModels).length) {
+    _dbCharts['chart-tab-modeles'] = new Chart(ctx5, { type:'doughnut', data:{
+      labels: Object.keys(tabModels).map(m=>m.replace(/\s*\([^)]+\)/g,'')),
+      datasets:[{data:Object.values(tabModels),backgroundColor:['#0891b2','#0369a1','#1a3a5c','#276749'],borderWidth:2,borderColor:'#fff'}]
+    }, options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}} });
+  }
+
+  // ── Graphique 6 : Mobilité attribution vs disponible ──────────────────
+  destroyChart('chart-mob-attrib');
+  const ctx6 = document.getElementById('chart-mob-attrib');
+  if (ctx6) {
+    const isDispo = x=>x.statut==='Disponible'||x.statut==='disponible';
+    const isAttrib= x=>x.statut==='Attribué'||x.statut==='attribue';
+    _dbCharts['chart-mob-attrib'] = new Chart(ctx6, { type:'bar', data:{
+      labels:['Téléphones','Tablettes','Badges'],
+      datasets:[
+        {label:'Disponibles',data:[tels.filter(isDispo).length,tabs.filter(isDispo).length,badges.filter(isDispo).length],backgroundColor:'rgba(39,103,73,0.8)'},
+        {label:'Attribués',data:[tels.filter(isAttrib).length,tabs.filter(isAttrib).length,badges.filter(isAttrib).length],backgroundColor:'rgba(192,57,43,0.7)'},
+      ]
+    }, options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}} });
+  }
+
+  // ── Tableau 1 : Top EPI attribués ─────────────────────────────────────
+  const epiAttrib = {};
+  mouvs.filter(m=>m.type==='dotation'||m.type==='attribution').forEach(m=>{
+    if(m.ref){const a=CATALOGUE.find(x=>x.ref===m.ref);if(a){epiAttrib[a.nom]=(epiAttrib[a.nom]||0)+(m.qte||1);}}
+  });
+  const epiTopAttrib = Object.entries(epiAttrib).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('db-top-epi').innerHTML =
+    '<thead><tr><th>Article</th><th style="text-align:right">Attribués</th></tr></thead><tbody>' +
+    (epiTopAttrib.length ? epiTopAttrib.map(([n,v])=>`<tr><td>${n}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`).join('') :
+    '<tr><td colspan="2" style="color:#888;font-style:italic">Aucun mouvement EPI enregistré</td></tr>') + '</tbody>';
+
+  // ── Tableau 2 : Dotations par site ────────────────────────────────────
+  const siteCount = {};
+  mouvs.forEach(m=>{ if(m.site){siteCount[m.site]=(siteCount[m.site]||0)+1;} });
+  const siteTop = Object.entries(siteCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('db-top-sites').innerHTML =
+    '<thead><tr><th>Site / Agence</th><th style="text-align:right">Mouvements</th></tr></thead><tbody>' +
+    (siteTop.length ? siteTop.map(([s,v])=>`<tr><td>${s}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`).join('') :
+    '<tr><td colspan="2" style="color:#888;font-style:italic">Aucune donnée</td></tr>') + '</tbody>';
+
+  // ── Tableau 3 : Articles EPI sous seuil ───────────────────────────────
+  const alertes = [];
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const s=stockCache[a.ref+'__'+t]||{};
+      if((s.seuil||0)>0&&(s.qte||0)<=(s.seuil||0)) alertes.push({nom:a.nom,taille:t,qte:s.qte||0,seuil:s.seuil||0});
+    });
+  });
+  alertes.sort((a,b)=>a.qte-b.qte);
+  document.getElementById('db-alertes-epi').innerHTML =
+    '<thead><tr><th>Article</th><th>Taille</th><th style="text-align:right">Qté</th></tr></thead><tbody>' +
+    (alertes.length ? alertes.slice(0,10).map(a=>`<tr><td>${a.nom.length>20?a.nom.slice(0,20)+'…':a.nom}</td><td>${a.taille}</td><td style="text-align:right;font-weight:600;color:${a.qte===0?'#c0392b':'#e67e22'}">${a.qte}</td></tr>`).join('') :
+    '<tr><td colspan="3" style="color:#276749;font-style:italic">✅ Aucune alerte</td></tr>') + '</tbody>';
+}
 
 
 async function initApp(){
@@ -3825,14 +4693,19 @@ async function initApp(){
     setSyncStatus('syncing','Chargement EPI…');
     await loadAllStock();
     setSyncStatus('syncing','Chargement mobilité…');
+    await loadMobDevices();
     setSyncStatus('syncing','Chargement historique…');
     await loadAllMouvements();
     await loadCollabs();
     setSyncStatus('syncing','Chargement papeterie…');
+    await loadPapeterieStock();
+    await loadPapeterieMovements();
     setSyncStatus('syncing','Chargement attentes…');
     await loadAttentes();
     setSyncStatus('ok','Base synchronisée');
     renderStockStats();
+    renderPapeterieStats();
+    updateAlerteBadge();
 
     const n=getAlertes().length;
     const nPE=getPEAlertes().length;
@@ -3895,9 +4768,169 @@ sessionStorage.removeItem('gestock_user');
 let _fichesMode = 'collab';
 let _fichesSessions = [];
 
+function fichesSwitchMode(mode){
+  _fichesMode = mode;
+  var bC = document.getElementById('btn-mode-collab');
+  var bD = document.getElementById('btn-mode-date');
+  if(bC){ bC.style.background = mode==='collab' ? '#1a3a5c' : '#fff'; bC.style.color = mode==='collab' ? '#fff' : '#1a3a5c'; }
+  if(bD){ bD.style.background = mode==='date'   ? '#1a3a5c' : '#fff'; bD.style.color = mode==='date'   ? '#fff' : '#1a3a5c'; }
+  document.getElementById('fiches-search-collab').style.display = mode==='collab' ? '' : 'none';
+  document.getElementById('fiches-search-date').style.display   = mode==='date'   ? '' : 'none';
+  fichesRender();
+}
 
+function fichesGetSessions(){
+  const TYPES_DOT = new Set(['dotation','attribution_tel','attribution_tab','attribution_badge']);
+  const map = {};
+  mouvementsCache.forEach(function(m){
+    if(!TYPES_DOT.has(m.type)) return;
+    var day = (m.date||'').slice(0,10);
+    var key = (m.nom||'').toUpperCase().trim() + '||' + (m.prenom||'').trim() + '||' + day;
+    if(!map[key]){
+      map[key] = {
+        nom: (m.nom||'').toUpperCase().trim(),
+        prenom: (m.prenom||'').trim(),
+        date: day,
+        site: m.site||'',
+        matricule: m.matricule||'',
+        motif: m.motif||'',
+        mouvements: []
+      };
+    }
+    map[key].mouvements.push(m);
+  });
+  return Object.values(map).sort(function(a,b){ return b.date.localeCompare(a.date); });
+}
 
+function fichesRender(){
+  var list  = document.getElementById('fiches-result-list');
+  var empty = document.getElementById('fiches-empty');
+  if(!list || !empty) return;
+  list.innerHTML = '';
+  empty.style.display = 'none';
+  _fichesSessions = [];
 
+  if(mouvementsCache.length === 0){
+    empty.style.display = '';
+    empty.textContent = 'Chargement des données…';
+    loadAllMouvements().then(fichesRender);
+    return;
+  }
+
+  var sessions = fichesGetSessions();
+  var filtered = sessions;
+
+  if(_fichesMode === 'collab'){
+    var q = (document.getElementById('fiches-input-nom').value||'').trim().toUpperCase();
+    if(!q){ return; }
+    filtered = sessions.filter(function(s){ return s.nom.includes(q) || s.prenom.toUpperCase().includes(q); });
+  } else {
+    var d = document.getElementById('fiches-input-date').value||'';
+    if(!d){ return; }
+    filtered = sessions.filter(function(s){ return s.date === d; });
+  }
+
+  if(!filtered.length){
+    empty.style.display = '';
+    empty.textContent = 'Aucune dotation trouvée.';
+    return;
+  }
+
+  _fichesSessions = filtered;
+
+  filtered.forEach(function(s, idx){
+    var tags = new Set();
+    s.mouvements.forEach(function(m){
+      if(m.type==='dotation')          tags.add('🦺 EPI');
+      if(m.type==='attribution_tel')   tags.add('📱 Téléphone');
+      if(m.type==='attribution_tab')   tags.add('📟 Tablette');
+      if(m.type==='attribution_badge') tags.add('🪪 Badge');
+    });
+    var tagsHtml = Array.from(tags).map(function(t){ return '<span class="frl-tag">'+t+'</span>'; }).join('');
+    var dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+    var li = document.createElement('li');
+    li.innerHTML =
+      '<div class="frl-info">' +
+        '<div class="frl-name">'+s.nom+' '+s.prenom+'</div>' +
+        '<div class="frl-meta">'+dateStr+' · '+(s.site||'—')+' · '+(s.motif||'—')+'</div>' +
+        '<div class="frl-tags">'+tagsHtml+'</div>' +
+      '</div>' +
+      '<button class="btn-gen-fiche" onclick="fichesGenerer('+idx+')">📋 Générer la fiche</button>';
+    list.appendChild(li);
+  });
+}
+
+async function fichesGenerer(idx){
+  var s = _fichesSessions[idx];
+  if(!s){ console.error('Session introuvable index', idx); return; }
+
+  var badgeTypeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
+  var dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+  var ref = 'BON-'+(s.date||'').replace(/-/g,'').slice(2)+'-'+s.nom.slice(0,3).toUpperCase();
+
+  var epiMovs = s.mouvements.filter(function(m){ return m.type==='dotation'; });
+  var epiSection = '';
+  if(epiMovs.length){
+    var rows = epiMovs.map(function(m){
+      var cat = CATALOGUE.find(function(x){ return x.ref===m.ref; })||{};
+      return '<tr><td>'+(m.ref||'—')+'</td><td>'+(cat.nom||m.designation||'—')+'</td><td style="text-align:center">'+(m.taille||'—')+'</td><td style="text-align:center">'+(m.qte||1)+'</td></tr>';
+    }).join('');
+    epiSection = '<div class="section-title">🦺 EPI attribués</div><table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Unité</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-orange"><strong>Attestation :</strong> J\'atteste avoir été informé des principes généraux relatifs à l\'utilisation des EPI et je m\'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>';
+  }
+
+  var telMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tel'; });
+  var telSection = '';
+  if(telMovs.length){
+    var rows = telMovs.map(function(m){
+      var d = mobCache.tel.find(function(x){ return x.id===m.ref; })||{};
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>—</td><td>—</td><td>—</td></tr>';
+    }).join('');
+    telSection = '<div class="section-title">📱 Téléphones attribués</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
+  }
+
+  var tabMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tab'; });
+  var tabSection = '';
+  if(tabMovs.length){
+    var rows = tabMovs.map(function(m){
+      var d = mobCache.tab.find(function(x){ return x.id===m.ref; })||{};
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>—</td><td>—</td><td>—</td></tr>';
+    }).join('');
+    tabSection = '<div class="section-title">📟 Tablettes attribuées</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
+  }
+
+  var badgeMovs = s.mouvements.filter(function(m){ return m.type==='attribution_badge'; });
+  var badgeSection = '';
+  if(badgeMovs.length){
+    var rows = badgeMovs.map(function(m){
+      var d = mobCache.badge.find(function(x){ return x.id===m.ref; })||{};
+      var num = m.numero||d.numero||'—';
+      var type = badgeTypeLabels[d.type_badge]||d.type_badge||'—';
+      return '<tr><td><strong>'+num+'</strong></td><td>'+type+'</td><td>'+(d.notes||'—')+'</td><td style="font-family:monospace">—</td></tr>';
+    }).join('');
+    badgeSection = '<div class="section-title">🪪 Badges attribués</div><table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th><th>Code PUK Siege (WatchDoc)</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  var logoB64 = '';
+  try {
+    var resp = await fetch('images/logo-domofrance.png');
+    var ab = await resp.arrayBuffer();
+    logoB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
+  } catch(e) { logoB64 = ''; }
+
+  var bonHtml = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bon de DOTATION — '+s.nom+' '+s.prenom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}.header img{height:52px}.hr{text-align:right}.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}.bon-ref{font-size:10px;color:#888;margin-top:3px}.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}</style></head><body><div class="page"><div class="actions"><button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button><button class="btn-f" onclick="window.close()">✕ Fermer</button></div><div class="header"><img src="data:image/png;base64,'+logoB64+'" alt="Domofrance"><div class="hr"><div class="bon-title">BON DE DOTATION</div><div class="bon-ref">Réf. '+ref+' · '+dateStr+'</div><div class="bon-ref">Pôle Facilities — Domofrance</div></div></div><div class="info-block"><div class="bt">Informations collaborateur</div><div class="ig"><div><div class="lbl">Nom / Prénom</div><div class="val">'+s.nom+' '+s.prenom+'</div></div><div><div class="lbl">Identifiant</div><div class="val">'+(s.matricule||'—')+'</div></div><div><div class="lbl">Site / Agence</div><div class="val">'+(s.site||'—')+'</div></div><div><div class="lbl">Motif</div><div class="val">'+(s.motif||'—')+'</div></div></div></div>'+epiSection+telSection+tabSection+badgeSection+'<div class="sig-zone"><div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div><div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">'+s.nom+' '+s.prenom+'</div><div class="sig-line"></div></div></div><div class="footer">Document généré le '+new Date().toLocaleDateString('fr-FR')+' — Domofrance Pôle Facilities · Usage interne confidentiel</div></div></body></html>';
+
+  var blob = new Blob([bonHtml], {type:'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var win = window.open(url, '_blank');
+  if(win){
+    win.addEventListener('load', function(){ URL.revokeObjectURL(url); });
+  } else {
+    var a = document.createElement('a');
+    a.href = url; a.download = 'bon-dotation-'+ref+'.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  }
+}
 </script>
 </body>
 </html>

@@ -854,7 +854,16 @@ function doLogout(){
   window.location.href='epi.html';
 }
 
-initParametres();
+// Vérifier session existante au chargement
+(function(){
+  const raw = localStorage.getItem('gestock_user');
+  if(raw){
+    try{
+      currentUser = JSON.parse(raw);
+    }catch(e){ localStorage.removeItem('gestock_user'); }
+  }
+  initParametres();
+})();
 </script>
 </body>
 </html>

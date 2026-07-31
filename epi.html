@@ -2479,6 +2479,10 @@ function renderStockStats(){
     <div class="stat"><div class="stat-n ok">${CATALOGUE.length}</div><div class="stat-l">Références</div></div>`;
 }
 
+function buildCatFilter(id,active,fn){
+  document.getElementById(id).innerHTML=['Tous',...CATS].map(c=>`<button class="cat-btn ${active===c?'active':''}" onclick="${fn}('${c}',this)">${c}</button>`).join('');
+}
+
 // ─── STUBS — modules externalisés ───────────────────────────────────────────
 function renderPapeterieStats(){}
 function renderPapeterieAlertes(){}

@@ -794,6 +794,33 @@ function searchMobLine(type, id, val){
   }
 }
 
+// ─── EXPORT EXCEL ───────────────────────────────────────────────────────────────
+function exportStockMobilite(){
+  if(typeof XLSX==='undefined'){alert('Librairie XLSX non chargée. Vérifiez votre connexion.');return;}
+  const wb=XLSX.utils.book_new();
+  // Téléphones
+  const telRows=[['ID','Marque','Modèle','IMEI','Ligne SIM','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.tel||[]).forEach(t=>telRows.push([t.id||'',t.marque||'',t.modele||'',t.imei||'',t.sim||'',t.collaborateur||'',t.site||'',t.statut||'',t.date_attribution||'']));
+  const wsTel=XLSX.utils.aoa_to_sheet(telRows);
+  wsTel['!cols']=[{wch:14},{wch:12},{wch:22},{wch:18},{wch:14},{wch:25},{wch:16},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,wsTel,'Telephones');
+  // Tablettes
+  const tabRows=[['ID','Nom','Marque','Modèle','IMEI','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.tab||[]).forEach(t=>tabRows.push([t.id||'',t.nom||'',t.marque||'',t.modele||'',t.imei||'',t.collaborateur||'',t.site||'',t.statut||'',t.date_attribution||'']));
+  const wsTab=XLSX.utils.aoa_to_sheet(tabRows);
+  wsTab['!cols']=[{wch:14},{wch:20},{wch:12},{wch:22},{wch:18},{wch:25},{wch:16},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,wsTab,'Tablettes');
+  // Badges
+  const badgeLabels={acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',telecommande_siege:'Acces Siege',autre:'Autre'};
+  const badgeRows=[['ID','Numéro','Type','Collaborateur','Site','Statut','Date attribution']];
+  (mobCache.badge||[]).forEach(b=>badgeRows.push([b.id||'',b.numero||'',badgeLabels[b.type_badge]||b.type_badge||'',b.collaborateur||'',b.site||'',b.statut||'',b.date_attribution||'']));
+  const wsBadge=XLSX.utils.aoa_to_sheet(badgeRows);
+  wsBadge['!cols']=[{wch:14},{wch:14},{wch:20},{wch:25},{wch:16},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,wsBadge,'Badges');
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'GESTOCK_Stock_Mobilite_'+date+'.xlsx');
+}
+
 // ─── INIT PAGE MOBILITÉ ───────────────────────────────────────────────────────
 async function initMobilite(){
   const loginOverlay = document.getElementById('login-overlay');

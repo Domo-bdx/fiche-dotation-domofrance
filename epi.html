@@ -318,14 +318,14 @@ tr:hover td{background:#f8f9fb}
   <button class="nav-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
   <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
   <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
-  <button class="nav-btn" onclick="goTab('mobilite',this)">Stock Mobilité</button>
-  <button class="nav-btn" id="btn-papeterie" onclick="goTab('papeterie',this)">📄 Papeterie</button>
+  <a class="nav-btn" href="mobilite.html">📱 Mobilité</a>
+  <a class="nav-btn" href="papeterie.html">📄 Papeterie</a>
   <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
   <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
-  <button class="nav-btn" onclick="goTab('fiches',this)">📋 Fiches</button>
+  <a class="nav-btn" href="fiches.html">📋 Fiches</a>
 <button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
-  <button class="nav-btn" id="btn-dashboard" onclick="goTab('dashboard',this)">📊 Dashboard</button>
-  <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
+  <a class="nav-btn" href="dashboard.html">📊 Dashboard</a>
+  <a class="nav-btn" href="parametres.html">⚙ Paramètres</a>
 </div>
 
 <div class="content">
@@ -1342,19 +1342,19 @@ async function saveStockRow(ref,taille,fields){
 function goTab(t,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  if(t==='parametres'&&currentUser&&currentUser.role==='admin'&&usersCache.length>0){renderUsersList();}
-  if(t==='dashboard'){renderDashboard();}
+
+
   document.getElementById('tab-'+t).classList.add('active');
   if(btn)btn.classList.add('active');
   if(t==='stock'){if(Object.keys(stockCache).length===0){loadAllStock().then(()=>{renderStockStats();renderStock();});}else{renderStockStats();renderStock();}}
-  if(t==='historique'){loadAllMouvements().then(renderHistorique)}
-  if(t==='fiches'){loadAllMouvements().then(fichesRender);}
-  if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();buildMailPreview(getAlertes());}
-  if(t==='catalogue')renderCatalogue();
+
+
+
+
   if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
-  if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab();renderMobBadge()})}
-  if(t==='papeterie'){renderPapeterieStats();renderPapeterieAlertes();}
+
+
   closeMobileNav();
   setTimeout(applyResponsiveLabels,80);
 }
@@ -1811,7 +1811,6 @@ async function validerDotation(){
     }
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche&&nom){addCollab(nom,prenom,matricule,site,date);}
-    updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
@@ -1852,7 +1851,6 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -1897,7 +1895,6 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2203,7 +2200,6 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2248,7 +2244,6 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2568,7 +2563,6 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2736,7 +2730,6 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -2943,7 +2936,6 @@ async function validerReception(){
       const art=CATALOGUE.find(x=>x.ref===line.ref);
       await sbPost('mouvements',{date,type:'reception',nom:fourn,prenom:bl,matricule:'',site:comment,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte,motif:bl});
     }
-    updateAlerteBadge();
     showMsg('rec-msg',`✓ ${recLines.length} article(s) crédité(s) au stock. BL : ${bl}`,'ok');
     renderRecHisto();recLines=[];renderRecLines();
   }catch(e){showMsg('rec-msg','Erreur : '+e.message,'err');}
@@ -3985,7 +3977,6 @@ async function marquerAttenteEnvoyee(id){
     }
     attentesCache = attentesCache.filter(x=>x.id!==id);
     renderAttentesAlertes();
-    updateAlerteBadge();
     showMsg('attentes-msg-'+id, '', 'ok'); // cleanup
   }catch(e){ alert('Erreur : '+e.message); }
 }
@@ -4693,19 +4684,14 @@ async function initApp(){
     setSyncStatus('syncing','Chargement EPI…');
     await loadAllStock();
     setSyncStatus('syncing','Chargement mobilité…');
-    await loadMobDevices();
     setSyncStatus('syncing','Chargement historique…');
     await loadAllMouvements();
     await loadCollabs();
     setSyncStatus('syncing','Chargement papeterie…');
-    await loadPapeterieStock();
-    await loadPapeterieMovements();
     setSyncStatus('syncing','Chargement attentes…');
     await loadAttentes();
     setSyncStatus('ok','Base synchronisée');
     renderStockStats();
-    renderPapeterieStats();
-    updateAlerteBadge();
 
     const n=getAlertes().length;
     const nPE=getPEAlertes().length;

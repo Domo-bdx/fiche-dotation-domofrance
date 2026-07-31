@@ -2505,6 +2505,33 @@ function setStockCat(cat,btn){activeStockCat=cat;document.querySelectorAll('#cat
 function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
 function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
 
+function exportStockEPI(){
+  if(typeof XLSX==='undefined'){alert('Librairie XLSX non chargée. Vérifiez votre connexion.');return;}
+  const rows=[['Référence','Désignation','Catégorie','Taille','Stock','Seuil','Attribués','Prix unitaire']];
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const key=String(a.ref||'')+'__'+String(t||'');
+      const s=stockCache[key]||{qte:0,seuil:0,attribues:0};
+      rows.push([
+        String(a.ref||''),
+        String(a.nom||''),
+        String(a.cat||''),
+        String(t||''),
+        Number(s.qte)||0,
+        Number(s.seuil)||0,
+        Number(s.attribues)||0,
+        Number(a.prix)||0
+      ]);
+    });
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:35},{wch:18},{wch:8},{wch:7},{wch:7},{wch:10},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Stock EPI');
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'GESTOCK_Stock_EPI_'+date+'.xlsx');
+}
+
 // ─── STUBS — modules externalisés ───────────────────────────────────────────
 function renderPapeterieStats(){}
 function renderPapeterieAlertes(){}

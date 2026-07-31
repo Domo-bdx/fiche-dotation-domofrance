@@ -2497,20 +2497,41 @@ async function initApp(){
   setSyncStatus('syncing','Connexion…');
   if(!localStorage.getItem('domo_gh_token')){
     setSyncStatus('error','Token manquant');
-    document.getElementById('conn-detail').innerHTML='<span style="color:#c53030">⚠ Token GitHub non configuré — va dans <strong>⚙ Paramètres</strong> pour le saisir</span>';
+    document.getElementById('conn-detail').innerHTML='<span style="color:#c53030">⚠ Token GitHub non configuré — va dans ⚙ Paramètres</span>';
     return;
   }
   try{
-    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json'}},12000);
-    if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur 401 : Token invalide';return;}
-    if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Erreur 403 : Accès refusé';return;}
-    if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Erreur 404 : Dépôt introuvable';return;}
+    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json'}},6000);
+    if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur auth';return;}
+    if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Permission refusée';return;}
+    if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Dépôt introuvable';return;}
     if(!r.ok){setSyncStatus('error','GitHub erreur '+r.status);document.getElementById('conn-detail').textContent='✗ GitHub erreur '+r.status;return;}
   }catch(e){
     setSyncStatus('error','Réseau: '+e.message);
     document.getElementById('conn-detail').textContent='✗ Erreur réseau: '+e.message;
     return;
   }
+
+  try{
+    setSyncStatus('syncing','Chargement EPI…');
+    await loadAllStock();
+    setSyncStatus('syncing','Chargement mouvements…');
+    await loadAllMouvements();
+    await loadCollabs();
+    await loadUsers();
+    renderStock();
+    renderStockStats();
+    setSyncStatus('ok', new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+    document.getElementById('conn-detail').textContent='✓ Connecté';
+    if(currentUser && currentUser.role==='admin' && usersCache.length>0) renderUsersList();
+    if(document.getElementById('global-banner')){
+      const banners=[];
+      document.getElementById('global-banner').innerHTML=banners.join('');
+    }
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);console.error(e);
+  }
+}
 
 initApp();
 </script>

@@ -305,8 +305,6 @@ tr:hover td{background:#f8f9fb}
 <div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:0 20px;display:flex;gap:4px">
   <button type="button" id="btn-tab-alertes" onclick="switchLocalTab('alertes')"
     style="padding:10px 18px;border:none;border-bottom:3px solid #1a3a5c;background:none;font-size:12px;font-weight:700;color:#1a3a5c;cursor:pointer">🔔 Alertes</button>
-  <button type="button" id="btn-tab-catalogue" onclick="switchLocalTab('catalogue')"
-    style="padding:10px 18px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">📦 Catalogue</button>
   <button type="button" id="btn-tab-dashboard" onclick="switchLocalTab('dashboard')"
     style="padding:10px 18px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">📊 Dashboard</button>
 </div>
@@ -368,23 +366,6 @@ tr:hover td{background:#f8f9fb}
 <!-- CATALOGUE -->
 </div>
 
-<div id="local-tab-catalogue" style="display:none">
-  <div class="card">
-    <h3>Catalogue EPI Domofrance — Groupe RG 2026</h3>
-    <div class="cat-filter" id="cat-filter-cat"></div>
-    <div class="search-bar"><input type="text" placeholder="Rechercher…" oninput="renderCatalogue()" id="cat-search"></div>
-    <div class="tbl-wrap">
-      <table><thead><tr>
-        <th>Photo</th><th>Ref</th><th>Désignation</th><th>Catégorie</th><th>Tailles</th><th>Fabricant</th><th>Prix 2025</th><th>Action</th>
-      </tr></thead><tbody id="cat-body"></tbody></table>
-    </div>
-  </div>
-</div>
-
-<!-- PARAMETRES -->
-
-<!-- ─── PANEL DASHBOARD ────────────────────────────────────────────── -->
-</div>
 
 <div id="local-tab-dashboard" style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -666,7 +647,7 @@ function updateAlerteBadge(){}
 
 // ─── ONGLETS LOCAUX ──────────────────────────────────────────────────────────
 function switchLocalTab(tab){
-  ['alertes','catalogue','dashboard'].forEach(t => {
+  ['alertes','dashboard'].forEach(t => {
     document.getElementById('local-tab-'+t).style.display = t===tab ? 'block' : 'none';
     const btn = document.getElementById('btn-tab-'+t);
     if(btn){
@@ -676,7 +657,6 @@ function switchLocalTab(tab){
     }
   });
   if(tab==='alertes')   renderAlertes();
-  if(tab==='catalogue') renderCatalogue();
   if(tab==='dashboard'){ renderDashboard(); if(document.getElementById('stock-stats')) renderStockStats(); }
 }
 

@@ -2462,6 +2462,23 @@ function entreeStock(ref,taille){
 }
 
 
+function renderStockStats(){
+  let total=0,bas=0,rupture=0,att=0;
+  Object.values(stockCache).forEach(s=>{
+    const qte=Number(s.qte)||0;
+    const seuil=Number(s.seuil)||0;
+    total+=qte;att+=Number(s.attribues)||0;
+    if(qte===0)rupture++;else if(qte<=seuil)bas++;
+  });
+  console.log('[renderStockStats] stockCache entries:',Object.keys(stockCache).length,'total:',total);
+  document.getElementById('stock-stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Unités en stock</div></div>
+    <div class="stat"><div class="stat-n">${att}</div><div class="stat-l">Attribués</div></div>
+    <div class="stat"><div class="stat-n ${bas>0?'warn':''}">${bas}</div><div class="stat-l">Stock bas</div></div>
+    <div class="stat"><div class="stat-n ${rupture>0?'warn':''}">${rupture}</div><div class="stat-l">Ruptures</div></div>
+    <div class="stat"><div class="stat-n ok">${CATALOGUE.length}</div><div class="stat-l">Références</div></div>`;
+}
+
 // ─── STUBS — modules externalisés ───────────────────────────────────────────
 function renderPapeterieStats(){}
 function renderPapeterieAlertes(){}

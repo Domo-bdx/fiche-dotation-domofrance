@@ -2484,8 +2484,6 @@ function buildCatFilter(id,active,fn){
 }
 
 // ─── VARIABLES FILTRES (retirées de common.js car locales à epi.html) ──────────
-let activeStockCat = 'Tous';
-let activeCatCat = 'Tous';
 
 function setStockCat(cat,btn){activeStockCat=cat;document.querySelectorAll('#cat-filter-stock .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderStock();}
 function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}

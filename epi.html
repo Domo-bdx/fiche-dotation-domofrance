@@ -812,6 +812,15 @@ async function saveStockRow(ref,taille,fields){
 function goTab(t,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  // Mettre à jour les sous-onglets
+  ['dotation','stock','catalogue','reception'].forEach(tab=>{
+    const sb = document.getElementById('subbtn-'+tab);
+    if(sb){
+      sb.style.borderBottomColor = t===tab ? '#1a3a5c' : 'transparent';
+      sb.style.color = t===tab ? '#1a3a5c' : '#666';
+      sb.style.fontWeight = t===tab ? '700' : '600';
+    }
+  });
   if(t==='parametres'&&currentUser&&currentUser.role==='admin'&&usersCache.length>0){renderUsersList();}
   if(t==='dashboard'){renderDashboard();}
   document.getElementById('tab-'+t).classList.add('active');

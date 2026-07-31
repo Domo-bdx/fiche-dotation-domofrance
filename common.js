@@ -219,7 +219,7 @@ async function doLogin(){
     const hash=await sha256(pwd);
     if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';btn.textContent='Se connecter';btn.disabled=false;return;}
     currentUser={login:user.login,nom:user.nom,role:user.role};
-    sessionStorage.setItem('gestock_user',JSON.stringify(currentUser));
+    localStorage.setItem('gestock_user',JSON.stringify(currentUser));
     if(user.premiere_connexion){
       document.getElementById('login-overlay').style.display='none';
       document.getElementById('chgpwd-overlay').style.display='flex';
@@ -259,7 +259,7 @@ function loginSuccess(){
 
 function deconnexion(){
   if(!confirm('Voulez-vous vous déconnecter ?'))return;
-  sessionStorage.removeItem('gestock_user');
+  localStorage.removeItem('gestock_user');
   currentUser=null;
   usersCache=[];
   document.getElementById('user-badge').style.display='none';

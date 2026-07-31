@@ -2511,7 +2511,14 @@ function renderPEAlertes(){}
 function renderAttentesAlertes(){}
 function renderUsersList(){}
 function renderDashboard(){}
-function renderCatalogue(){}
+function renderCatalogue(){
+  buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
+  const q=(document.getElementById('cat-search')?.value||'').toLowerCase();
+  const rows=CATALOGUE.filter(a=>activeCatCat==='Tous'||a.cat===activeCatCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q));
+  document.getElementById('cat-body').innerHTML=rows.length
+    ?rows.map(a=>`<tr><td>${a.img?`<img src="${a.img}" alt="${a.nom}" class="cat-thumb" onclick="zoomCatImg('${a.img}','${a.nom.replace(/'/g,"\\'")}')">`:`<span class="cat-thumb-empty">—</span>`}</td><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
+}
 function renderHistorique(){}
 
 // Auth géré par common.js (loadUsers, doLogin, doLogout, usersCache, currentUser, sha256)

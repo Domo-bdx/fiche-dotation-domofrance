@@ -328,6 +328,14 @@ tr:hover td{background:#f8f9fb}
 </div>
 
 <div class="content">
+<!-- Sous-navigation EPI -->
+<div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:0 20px;display:flex;gap:4px" id="epi-sub-nav">
+  <button type="button" id="subbtn-dotation" onclick="goTab('dotation',this)" style="padding:8px 16px;border:none;border-bottom:3px solid #1a3a5c;background:none;font-size:12px;font-weight:700;color:#1a3a5c;cursor:pointer">Nouvelle dotation</button>
+  <button type="button" id="subbtn-stock" onclick="goTab('stock',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Stock EPI</button>
+  <button type="button" id="subbtn-catalogue" onclick="goTab('catalogue',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Catalogue</button>
+  <button type="button" id="subbtn-reception" onclick="goTab('reception',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Réception commande</button>
+</div>
+
 <div id="global-banner"></div>
 <div id="conn-bar" style="margin:10px 20px 0;padding:10px 14px;background:#f8f9fb;border:1px solid #dde;border-radius:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">
   <span style="font-weight:600;color:#1a3a5c">Connexion GitHub</span>

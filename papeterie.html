@@ -360,6 +360,9 @@ tr:hover td{background:#f8f9fb}
   <!-- ── PANEL : STOCK & RÉCEPTION ── -->
   <div id="pap-panel-stock" style="display:none">
 
+    <div style="text-align:right;margin-bottom:10px">
+      <button class="btn success" onclick="exportPaperieExcel()" style="font-size:12px;padding:7px 16px">📊 Export Excel</button>
+    </div>
     <div class="card">
       <h3>Stock actuel — seuils d'alerte</h3>
       <div style="font-size:11px;color:#888;margin-bottom:10px">Modifiez directement les valeurs dans le tableau — sauvegarde automatique.</div>
@@ -825,6 +828,33 @@ let attentesCache = [];
 function updateAlerteBadge(){}
 
 // ─── SYNC STATUS ─────────────────────────────────────────────────────────────
+
+// ─── EXPORT EXCEL PAPETERIE ──────────────────────────────────────────────────
+function exportPaperieExcel(){
+  try{
+    const wb = XLSX.utils.book_new();
+    // Stock
+    const stockRows = [['Article','Type','Conditionnement','Stock (cartons)','Seuil alerte','Statut']];
+    document.querySelectorAll('#pap-stock-table-body tr').forEach(tr=>{
+      const cells = tr.querySelectorAll('td');
+      if(cells.length >= 5){
+        stockRows.push([
+          cells[0]?.textContent?.trim(),
+          cells[1]?.textContent?.trim(),
+          cells[2]?.textContent?.trim(),
+          cells[3]?.querySelector('input')?.value || cells[3]?.textContent?.trim(),
+          cells[4]?.querySelector('input')?.value || cells[4]?.textContent?.trim(),
+          cells[5]?.textContent?.trim()||''
+        ]);
+      }
+    });
+    const ws = XLSX.utils.aoa_to_sheet(stockRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Stock Papeterie');
+    const date = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, 'GESTOCK_Stock_Papeterie_'+date+'.xlsx');
+  }catch(e){ alert('Erreur export: '+e.message); }
+}
+
 function setSyncStatus(state, label){
   const dot = document.getElementById('sync-dot');
   const lbl = document.getElementById('sync-label');

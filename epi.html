@@ -2483,6 +2483,14 @@ function buildCatFilter(id,active,fn){
   document.getElementById(id).innerHTML=['Tous',...CATS].map(c=>`<button class="cat-btn ${active===c?'active':''}" onclick="${fn}('${c}',this)">${c}</button>`).join('');
 }
 
+// ─── VARIABLES FILTRES (retirées de common.js car locales à epi.html) ──────────
+let activeStockCat = 'Tous';
+let activeCatCat = 'Tous';
+
+function setStockCat(cat,btn){activeStockCat=cat;document.querySelectorAll('#cat-filter-stock .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderStock();}
+function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
+function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
+
 // ─── STUBS — modules externalisés ───────────────────────────────────────────
 function renderPapeterieStats(){}
 function renderPapeterieAlertes(){}

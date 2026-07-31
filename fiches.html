@@ -1087,7 +1087,16 @@ async function doLogin(){
   }
 }
 
-initFiches();
+// Vérifier session existante au chargement
+(function(){
+  const raw = localStorage.getItem('gestock_user');
+  if(raw){
+    try{
+      currentUser = JSON.parse(raw);
+    }catch(e){ localStorage.removeItem('gestock_user'); }
+  }
+  initFiches();
+})();
 </script>
 </body>
 </html>

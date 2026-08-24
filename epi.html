@@ -2580,6 +2580,11 @@ async function initApp(){
     await loadAllMouvements();
     await loadCollabs();
     await loadUsers();
+    setSyncStatus('syncing','Chargement mobilité…');
+    const [tels,tabs,badges] = await Promise.all([
+      readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges')
+    ]);
+    mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[]};
     renderStock();
     renderStockStats();
     setSyncStatus('ok', new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));

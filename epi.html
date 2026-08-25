@@ -1084,6 +1084,10 @@ async function marquerComplementEnvoye(id){
   }
 }
 
+function updateAlerteBadge(){
+  // Badge d'alerte géré sur Dashboard — pas d'affichage dans epi.html
+}
+
 function getAlertes(){
   const out=[];
   CATALOGUE.forEach(art=>art.tailles.forEach(t=>{

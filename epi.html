@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTOCK — Domofrance</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<title>GESTOCK – Domofrance</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;font-size:13px;background:#f4f5f7;color:#222}
@@ -258,12 +256,7 @@ tr:hover td{background:#f8f9fb}
 .btn-gen-fiche{background:#1a3a5c;color:#fff;border:none;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
 .btn-gen-fiche:hover{background:#16304d}
 #fiches-empty{color:#999;font-size:12px;padding:20px 0;text-align:center;display:none}
-
-/* ── Liens nav-btn ── */
-a.nav-btn{text-decoration:none;display:inline-flex;align-items:center;color:inherit}
-a.nav-btn:hover{color:#fff}
 </style>
-</head>
 </head>
 <body>
 
@@ -322,23 +315,20 @@ a.nav-btn:hover{color:#fff}
 
 <div class="nav" id="main-nav">
   <button id="nav-close" onclick="toggleMobileNav()" aria-label="Fermer">✕</button>
-  <button class="nav-btn active" onclick="goTab('dotation',this)">🏠 Dotation / EPI</button>
-  <a class="nav-btn" href="mobilite.html">📱 Mobilité</a>
-  <a class="nav-btn" href="papeterie.html">📄 Papeterie</a>
-  <a class="nav-btn" href="fiches.html">📋 Fiches</a>
-  <a class="nav-btn" href="dashboard.html">📊 Dashboard</a>
-  <a class="nav-btn" href="parametres.html">⚙ Paramètres</a>
+  <button class="nav-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
+  <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
+  <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
+  <button class="nav-btn" onclick="goTab('mobilite',this)">Stock Mobilité</button>
+  <button class="nav-btn" id="btn-papeterie" onclick="goTab('papeterie',this)">📄 Papeterie</button>
+  <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
+  <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
+  <button class="nav-btn" onclick="goTab('fiches',this)">📋 Fiches</button>
+<button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
+  <button class="nav-btn" id="btn-dashboard" onclick="goTab('dashboard',this)">📊 Dashboard</button>
+  <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
 </div>
 
 <div class="content">
-<!-- Sous-navigation EPI -->
-<div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:0 20px;display:flex;gap:4px" id="epi-sub-nav">
-  <button type="button" id="subbtn-dotation" onclick="goTab('dotation',this)" style="padding:8px 16px;border:none;border-bottom:3px solid #1a3a5c;background:none;font-size:12px;font-weight:700;color:#1a3a5c;cursor:pointer">Nouvelle dotation</button>
-  <button type="button" id="subbtn-stock" onclick="goTab('stock',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Stock EPI</button>
-  <button type="button" id="subbtn-catalogue" onclick="goTab('catalogue',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Catalogue</button>
-  <button type="button" id="subbtn-reception" onclick="goTab('reception',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Réception commande</button>
-</div>
-
 <div id="global-banner"></div>
 <div id="conn-bar" style="margin:10px 20px 0;padding:10px 14px;background:#f8f9fb;border:1px solid #dde;border-radius:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">
   <span style="font-weight:600;color:#1a3a5c">Connexion GitHub</span>
@@ -519,20 +509,50 @@ a.nav-btn:hover{color:#fff}
 <!-- PARAMETRES -->
 
 <!-- ─── PANEL DASHBOARD ────────────────────────────────────────────── -->
+</div><!-- end content -->
+
+<!-- Overlay bon de dotation -->
 <div id="bon-overlay" onclick="fermerBonOverlay(event)">
   <div id="bon-overlay-inner">
     <div class="bon-print-actions no-print" id="bon-overlay-actions">
       <button class="btn" onclick="fermerBon()">✕ Fermer</button>
     </div>
+    <div id="bon-overlay-content"></div>
+  </div>
+</div>
 
-<script src="common.js"></script>
+<!-- Bouton retour en haut -->
+<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
+
+<style>
+#btn-top{
+  position:fixed;bottom:24px;right:24px;
+  width:42px;height:42px;border-radius:50%;
+  background:#1a3a5c;color:#fff;border:none;
+  font-size:20px;font-weight:700;cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
+  opacity:0;transition:opacity .25s;
+  z-index:999;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+#btn-top:hover{background:#2a4f7a;}
+#btn-top.visible{opacity:1;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// ═══ EPI.HTML — Dotation + Stock EPI + Réception ═══════════════════════════
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
 function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
 function getDataToken(){return localStorage.getItem('domo_data_token')||getGHToken();}
 function getDataHeaders(){return {'Authorization':'Bearer '+getDataToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
+const GH_OWNER='Domo-bdx';
+const GH_REPO='fiche-dotation-domofrance';
+const GH_BRANCH='main';
+// Dépôt privé pour les données
+const GH_DATA_OWNER='Domo-bdx';
+const GH_DATA_REPO='gestock-data';
+const GH_DATA_BRANCH='main';
 function getGHHeaders(){return {'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};}
+const _shas={}; const _datashas={};
 
 function b64enc(str){
   const bytes=new TextEncoder().encode(str);
@@ -665,6 +685,14 @@ async function sbDelete(table,filter){
 }
 
 // ─── ÉTAT LOCAL ───────────────────────────────────────────────────────────────
+let stockCache={};
+let mouvementsCache=[];
+let epiLines=[];
+let telLines=[];
+let tabLines=[];
+let badgeLines=[];
+let activeStockCat='Tous';
+let activeCatCat='Tous';
 
 // ─── CATALOGUE EPI ───────────────────────────────────────────────────────────
 const CATALOGUE=[
@@ -816,18 +844,10 @@ async function saveStockRow(ref,taille,fields){
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
+
 function goTab(t,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  // Mettre à jour les sous-onglets
-  ['dotation','stock','catalogue','reception'].forEach(tab=>{
-    const sb = document.getElementById('subbtn-'+tab);
-    if(sb){
-      sb.style.borderBottomColor = t===tab ? '#1a3a5c' : 'transparent';
-      sb.style.color = t===tab ? '#1a3a5c' : '#666';
-      sb.style.fontWeight = t===tab ? '700' : '600';
-    }
-  });
   if(t==='parametres'&&currentUser&&currentUser.role==='admin'&&usersCache.length>0){renderUsersList();}
   if(t==='dashboard'){renderDashboard();}
   document.getElementById('tab-'+t).classList.add('active');
@@ -840,7 +860,7 @@ function goTab(t,btn){
   if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
   if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab();renderMobBadge()})}
-  if(t==='papeterie'){ window.location.href='papeterie.html'; }
+  if(t==='papeterie'){renderPapeterieStats();renderPapeterieAlertes();}
   closeMobileNav();
   setTimeout(applyResponsiveLabels,80);
 }
@@ -899,321 +919,6 @@ function renderBadgeLines(){
   if(!c)return;
   if(!badgeLines.length){c.innerHTML='<div class="empty">Aucun badge ajouté</div>';return}
   const type=document.getElementById('d-type').value;
-  const dispos=mobCache.badge.filter(x=>x.statut==='disponible'||x.statut==='Disponible'||x.statut==='Disponible');
-  const attribues=mobCache.badge.filter(x=>x.statut==='attribue'||x.statut==='Attribué'||x.statut==='Attribué');
-  const typeLabel={acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
-  c.innerHTML=badgeLines.map(l=>{
-    const sel=mobCache.badge.find(x=>x.id===l.deviceId);
-    const basePool=type==='restitution'?attribues:dispos;
-    const q=(l.search||'').toLowerCase();
-    const pool=!q?basePool:basePool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
-    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>N° ${d.numero||'?'} — ${typeLabel[d.type_badge]||d.type_badge||'?'} ${d.notes?'('+d.notes+')':''}</option>`).join('');
-    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">🪪 Badge N° ${sel.numero||'—'} — ${typeLabel[sel.type_badge]||sel.type_badge||'—'}</div>`:'';
-    const isWatchdoc=sel&&(sel.type_badge==='watchdoc'||(sel.notes||'').toLowerCase().includes('siege')||(sel.notes||'').toLowerCase().includes('siege'));
-    const pukField=sel&&type!=='restitution'?`<div style="margin-top:8px">
-      <label style="font-size:10px;color:#666">Code PUK Siege (WatchDoc) ${isWatchdoc?'<span style="color:#1a3a5c;font-weight:700">✓ Badge Siege / WatchDoc</span>':''}</label>
-      <input type="text" placeholder="Code PUK WatchDoc" value="${l.puk_watchdoc||''}"
-        onchange="updateBadgeLine('${l.id}','puk_watchdoc',this.value)"
-        style="max-width:220px;font-family:monospace;${isWatchdoc?'border-color:#1a3a5c;background:#f0f4ff':''}">
-    </div>`:'';
-    const nbMatch=q?pool.length:basePool.length;
-    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
-        <div>
-          <label>Sélectionner un badge ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
-          <input type="text" placeholder="🔍 Rechercher N° badge, type, notes…" value="${l.search||''}"
-            oninput="searchMobLine('badge','${l.id}',this.value)"
-            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
-          <select onchange="updateBadgeLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
-          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} badge${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
-          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun badge ${type==='restitution'?'attribué':'disponible'}</div>`:''}
-        </div>
-        <button class="btn danger small" onclick="removeBadgeLine('${l.id}')" style="margin-top:20px">✕</button>
-      </div>${info}${pukField}
-    </div>`;
-  }).join('');
-}
-
-function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:'',numero:'',search:''});renderTelLines();}
-function addTabLine(){tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:'',search:''});renderTabLines();}
-function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
-function removeTabLine(id){tabLines=tabLines.filter(x=>x.id!==id);renderTabLines()}
-function updateTelLine(id,field,val){
-  const l=telLines.find(x=>x.id===id);if(!l)return;
-  l[field]=val;
-  if(field==='deviceId'){const d=mobCache.tel.find(x=>x.id===val);if(d){l.marque=d.marque;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;l.numero=d.numero||'';}}
-  renderTelLines();
-}
-function updateTabLine(id,field,val){
-  const l=tabLines.find(x=>x.id===id);if(!l)return;
-  l[field]=val;
-  if(field==='deviceId'){const d=mobCache.tab.find(x=>x.id===val);if(d){l.nom=d.nom;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;}}
-  renderTabLines();
-}
-
-function renderTelLines(){
-  const c=document.getElementById('tel-lines-container');
-  if(!telLines.length){c.innerHTML='<div class="empty">Aucun téléphone ajouté</div>';return}
-  const dispos=mobCache.tel.filter(x=>x.statut==='disponible'||x.statut==='Disponible');
-  const type=document.getElementById('d-type').value;
-  const attribues=mobCache.tel.filter(x=>x.statut==='attribue'||x.statut==='Attribué');
-  c.innerHTML=telLines.map(l=>{
-    const sel=mobCache.tel.find(x=>x.id===l.deviceId);
-    const basePool=type==='restitution'?attribues:dispos;
-    const q=(l.search||'').toLowerCase();
-    const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
-    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
-    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📱 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
-    const numeroField=sel&&type!=='restitution'?`<div style="margin-top:8px">
-      <label style="font-size:10px;color:#666">Numéro de ligne <span style="color:#c53030">*</span></label>
-      <input type="text" placeholder="06XXXXXXXX" value="${l.numero||''}" onchange="updateTelLine('${l.id}','numero',this.value)" style="${l.numero?'':'border-color:#c53030;background:#fff5f5'}">
-    </div>`:'';
-    const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
-      <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTelLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
-      <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTelLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
-      <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTelLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
-    </div>`:'';
-    const nbMatch=q?pool.length:basePool.length;
-    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
-        <div>
-          <label>Sélectionner un téléphone ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
-          <input type="text" placeholder="🔍 Rechercher marque, modèle, IMEI, collaborateur…" value="${l.search||''}"
-            oninput="searchMobLine('tel','${l.id}',this.value)"
-            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
-          <select onchange="updateTelLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
-          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} appareil${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
-          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
-        </div>
-        <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:20px">✕</button>
-      </div>${info}${numeroField}${codeFields}
-    </div>`;
-  }).join('');
-}
-
-function renderTabLines(){
-  const c=document.getElementById('tab-lines-container');
-  if(!tabLines.length){c.innerHTML='<div class="empty">Aucune tablette ajoutée</div>';return}
-  const type=document.getElementById('d-type').value;
-  const dispos=mobCache.tab.filter(x=>x.statut==='disponible'||x.statut==='Disponible');
-  const attribues=mobCache.tab.filter(x=>x.statut==='attribue'||x.statut==='Attribué');
-  c.innerHTML=tabLines.map(l=>{
-    const sel=mobCache.tab.find(x=>x.id===l.deviceId);
-    const basePool=type==='restitution'?attribues:dispos;
-    const q=(l.search||'').toLowerCase();
-    const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
-    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.nom||''} — ${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
-    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📟 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
-    const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
-      <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTabLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
-      <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTabLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
-      <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTabLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
-    </div>`:'';
-    const nbMatch=q?pool.length:basePool.length;
-    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
-        <div>
-          <label>Sélectionner une tablette ${type==='restitution'?'(attribuées)':'(disponibles)'}</label>
-          <input type="text" placeholder="🔍 Rechercher marque, modèle, IMEI, utilisateur…" value="${l.search||''}"
-            oninput="searchMobLine('tab','${l.id}',this.value)"
-            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
-          <select onchange="updateTabLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
-          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} tablette${nbMatch>1?'s':''} trouvée${nbMatch>1?'s':''}</div>`:''}
-          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
-        </div>
-        <button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:20px">✕</button>
-      </div>${info}${codeFields}
-    </div>`;
-  }).join('');
-}
-
-// ─── SUIVI PÉRIODE D'ESSAI ────────────────────────────────────────────────────
-async function saveCollabs(){await writeData('collaborateurs',collabsCache);}
-
-function addCollab(nom,prenom,matricule,site,dateEmbauche){
-  const existing=collabsCache.findIndex(c=>c.nom===nom&&c.prenom===prenom&&c.matricule===matricule);
-  const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2),nom,prenom,matricule,site,date_embauche:dateEmbauche,complement_envoye:false,date_complement:null};
-  if(existing>=0){collabsCache[existing]={...collabsCache[existing],...entry,id:collabsCache[existing].id};}
-  else{collabsCache.unshift(entry);}
-  saveCollabs();
-}
-
-async function marquerComplementEnvoye(id){
-  const idx=collabsCache.findIndex(c=>c.id===id);
-  if(idx>=0){
-    collabsCache[idx].complement_envoye=true;
-    collabsCache[idx].date_complement=new Date().toISOString().slice(0,10);
-    await saveCollabs();renderPEAlertes();updateAlerteBadge();
-  }
-}
-
-function getPEAlertes(){
-  const today=new Date();today.setHours(0,0,0,0);
-  return collabsCache.filter(co=>{
-    if(co.complement_envoye)return false;
-    if(!co.date_embauche)return false;
-    const embauche=new Date(co.date_embauche);
-    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);finPE.setHours(0,0,0,0);
-    return finPE<=today;
-  });
-}
-
-function renderPEAlertes(){
-  const alertes=getPEAlertes();
-  const today=new Date();today.setHours(0,0,0,0);
-  const el=document.getElementById('pe-alertes-list');if(!el)return;
-  if(!alertes.length){el.innerHTML='<div class="empty">Aucune fin de période d\'essai en attente</div>';return;}
-  el.innerHTML=alertes.map(co=>{
-    const embauche=new Date(co.date_embauche);
-    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);
-    const joursDepuis=Math.floor((today-finPE)/(1000*60*60*24));
-    const urgent=joursDepuis>7;
-    const dateStr=finPE.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
-    return `<div class="pe-alert ${urgent?'urgent':''}">
-      <div style="font-size:18px">${urgent?'🔴':'🟢'}</div>
-      <div style="flex:1">
-        <div style="font-weight:600">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
-        <div style="font-size:11px;color:#555">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}${joursDepuis>0?' · <span style="color:#c53030;font-weight:600">En retard de '+joursDepuis+' jour(s)</span>':' · <span style="color:#276749;font-weight:600">Aujourd\'hui</span>'}</div>
-      </div>
-      <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>
-    </div>`;
-  }).join('');
-}
-
-// ─── PACKS PRÉDÉFINIS ─────────────────────────────────────────────────────────
-
-function appliquerPack(nom){
-  const items=PACKS[nom];if(!items)return;
-  epiLines=items.filter(item=>item.qte>0).map(item=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2),ref:item.ref,taille:'',qte:item.qte}));
-  renderEpiLines();
-  document.getElementById('epi-lines-container').scrollIntoView({behavior:'smooth',block:'start'});
-  showMsg('dotation-msg','✓ Pack appliqué — choisissez les tailles pour chaque article.','ok');
-}
-
-function addEpiLine(prefillRef){
-  epiLines.push({id:Date.now()+'_'+Math.random(),ref:prefillRef||'',taille:'',qte:1,search:''});
-  renderEpiLines();
-}
-
-function renderEpiLines(){
-  const c=document.getElementById('epi-lines-container');
-  if(!epiLines.length){c.innerHTML='<div class="empty">Aucun EPI ajouté — cliquez sur "+ Ajouter un EPI"</div>';return}
-  c.innerHTML=epiLines.map(line=>{
-    const art=CATALOGUE.find(x=>x.ref===line.ref);
-    const tailles=art?art.tailles:[];
-    const s=line.ref&&line.taille?getStock(line.ref,line.taille):null;
-    const badge=s?`<span class="badge ${s.qte<=0?'red':s.qte<=s.seuil?'yellow':'green'}" style="margin-left:4px">Stock: ${s.qte}</span>`:'';
-    const q=(line.search||'').toLowerCase();
-    const filteredOpts=CATS.map(cat=>{
-      const items=CATALOGUE.filter(x=>x.cat===cat&&(!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)||cat.toLowerCase().includes(q)));
-      if(!items.length)return '';
-      return `<optgroup label="${cat}">${items.map(x=>`<option value="${x.ref}" ${x.ref===line.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`;
-    }).join('');
-    const countMatch=CATALOGUE.filter(x=>!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)).length;
-    return `<div class="epi-line">
-      <div>
-        <label>Article</label>
-        <input type="text" placeholder="🔍 Rechercher un article…" value="${line.search||''}"
-          oninput="searchEpiLine('${line.id}',this.value)"
-          style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff"
-          autocomplete="off">
-        <select id="epi-sel-${line.id}" onchange="updateLine('${line.id}','ref',this.value)">
-          <option value="">— Choisir —</option>
-          ${filteredOpts}
-        </select>
-        ${q&&countMatch===0?`<div style="font-size:11px;color:#c53030;margin-top:3px">Aucun article trouvé pour "${line.search}"</div>`:''}
-        ${q&&countMatch>0?`<div style="font-size:10px;color:#555;margin-top:3px">${countMatch} article${countMatch>1?'s':''} trouvé${countMatch>1?'s':''}</div>`:''}
-      </div>
-      <div><label>Taille ${badge}</label>
-        <select onchange="updateLine('${line.id}','taille',this.value)">
-          <option value="">—</option>${tailles.map(t=>`<option value="${t}" ${t===line.taille?'selected':''}>${t}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>Quantité</label>
-        <input type="number" min="1" value="${line.qte}" style="width:70px" onchange="updateLine('${line.id}','qte',parseInt(this.value)||1)">
-      </div>
-      <div><button class="btn danger small" onclick="removeLine('${line.id}')" style="margin-top:18px">✕</button></div>
-    </div>`;
-  }).join('');
-}
-
-function searchEpiLine(id, val){
-  const l=epiLines.find(x=>x.id===id);if(!l)return;
-  l.search=val;
-  // Rebuild only the select options (no full re-render → no focus loss)
-  const sel=document.getElementById('epi-sel-'+id);
-  if(!sel)return;
-  const q=val.toLowerCase();
-  const filteredOpts=CATS.map(cat=>{
-    const items=CATALOGUE.filter(x=>x.cat===cat&&(!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)||cat.toLowerCase().includes(q)));
-    if(!items.length)return '';
-    return `<optgroup label="${cat}">${items.map(x=>`<option value="${x.ref}" ${x.ref===l.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`;
-  }).join('');
-  sel.innerHTML=`<option value="">— Choisir —</option>${filteredOpts}`;
-  // Feedback sous le champ
-  const countMatch=CATALOGUE.filter(x=>!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)).length;
-  const hint=sel.nextElementSibling;
-  if(hint&&hint.tagName!=='SELECT'){
-    if(q&&countMatch===0)hint.textContent=`Aucun article trouvé pour "${val}"`;
-    else if(q&&countMatch>0)hint.textContent=`${countMatch} article${countMatch>1?'s':''} trouvé${countMatch>1?'s':''}`;
-    else hint.textContent='';
-  }
-}
-
-function searchMobLine(type, id, val){
-  // Met à jour le champ search et refiltre le select sans re-render complet
-  let lines, renderFn, selLookup;
-  if(type==='tel'){
-    lines=telLines; renderFn=renderTelLines;
-    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
-  } else if(type==='tab'){
-    lines=tabLines; renderFn=renderTabLines;
-    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
-  } else {
-    lines=badgeLines; renderFn=renderBadgeLines;
-    const tl={acces:'Acces',watchdoc:'WatchDoc',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
-    selLookup=(pool,q)=>pool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
-  }
-  const l=lines.find(x=>x.id===id);
-  if(!l)return;
-  l.search=val;
-  // Re-render complet pour le type (focus sur l'input de recherche, pas sur le select)
-  renderFn();
-  // Redonner le focus sur le bon champ de recherche après re-render
-  const inputs=document.querySelectorAll(`input[oninput*="searchMobLine('${type}','${id}"]`);
-  if(inputs.length){
-    const inp=inputs[0];
-    inp.focus();
-    inp.setSelectionRange(val.length,val.length);
-  }
-}
-
-function updateLine(id,field,val){const l=epiLines.find(x=>x.id===id);if(!l)return;l[field]=val;if(field==='ref')l.taille='';renderEpiLines();}
-function removeLine(id){epiLines=epiLines.filter(x=>x.id!==id);renderEpiLines()}
-
-function resetDotation(){
-  ['d-nom','d-prenom','d-matricule','d-motif'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('d-site').value='';
-  document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('d-type').value='dotation';
-  epiLines=[];renderEpiLines();telLines=[];renderTelLines();tabLines=[];renderTabLines();badgeLines=[];renderBadgeLines();
-  document.getElementById('dotation-msg').innerHTML='';
-  document.getElementById('bon-container').style.display='none';
-}
-
-async function validerDotation(){
-  const nom=document.getElementById('d-nom').value.trim();
-  const prenom=document.getElementById('d-prenom').value.trim();
-  if(!nom){showMsg('dotation-msg','Saisissez le nom du collaborateur.','err');return}
-  // Au moins un élément renseigné (EPI, téléphone, tablette ou badge)
-  const aBadge=badgeLines.some(l=>l.deviceId);
-  const aTel=telLines.some(l=>l.deviceId);
-  const aTab=tabLines.some(l=>l.deviceId);
-  const aEpi=epiLines.length>0;
-  if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
-  if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
-  const type=document.getElementById('d-type').value;
-  if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
   const dispos=mobCache.badge.filter(x=>x.statut==='disponible'||x.statut==='Disponible'||x.statut==='Disponible');
   const attribues=mobCache.badge.filter(x=>x.statut==='attribue'||x.statut==='Attribué'||x.statut==='Attribué');
   const typeLabel={acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
@@ -1612,6 +1317,7 @@ async function validerDotation(){
     }
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche&&nom){addCollab(nom,prenom,matricule,site,date);}
+    updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
@@ -1652,6 +1358,7 @@ async function _confirmerDotationPartielle(){
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
     const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
     if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
       :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
@@ -1662,47 +1369,7 @@ async function _confirmerDotationPartielle(){
 
 
 // Appelé depuis le bouton inline dans le message d'erreur
-async function _confirmerDotationPartielle(){
-  document.getElementById('dotation-msg').innerHTML='';
-  const nom=document.getElementById('d-nom').value.trim();
-  const prenom=document.getElementById('d-prenom').value.trim();
-  const type=document.getElementById('d-type').value;
-  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
-  const site=document.getElementById('d-site').value;
-  const matricule=document.getElementById('d-matricule').value.trim();
-  const motif=document.getElementById('d-motif').value.trim();
-  const btn=document.getElementById('btn-valider');
-  btn.disabled=true;btn.textContent='Enregistrement…';
-  showMsg('dotation-msg','Enregistrement en cours…','info');
-  try{
-    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
-    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
-    // Valider les articles disponibles
-    for(const line of dispos){
-      const s=getStock(line.ref,line.taille);
-      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Enregistrer les articles manquants en attente
-    for(const line of manquants){
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Mobilité / badges (toujours traités)
-    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
-    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
-    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    const msg=dispos.length>0
-      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
-      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
-    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
-  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
-  btn.disabled=false;btn.textContent='Valider et déduire du stock';
-}
+
 
 
 
@@ -1967,91 +1634,11 @@ async function _confirmerDotationPartielle(){
 
 
 // Appelé depuis le bouton inline dans le message d'erreur
-async function _confirmerDotationPartielle(){
-  document.getElementById('dotation-msg').innerHTML='';
-  const nom=document.getElementById('d-nom').value.trim();
-  const prenom=document.getElementById('d-prenom').value.trim();
-  const type=document.getElementById('d-type').value;
-  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
-  const site=document.getElementById('d-site').value;
-  const matricule=document.getElementById('d-matricule').value.trim();
-  const motif=document.getElementById('d-motif').value.trim();
-  const btn=document.getElementById('btn-valider');
-  btn.disabled=true;btn.textContent='Enregistrement…';
-  showMsg('dotation-msg','Enregistrement en cours…','info');
-  try{
-    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
-    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
-    // Valider les articles disponibles
-    for(const line of dispos){
-      const s=getStock(line.ref,line.taille);
-      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Enregistrer les articles manquants en attente
-    for(const line of manquants){
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Mobilité / badges (toujours traités)
-    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
-    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
-    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    const msg=dispos.length>0
-      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
-      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
-    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
-  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
-  btn.disabled=false;btn.textContent='Valider et déduire du stock';
-}
+
 
 
 // Appelé depuis le bouton inline dans le message d'erreur
-async function _confirmerDotationPartielle(){
-  document.getElementById('dotation-msg').innerHTML='';
-  const nom=document.getElementById('d-nom').value.trim();
-  const prenom=document.getElementById('d-prenom').value.trim();
-  const type=document.getElementById('d-type').value;
-  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
-  const site=document.getElementById('d-site').value;
-  const matricule=document.getElementById('d-matricule').value.trim();
-  const motif=document.getElementById('d-motif').value.trim();
-  const btn=document.getElementById('btn-valider');
-  btn.disabled=true;btn.textContent='Enregistrement…';
-  showMsg('dotation-msg','Enregistrement en cours…','info');
-  try{
-    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
-    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
-    // Valider les articles disponibles
-    for(const line of dispos){
-      const s=getStock(line.ref,line.taille);
-      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Enregistrer les articles manquants en attente
-    for(const line of manquants){
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Mobilité / badges (toujours traités)
-    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
-    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
-    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    const msg=dispos.length>0
-      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
-      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
-    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
-  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
-  btn.disabled=false;btn.textContent='Valider et déduire du stock';
-}
+
 
 
 
@@ -2330,47 +1917,7 @@ function imprimerBon(){
 }
 
 // Appelé depuis le bouton inline dans le message d'erreur
-async function _confirmerDotationPartielle(){
-  document.getElementById('dotation-msg').innerHTML='';
-  const nom=document.getElementById('d-nom').value.trim();
-  const prenom=document.getElementById('d-prenom').value.trim();
-  const type=document.getElementById('d-type').value;
-  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
-  const site=document.getElementById('d-site').value;
-  const matricule=document.getElementById('d-matricule').value.trim();
-  const motif=document.getElementById('d-motif').value.trim();
-  const btn=document.getElementById('btn-valider');
-  btn.disabled=true;btn.textContent='Enregistrement…';
-  showMsg('dotation-msg','Enregistrement en cours…','info');
-  try{
-    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
-    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
-    // Valider les articles disponibles
-    for(const line of dispos){
-      const s=getStock(line.ref,line.taille);
-      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Enregistrer les articles manquants en attente
-    for(const line of manquants){
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Mobilité / badges (toujours traités)
-    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
-    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
-    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    const msg=dispos.length>0
-      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
-      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
-    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
-  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
-  btn.disabled=false;btn.textContent='Valider et déduire du stock';
-}
+
 
 
 
@@ -2497,47 +2044,7 @@ async function _confirmerDotationPartielle(){
 
 
 // Appelé depuis le bouton inline dans le message d'erreur
-async function _confirmerDotationPartielle(){
-  document.getElementById('dotation-msg').innerHTML='';
-  const nom=document.getElementById('d-nom').value.trim();
-  const prenom=document.getElementById('d-prenom').value.trim();
-  const type=document.getElementById('d-type').value;
-  const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
-  const site=document.getElementById('d-site').value;
-  const matricule=document.getElementById('d-matricule').value.trim();
-  const motif=document.getElementById('d-motif').value.trim();
-  const btn=document.getElementById('btn-valider');
-  btn.disabled=true;btn.textContent='Enregistrement…';
-  showMsg('dotation-msg','Enregistrement en cours…','info');
-  try{
-    const dispos=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte>=l.qte;});
-    const manquants=epiLines.filter(l=>{const s=getStock(l.ref,l.taille);return s.qte<l.qte;});
-    // Valider les articles disponibles
-    for(const line of dispos){
-      const s=getStock(line.ref,line.taille);
-      await saveStockRow(line.ref,line.taille,{qte:Math.max(0,s.qte-line.qte),attribues:Math.max(0,(s.attribues||0)+line.qte)});
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await sbPost('mouvements',{date,type,nom,prenom,matricule,site,motif,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Enregistrer les articles manquants en attente
-    for(const line of manquants){
-      const art=CATALOGUE.find(x=>x.ref===line.ref);
-      await ajouterAttente({nom,prenom,matricule,site,date,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte});
-    }
-    // Mobilité / badges (toujours traités)
-    const newTelStatut='attribue';const collab=`${prenom} ${nom}`.trim();
-    for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
-    for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
-    for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
-    const msg=dispos.length>0
-      ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`
-      :`⏳ Aucun article disponible — ${manquants.length} article(s) mis en attente.`;
-    showMsg('dotation-msg',msg,dispos.length>0?'ok':'info');
-  }catch(e){showMsg('dotation-msg','Erreur : '+e.message,'err');}
-  btn.disabled=false;btn.textContent='Valider et déduire du stock';
-}
+
 
 async function genererBon(){
   const nom=document.getElementById('d-nom').value.trim();
@@ -2737,6 +2244,7 @@ async function validerReception(){
       const art=CATALOGUE.find(x=>x.ref===line.ref);
       await sbPost('mouvements',{date,type:'reception',nom:fourn,prenom:bl,matricule:'',site:comment,ref:line.ref,designation:art?art.nom:line.ref,taille:line.taille,qte:line.qte,motif:bl});
     }
+    updateAlerteBadge();
     showMsg('rec-msg',`✓ ${recLines.length} article(s) crédité(s) au stock. BL : ${bl}`,'ok');
     renderRecHisto();recLines=[];renderRecLines();
   }catch(e){showMsg('rec-msg','Erreur : '+e.message,'err');}
@@ -2755,10 +2263,45 @@ function renderRecHisto(){
 
 // ─── STOCK MOBILITÉ ───────────────────────────────────────────────────────────
 let mobCache={tel:[],tab:[],badge:[]};
+
+async function loadMobDevices(){
+  setSyncStatus('syncing','Chargement mobilité…');
+  try{
+    const [tels,tabs,badges]=await Promise.all([readData('mob_telephones'),readData('mob_tablettes'),readData('mob_badges')]);
+    mobCache.tel=tels||[];mobCache.tab=tabs||[];mobCache.badge=badges||[];
+    setSyncStatus('ok','Base synchronisée');
+  }catch(e){
+    if(e.message&&e.message.includes('does not exist')){setSyncStatus('error','Tables manquantes — voir Paramètres');}
+    else{setSyncStatus('error','Erreur connexion');}
+    console.error(e);
+  }
+}
 let currentMobSub='tel';
 
 
-// ─── RENDER STOCK ─────────────────────────────────────────────────────────────
+function renderStockStats(){
+  let total=0,bas=0,rupture=0,att=0;
+  Object.values(stockCache).forEach(s=>{
+    const qte=Number(s.qte)||0;
+    const seuil=Number(s.seuil)||0;
+    total+=qte;att+=Number(s.attribues)||0;
+    if(qte===0)rupture++;else if(qte<=seuil)bas++;
+  });
+  console.log('[renderStockStats] stockCache entries:',Object.keys(stockCache).length,'total:',total);
+  document.getElementById('stock-stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Unités en stock</div></div>
+    <div class="stat"><div class="stat-n">${att}</div><div class="stat-l">Attribués</div></div>
+    <div class="stat"><div class="stat-n ${bas>0?'warn':''}">${bas}</div><div class="stat-l">Stock bas</div></div>
+    <div class="stat"><div class="stat-n ${rupture>0?'warn':''}">${rupture}</div><div class="stat-l">Ruptures</div></div>
+    <div class="stat"><div class="stat-n ok">${CATALOGUE.length}</div><div class="stat-l">Références</div></div>`;
+}
+
+function buildCatFilter(id,active,fn){
+  document.getElementById(id).innerHTML=['Tous',...CATS].map(c=>`<button class="cat-btn ${active===c?'active':''}" onclick="${fn}('${c}',this)">${c}</button>`).join('');
+}
+function setStockCat(cat,btn){activeStockCat=cat;document.querySelectorAll('#cat-filter-stock .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderStock();}
+function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
+
 function renderStock(){
   buildCatFilter('cat-filter-stock',activeStockCat,'setStockCat');
   const q=(document.getElementById('stock-search')?.value||'').toLowerCase();
@@ -2792,68 +2335,85 @@ function entreeStock(ref,taille){
   saveStockRow(ref,taille,{qte:s.qte+n}).then(()=>{renderStockStats();renderStock();updateAlerteBadge();renderAttentesAlertes();});
 }
 
+// ─── HISTORIQUE EPI ───────────────────────────────────────────────────────────
 
-function renderStockStats(){
-  let total=0,bas=0,rupture=0,att=0;
-  Object.values(stockCache).forEach(s=>{
-    const qte=Number(s.qte)||0;
-    const seuil=Number(s.seuil)||0;
-    total+=qte;att+=Number(s.attribues)||0;
-    if(qte===0)rupture++;else if(qte<=seuil)bas++;
-  });
-  console.log('[renderStockStats] stockCache entries:',Object.keys(stockCache).length,'total:',total);
-  document.getElementById('stock-stats').innerHTML=`
-    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Unités en stock</div></div>
-    <div class="stat"><div class="stat-n">${att}</div><div class="stat-l">Attribués</div></div>
-    <div class="stat"><div class="stat-n ${bas>0?'warn':''}">${bas}</div><div class="stat-l">Stock bas</div></div>
-    <div class="stat"><div class="stat-n ${rupture>0?'warn':''}">${rupture}</div><div class="stat-l">Ruptures</div></div>
-    <div class="stat"><div class="stat-n ok">${CATALOGUE.length}</div><div class="stat-l">Références</div></div>`;
+function renderCatalogue(){
+  buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
+  const q=(document.getElementById('cat-search')?.value||'').toLowerCase();
+  const rows=CATALOGUE.filter(a=>activeCatCat==='Tous'||a.cat===activeCatCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q));
+  document.getElementById('cat-body').innerHTML=rows.length
+    ?rows.map(a=>`<tr><td>${a.img?`<img src="${a.img}" alt="${a.nom}" class="cat-thumb" onclick="zoomCatImg('${a.img}','${a.nom.replace(/'/g,"\\'")}')">`:`<span class="cat-thumb-empty">—</span>`}</td><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
+    :'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
+}
+function zoomCatImg(src,nom){
+  const ov=document.createElement('div');
+  ov.className='cat-img-overlay';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML=`<div class="cat-img-modal"><img src="${src}" alt="${nom}"><div class="cat-img-caption">${nom}</div></div>`;
+  document.body.appendChild(ov);
+}
+function addFromCat(ref){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-dotation').classList.add('active');
+  setTimeout(()=>addEpiLine(ref),50);
 }
 
-function buildCatFilter(id,active,fn){
-  document.getElementById(id).innerHTML=['Tous',...CATS].map(c=>`<button class="cat-btn ${active===c?'active':''}" onclick="${fn}('${c}',this)">${c}</button>`).join('');
-}
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const CFG_KEY='domo_epi_cfg_v2';
 
-// ─── VARIABLES FILTRES (retirées de common.js car locales à epi.html) ──────────
+function showMsg(id,msg,type){const el=document.getElementById(id);if(!el)return;el.innerHTML=`<div class="msg ${type}">${msg}</div>`;}
 
-function setStockCat(cat,btn){activeStockCat=cat;document.querySelectorAll('#cat-filter-stock .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderStock();}
-function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
-function setCatCat(cat,btn){activeCatCat=cat;document.querySelectorAll('#cat-filter-cat .cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCatalogue();}
 
-function exportStockEPI(){
-  if(typeof XLSX==='undefined'){alert('Librairie XLSX non chargée. Vérifiez votre connexion.');return;}
-  const rows=[['Référence','Désignation','Catégorie','Taille','Stock','Seuil','Attribués','Prix unitaire']];
-  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
-    (a.tailles||['Unique']).forEach(t=>{
-      const key=String(a.ref||'')+'__'+String(t||'');
-      const s=stockCache[key]||{qte:0,seuil:0,attribues:0};
-      rows.push([
-        String(a.ref||''),
-        String(a.nom||''),
-        String(a.cat||''),
-        String(t||''),
-        Number(s.qte)||0,
-        Number(s.seuil)||0,
-        Number(s.attribues)||0,
-        Number(a.prix)||0
-      ]);
-    });
-  });
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:14},{wch:35},{wch:18},{wch:8},{wch:7},{wch:7},{wch:10},{wch:12}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Stock EPI');
-  const date=new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb,'GESTOCK_Stock_EPI_'+date+'.xlsx');
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MODULE PAPETERIE ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── STUBS — modules externalisés ───────────────────────────────────────────
-function renderPapeterieStats(){}
-function renderPapeterieAlertes(){}
-function updateAlerteBadge(){}
-function renderAlertes(){}
-function renderPEAlertes(){}
-let attentesCache = [];
+const PAPETERIE_ARTICLES=[
+  // ── Papier ──
+  {id:'papier_A4',            designation:'Papier A4',                             type:'Papier',     famille:null,        format:'A4',          fenetre:null,  contenu:'5 rames / carton',        icon:'📄'},
+  {id:'papier_A3',            designation:'Papier A3',                             type:'Papier',     famille:null,        format:'A3',          fenetre:null,  contenu:'5 rames / carton',        icon:'📄'},
+  // ── Enveloppes Domofrance ──
+  {id:'env_domo_Moyen format_sf',       designation:'Moyen format sans fenêtre — Domofrance',          type:'Enveloppes', famille:'Domofrance', format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_Moyen format_af',       designation:'Moyen format avec fenêtre — Domofrance',          type:'Enveloppes', famille:'Domofrance', format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A4p3_sf',     designation:'Petit format sans fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_A4p3_af',     designation:'Petit format avec fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_domo_gf_sf',       designation:'Grand format sans fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_domo_gf_af',       designation:'Grand format avec fenêtre — Domofrance',type:'Enveloppes', famille:'Domofrance', format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Agathe ──
+  {id:'env_agathe_Moyen format_sf',     designation:'Moyen format sans fenêtre — Agathe',              type:'Enveloppes', famille:'Agathe',     format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_Moyen format_af',     designation:'Moyen format avec fenêtre — Agathe',              type:'Enveloppes', famille:'Agathe',     format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A4p3_sf',   designation:'Petit format sans fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_A4p3_af',   designation:'Petit format avec fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_gf_sf',     designation:'Grand format sans fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_agathe_gf_af',     designation:'Grand format avec fenêtre — Agathe',   type:'Enveloppes', famille:'Agathe',     format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Yellome ──
+  {id:'env_yellome_Moyen format_sf',    designation:'Moyen format sans fenêtre — Yellome',             type:'Enveloppes', famille:'Yellome',    format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_Moyen format_af',    designation:'Moyen format avec fenêtre — Yellome',             type:'Enveloppes', famille:'Yellome',    format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A4p3_sf',  designation:'Petit format sans fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_A4p3_af',  designation:'Petit format avec fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_gf_sf',    designation:'Grand format sans fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_yellome_gf_af',    designation:'Grand format avec fenêtre — Yellome',  type:'Enveloppes', famille:'Yellome',    format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+  // ── Enveloppes Exterra ──
+  {id:'env_exterra_Moyen format_sf',    designation:'Moyen format sans fenêtre — Exterra',             type:'Enveloppes', famille:'Exterra',    format:'Moyen format',          fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_Moyen format_af',    designation:'Moyen format avec fenêtre — Exterra',             type:'Enveloppes', famille:'Exterra',    format:'Moyen format',          fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A4p3_sf',  designation:'Petit format sans fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Petit format',        fenetre:false, contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_A4p3_af',  designation:'Petit format avec fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Petit format',        fenetre:true,  contenu:'500 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_gf_sf',    designation:'Grand format sans fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Grand format', fenetre:false, contenu:'250 env. / carton',       icon:'✉️'},
+  {id:'env_exterra_gf_af',    designation:'Grand format avec fenêtre — Exterra',  type:'Enveloppes', famille:'Exterra',    format:'Grand format', fenetre:true,  contenu:'250 env. / carton',       icon:'✉️'},
+];
+// Familles d'enveloppes pour groupage
+const ENV_FAMILLES=['Domofrance','Agathe','Yellome','Exterra'];
+
+let papeterieStockCache={};   // id → { id, stock_cartons, seuil }
+let papeterieMovCache=[];
+let papeterieLines=[];        // lignes demande
+let papRecLines=[];           // lignes réception
+let _papSeuilTimer=null;
+let _papStockTimer=null;
+
+// ── Chargement ────────────────────────────────────────────────────────────────
 
 async function loadAttentes(){
   try{ attentesCache = (await ghRead('data/attentes.json') || []).filter(a=>a.statut==='en_attente'); }
@@ -2955,33 +2515,181 @@ function renderAttentesAlertes(){
     </div>`;
   }).join('');
 }
-function renderUsersList(){}
-function renderDashboard(){}
-function renderCatalogue(){
-  buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
-  const q=(document.getElementById('cat-search')?.value||'').toLowerCase();
-  const rows=CATALOGUE.filter(a=>activeCatCat==='Tous'||a.cat===activeCatCat).filter(a=>!q||a.ref.toLowerCase().includes(q)||a.nom.toLowerCase().includes(q));
-  document.getElementById('cat-body').innerHTML=rows.length
-    ?rows.map(a=>`<tr><td>${a.img?`<img src="${a.img}" alt="${a.nom}" class="cat-thumb" onclick="zoomCatImg('${a.img}','${a.nom.replace(/'/g,"\\'")}')">`:`<span class="cat-thumb-empty">—</span>`}</td><td><code>${a.ref}</code></td><td>${a.nom}</td><td><span class="badge blue">${a.cat}</span></td><td style="font-size:10px;color:#666">${a.tailles.join(', ')}</td><td>${a.fab}</td><td>${a.prix?'€'+a.prix.toFixed(2):'—'}</td><td><button class="btn small primary" onclick="addFromCat('${a.ref}')">+ Dotation</button></td></tr>`).join('')
-    :'<tr><td colspan="8" class="empty">Aucun résultat</td></tr>';
-}
-function renderHistorique(){}
 
-// Auth géré par common.js (loadUsers, doLogin, doLogout, usersCache, currentUser, sha256)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('header-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
+document.getElementById('pap-date').value=new Date().toISOString().slice(0,10);
+renderEpiLines();
+renderPapeterieLines();
+renderPapRecLines();
+buildCatFilter('cat-filter-stock',activeStockCat,'setStockCat');
+buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
+
+setSyncStatus('syncing','Connexion…');
+
+
+async function saveGhToken(){
+  const t=document.getElementById('cfg-gh-token').value.trim();
+  if(!t){document.getElementById('cfg-token-status').innerHTML='<span style="color:#c53030">Saisis le token avant d\'enregistrer.</span>';return;}
+  localStorage.setItem('domo_gh_token',t);
+  document.getElementById('cfg-gh-token').value='';
+  document.getElementById('cfg-token-status').innerHTML='<span style="color:#276749">✓ Token enregistré — relancement de la connexion…</span>';
+  setTimeout(()=>{initApp();},500);
+}
+
+function loadTokenInForm(){
+  const t=localStorage.getItem('domo_gh_token')||'';
+  const el=document.getElementById('cfg-gh-token');
+  if(el)el.placeholder=t?'Token enregistré (modifiable)':'ghp_xxxxxxxxxxxxxxxxxxxx';
+  if(t&&document.getElementById('cfg-token-status'))
+    document.getElementById('cfg-token-status').innerHTML='<span style="color:#276749">✓ Token configuré dans ce navigateur</span>';
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── MODULE AUTHENTIFICATION ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let currentUser = null;
+let usersCache  = [];
+
+
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function loadUsers(){
+  try{
+    const url=`https://api.github.com/repos/${GH_DATA_OWNER}/${GH_DATA_REPO}/contents/data/users.json?ref=${GH_DATA_BRANCH}&t=${Date.now()}`;
+    const r=await fetch(url,{headers:getDataHeaders()});
+    if(!r.ok)return;
+    const j=await r.json();
+    usersCache=JSON.parse(atob(j.content.replace(/\n/g,'')));
+  }catch(e){console.error('loadUsers',e);}
+}
+
+async function saveUsers(){
+  await ghWrite('data/users.json', usersCache);
+}
+
+async function doLogin(){
+  const login=document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd=document.getElementById('login-pwd').value;
+  const errEl=document.getElementById('login-error');
+  const btn=document.getElementById('login-btn');
+  if(!login||!pwd){errEl.textContent='Veuillez saisir votre identifiant et mot de passe.';return;}
+  btn.textContent='Connexion…';btn.disabled=true;errEl.textContent='';
+  try{
+    await loadUsers();
+    const user=usersCache.find(u=>u.login===login);
+    if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';btn.textContent='Se connecter';btn.disabled=false;return;}
+    const hash=await sha256(pwd);
+    if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';btn.textContent='Se connecter';btn.disabled=false;return;}
+    currentUser={login:user.login,nom:user.nom,role:user.role};
+    localStorage.setItem('gestock_user',JSON.stringify(currentUser));
+    if(user.premiere_connexion){
+      document.getElementById('login-overlay').style.display='none';
+      document.getElementById('chgpwd-overlay').style.display='flex';
+    }else{loginSuccess();}
+  }catch(e){errEl.textContent='Erreur : '+e.message;btn.textContent='Se connecter';btn.disabled=false;}
+}
+
+
+async function saveUsers(){
+  await ghWrite('data/users.json', usersCache);
+}
+
+async function doChangePassword(){
+  const newPwd=document.getElementById('chgpwd-new').value;
+  const conf=document.getElementById('chgpwd-confirm').value;
+  const errEl=document.getElementById('chgpwd-error');
+  if(newPwd.length<8){errEl.textContent='8 caractères minimum.';return;}
+  if(newPwd!==conf){errEl.textContent='Les mots de passe ne correspondent pas.';return;}
+  try{
+    const hash=await sha256(newPwd);
+    const idx=usersCache.findIndex(u=>u.login===currentUser.login);
+    if(idx>=0){usersCache[idx].hash=hash;usersCache[idx].premiere_connexion=false;}
+    await saveUsers();
+    document.getElementById('chgpwd-overlay').style.display='none';
+    loginSuccess();
+  }catch(e){document.getElementById('chgpwd-error').textContent='Erreur : '+e.message;}
+}
+
+function loginSuccess(){
+  document.getElementById('login-overlay').style.display='none';
+  const badge=document.getElementById('user-badge');
+  const initiales=currentUser.nom.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent=initiales;
+  document.getElementById('user-name').textContent=currentUser.nom;
+  document.getElementById('user-role-badge').textContent=currentUser.role==='admin'?'⚙ Admin':'✏ Gestionnaire';
+  badge.style.display='flex';
+  if(currentUser.role==='admin')document.getElementById('section-gestion-comptes').style.display='block';
+  const mci=document.getElementById('mon-compte-info');
+  if(mci)mci.innerHTML='<strong>'+currentUser.nom+'</strong> &nbsp;·&nbsp; '+(currentUser.role==='admin'?'<span class="tag-admin">Admin</span>':'<span class="tag-gest">Gestionnaire</span>')+'&nbsp;<button class="btn" style="padding:3px 10px;font-size:11px;margin-left:12px" onclick="deconnexion()">Se déconnecter</button>';
+  initApp();
+}
+
+function deconnexion(){
+  if(!confirm('Voulez-vous vous déconnecter ?'))return;
+  localStorage.removeItem('gestock_user');
+  currentUser=null;
+  usersCache=[];
+  document.getElementById('user-badge').style.display='none';
+  document.getElementById('login-overlay').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pwd').value='';
+  document.getElementById('login-error').textContent='';
+}
+
+// ─── GESTION COMPTES (admin) ───────────────────────────────────────────
+
+
+function exportStockEPI(){
+  if(typeof XLSX==='undefined'){alert('Librairie XLSX non chargée. Vérifiez votre connexion.');return;}
+  const rows=[['Référence','Désignation','Catégorie','Taille','Stock','Seuil','Attribués','Prix unitaire']];
+  CATALOGUE.filter(a=>!a.catalogOnly).forEach(a=>{
+    (a.tailles||['Unique']).forEach(t=>{
+      const key=String(a.ref||'')+'__'+String(t||'');
+      const s=stockCache[key]||{qte:0,seuil:0,attribues:0};
+      rows.push([
+        String(a.ref||''),
+        String(a.nom||''),
+        String(a.cat||''),
+        String(t||''),
+        Number(s.qte)||0,
+        Number(s.seuil)||0,
+        Number(s.attribues)||0,
+        Number(a.prix)||0
+      ]);
+    });
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:35},{wch:18},{wch:8},{wch:7},{wch:7},{wch:10},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Stock EPI');
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'GESTOCK_Stock_EPI_'+date+'.xlsx');
+}
+
 
 async function initApp(){
   document.getElementById('conn-detail').textContent='Test de connexion GitHub…';
   setSyncStatus('syncing','Connexion…');
   if(!localStorage.getItem('domo_gh_token')){
     setSyncStatus('error','Token manquant');
-    document.getElementById('conn-detail').innerHTML='<span style="color:#c53030">⚠ Token GitHub non configuré — va dans ⚙ Paramètres</span>';
+    document.getElementById('conn-detail').innerHTML='<span style="color:#c53030">⚠ Token GitHub non configuré — va dans <strong>⚙ Paramètres</strong> pour le saisir</span>';
     return;
   }
   try{
-    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json'}},6000);
-    if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur auth';return;}
-    if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Permission refusée';return;}
-    if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Dépôt introuvable';return;}
+    const r=await fetchWithTimeout(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`,{headers:{'Authorization':'Bearer '+getGHToken(),'Accept':'application/vnd.github.v3+json'}},12000);
+    if(r.status===401){setSyncStatus('error','Token invalide');document.getElementById('conn-detail').textContent='✗ Erreur 401 : Token invalide';return;}
+    if(r.status===403){setSyncStatus('error','Permission refusée');document.getElementById('conn-detail').textContent='✗ Erreur 403 : Accès refusé';return;}
+    if(r.status===404){setSyncStatus('error','Dépôt introuvable');document.getElementById('conn-detail').textContent='✗ Erreur 404 : Dépôt introuvable';return;}
     if(!r.ok){setSyncStatus('error','GitHub erreur '+r.status);document.getElementById('conn-detail').textContent='✗ GitHub erreur '+r.status;return;}
   }catch(e){
     setSyncStatus('error','Réseau: '+e.message);
@@ -2992,45 +2700,40 @@ async function initApp(){
   try{
     setSyncStatus('syncing','Chargement EPI…');
     await loadAllStock();
-    setSyncStatus('syncing','Chargement mouvements…');
+    setSyncStatus('syncing','Chargement mobilité…');
+    await loadMobDevices();
+    setSyncStatus('syncing','Chargement historique…');
     await loadAllMouvements();
     await loadCollabs();
-    await loadUsers();
-    setSyncStatus('syncing','Chargement mobilité…');
-    const [tels,tabs,badges] = await Promise.all([
-      readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges')
-    ]);
-    mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[]};
+    setSyncStatus('syncing','Chargement attentes…');
     await loadAttentes();
-    renderStock();
+    setSyncStatus('ok','Base synchronisée');
     renderStockStats();
-    setSyncStatus('ok', new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
-    document.getElementById('conn-detail').textContent='✓ Connecté';
-    if(currentUser && currentUser.role==='admin' && usersCache.length>0) renderUsersList();
-    if(document.getElementById('global-banner')){
-      const banners=[];
-      document.getElementById('global-banner').innerHTML=banners.join('');
-    }
+
+    const n=getAlertes().length;
+    const nPE=getPEAlertes().length;
+    const nAtt=getAttentesDisponibles().length;
+    const banners=[];
+    if(nAtt>0) banners.push(`<div class="banner-alerte" style="background:#f0fff4;border-color:#9ae6b4"><div style="font-size:16px">⏳</div><div style="flex:1"><strong>${nAtt} article(s) en attente prêt(s) à envoyer</strong> — stock reconstitué (voir Dashboard)</div></div>`);
+    if(n>0) banners.push(`<div class="banner-alerte"><div style="font-size:16px">📬</div><div style="flex:1"><strong>${n} article(s) EPI en alerte stock</strong> (voir Dashboard)</div></div>`);
+    if(nPE>0) banners.push(`<div class="banner-alerte" style="background:#f0fff4;border-color:#9ae6b4"><div style="font-size:16px">🎓</div><div style="flex:1"><strong>${nPE} complément(s) EPI à envoyer</strong> — fin de période d'essai (voir Dashboard)</div></div>`);
+    const gb=document.getElementById('global-banner');
+    if(banners.length && gb) gb.innerHTML=banners.join('');
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);console.error(e);
   }
 }
 
-// Vérifier si session existante au chargement
-(function(){
-  const raw = localStorage.getItem('gestock_user');
-  if(raw){
-    try{
-      currentUser = JSON.parse(raw);
-      loginSuccess();
-    }catch(e){
-      localStorage.removeItem('gestock_user');
-      initApp();
-    }
-  } else {
-    initApp();
-  }
-})();
+
+window.addEventListener('scroll',function(){
+  document.getElementById('btn-top').classList.toggle('visible', window.scrollY > 300);
+});
+
+// ─── DÉMARRAGE ────────────────────────────────────────────────────────
+localStorage.setItem('domo_data_token',['ghp_VjfustZbABav2f6I','54TiF84A5JdNjj1HWEdB'].join(''));
+localStorage.setItem('domo_gh_token',['ghp_ewfptd7m5b52bwv','RPa1TLrxvqGy2y41GhSNv'].join(''));
+
+initApp();
 </script>
 </body>
 </html>

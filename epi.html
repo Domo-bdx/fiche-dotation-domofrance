@@ -1222,6 +1222,331 @@ async function validerDotation(){
   const aEpi=epiLines.length>0;
   if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
   if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
+  const type=document.getElementById('d-type').value;
+  if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
+  const dispos=mobCache.badge.filter(x=>x.statut==='disponible'||x.statut==='Disponible'||x.statut==='Disponible');
+  const attribues=mobCache.badge.filter(x=>x.statut==='attribue'||x.statut==='Attribué'||x.statut==='Attribué');
+  const typeLabel={acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
+  c.innerHTML=badgeLines.map(l=>{
+    const sel=mobCache.badge.find(x=>x.id===l.deviceId);
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>N° ${d.numero||'?'} — ${typeLabel[d.type_badge]||d.type_badge||'?'} ${d.notes?'('+d.notes+')':''}</option>`).join('');
+    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">🪪 Badge N° ${sel.numero||'—'} — ${typeLabel[sel.type_badge]||sel.type_badge||'—'}</div>`:'';
+    const isWatchdoc=sel&&(sel.type_badge==='watchdoc'||(sel.notes||'').toLowerCase().includes('siege')||(sel.notes||'').toLowerCase().includes('siege'));
+    const pukField=sel&&type!=='restitution'?`<div style="margin-top:8px">
+      <label style="font-size:10px;color:#666">Code PUK Siege (WatchDoc) ${isWatchdoc?'<span style="color:#1a3a5c;font-weight:700">✓ Badge Siege / WatchDoc</span>':''}</label>
+      <input type="text" placeholder="Code PUK WatchDoc" value="${l.puk_watchdoc||''}"
+        onchange="updateBadgeLine('${l.id}','puk_watchdoc',this.value)"
+        style="max-width:220px;font-family:monospace;${isWatchdoc?'border-color:#1a3a5c;background:#f0f4ff':''}">
+    </div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
+    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner un badge ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher N° badge, type, notes…" value="${l.search||''}"
+            oninput="searchMobLine('badge','${l.id}',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
+          <select onchange="updateBadgeLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} badge${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun badge ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+        </div>
+        <button class="btn danger small" onclick="removeBadgeLine('${l.id}')" style="margin-top:20px">✕</button>
+      </div>${info}${pukField}
+    </div>`;
+  }).join('');
+}
+
+function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:'',numero:'',search:''});renderTelLines();}
+function addTabLine(){tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:'',search:''});renderTabLines();}
+function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
+function removeTabLine(id){tabLines=tabLines.filter(x=>x.id!==id);renderTabLines()}
+function updateTelLine(id,field,val){
+  const l=telLines.find(x=>x.id===id);if(!l)return;
+  l[field]=val;
+  if(field==='deviceId'){const d=mobCache.tel.find(x=>x.id===val);if(d){l.marque=d.marque;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;l.numero=d.numero||'';}}
+  renderTelLines();
+}
+function updateTabLine(id,field,val){
+  const l=tabLines.find(x=>x.id===id);if(!l)return;
+  l[field]=val;
+  if(field==='deviceId'){const d=mobCache.tab.find(x=>x.id===val);if(d){l.nom=d.nom;l.modele=d.modele;l.imei=d.imei;l.sim=d.sim;}}
+  renderTabLines();
+}
+
+function renderTelLines(){
+  const c=document.getElementById('tel-lines-container');
+  if(!telLines.length){c.innerHTML='<div class="empty">Aucun téléphone ajouté</div>';return}
+  const dispos=mobCache.tel.filter(x=>x.statut==='disponible'||x.statut==='Disponible');
+  const type=document.getElementById('d-type').value;
+  const attribues=mobCache.tel.filter(x=>x.statut==='attribue'||x.statut==='Attribué');
+  c.innerHTML=telLines.map(l=>{
+    const sel=mobCache.tel.find(x=>x.id===l.deviceId);
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
+    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📱 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
+    const numeroField=sel&&type!=='restitution'?`<div style="margin-top:8px">
+      <label style="font-size:10px;color:#666">Numéro de ligne <span style="color:#c53030">*</span></label>
+      <input type="text" placeholder="06XXXXXXXX" value="${l.numero||''}" onchange="updateTelLine('${l.id}','numero',this.value)" style="${l.numero?'':'border-color:#c53030;background:#fff5f5'}">
+    </div>`:'';
+    const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+      <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTelLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTelLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTelLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
+    </div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
+    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner un téléphone ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher marque, modèle, IMEI, collaborateur…" value="${l.search||''}"
+            oninput="searchMobLine('tel','${l.id}',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
+          <select onchange="updateTelLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} appareil${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+        </div>
+        <button class="btn danger small" onclick="removeTelLine('${l.id}')" style="margin-top:20px">✕</button>
+      </div>${info}${numeroField}${codeFields}
+    </div>`;
+  }).join('');
+}
+
+function renderTabLines(){
+  const c=document.getElementById('tab-lines-container');
+  if(!tabLines.length){c.innerHTML='<div class="empty">Aucune tablette ajoutée</div>';return}
+  const type=document.getElementById('d-type').value;
+  const dispos=mobCache.tab.filter(x=>x.statut==='disponible'||x.statut==='Disponible');
+  const attribues=mobCache.tab.filter(x=>x.statut==='attribue'||x.statut==='Attribué');
+  c.innerHTML=tabLines.map(l=>{
+    const sel=mobCache.tab.find(x=>x.id===l.deviceId);
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.deviceId?'selected':''}>${d.nom||''} — ${d.marque||''} ${d.modele||''} — IMEI ${d.imei||'?'} ${d.collaborateur?'('+d.collaborateur+')':''}</option>`).join('');
+    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">📟 ${sel.marque||''} ${sel.modele||''} — IMEI: ${sel.imei||'—'}</div>`:'';
+    const codeFields=sel&&type!=='restitution'?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+      <div><label style="font-size:10px;color:#666">Code PIN SIM</label><input type="text" placeholder="XXXX" value="${l.pin||''}" onchange="updateTabLine('${l.id}','pin',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code déverrouillage</label><input type="text" placeholder="Schéma / code écran" value="${l.deverouillage||''}" onchange="updateTabLine('${l.id}','deverouillage',this.value)" style="font-family:monospace"></div>
+      <div><label style="font-size:10px;color:#666">Code PUK</label><input type="text" placeholder="XXXXXXXX" value="${l.puk||''}" onchange="updateTabLine('${l.id}','puk',this.value)" style="font-family:monospace"></div>
+    </div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
+    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner une tablette ${type==='restitution'?'(attribuées)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher marque, modèle, IMEI, utilisateur…" value="${l.search||''}"
+            oninput="searchMobLine('tab','${l.id}',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
+          <select onchange="updateTabLine('${l.id}','deviceId',this.value)"><option value="">— Choisir —</option>${opts}</select>
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} tablette${nbMatch>1?'s':''} trouvée${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun appareil ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+        </div>
+        <button class="btn danger small" onclick="removeTabLine('${l.id}')" style="margin-top:20px">✕</button>
+      </div>${info}${codeFields}
+    </div>`;
+  }).join('');
+}
+
+// ─── SUIVI PÉRIODE D'ESSAI ────────────────────────────────────────────────────
+let collabsCache=[];
+
+async function loadCollabs(){
+  try{const arr=await readData('collaborateurs');collabsCache=arr||[];}
+  catch(e){collabsCache=[];}
+}
+async function saveCollabs(){await writeData('collaborateurs',collabsCache);}
+
+function addCollab(nom,prenom,matricule,site,dateEmbauche){
+  const existing=collabsCache.findIndex(c=>c.nom===nom&&c.prenom===prenom&&c.matricule===matricule);
+  const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2),nom,prenom,matricule,site,date_embauche:dateEmbauche,complement_envoye:false,date_complement:null};
+  if(existing>=0){collabsCache[existing]={...collabsCache[existing],...entry,id:collabsCache[existing].id};}
+  else{collabsCache.unshift(entry);}
+  saveCollabs();
+}
+
+async function marquerComplementEnvoye(id){
+  const idx=collabsCache.findIndex(c=>c.id===id);
+  if(idx>=0){
+    collabsCache[idx].complement_envoye=true;
+    collabsCache[idx].date_complement=new Date().toISOString().slice(0,10);
+    await saveCollabs();renderPEAlertes();updateAlerteBadge();
+  }
+}
+
+function getPEAlertes(){
+  const today=new Date();today.setHours(0,0,0,0);
+  return collabsCache.filter(co=>{
+    if(co.complement_envoye)return false;
+    if(!co.date_embauche)return false;
+    const embauche=new Date(co.date_embauche);
+    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);finPE.setHours(0,0,0,0);
+    return finPE<=today;
+  });
+}
+
+function renderPEAlertes(){
+  const alertes=getPEAlertes();
+  const today=new Date();today.setHours(0,0,0,0);
+  const el=document.getElementById('pe-alertes-list');if(!el)return;
+  if(!alertes.length){el.innerHTML='<div class="empty">Aucune fin de période d\'essai en attente</div>';return;}
+  el.innerHTML=alertes.map(co=>{
+    const embauche=new Date(co.date_embauche);
+    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);
+    const joursDepuis=Math.floor((today-finPE)/(1000*60*60*24));
+    const urgent=joursDepuis>7;
+    const dateStr=finPE.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+    return `<div class="pe-alert ${urgent?'urgent':''}">
+      <div style="font-size:18px">${urgent?'🔴':'🟢'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
+        <div style="font-size:11px;color:#555">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}${joursDepuis>0?' · <span style="color:#c53030;font-weight:600">En retard de '+joursDepuis+' jour(s)</span>':' · <span style="color:#276749;font-weight:600">Aujourd\'hui</span>'}</div>
+      </div>
+      <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── PACKS PRÉDÉFINIS ─────────────────────────────────────────────────────────
+const PACKS={
+  "embauche":[{ref:'03-006208',nom:'T-shirt MC Navy',qte:4},{ref:'0TOPRU599MCMAR',nom:'Polo MC Navy',qte:1},{ref:'03-016334',nom:'Sweat K4025 Navy',qte:1},{ref:'03-024844',nom:'Pantalon Cordura WK742',qte:2},{ref:'03-024846',nom:'Veste Softshell WK450',qte:1},{ref:'0TOPK677',nom:'Parka Kariban Marine',qte:1}],
+  "complement":[{ref:'03-006208',nom:'T-shirt MC Navy',qte:2},{ref:'0TOPRU599MCMAR',nom:'Polo MC Navy',qte:1},{ref:'03-016334',nom:'Sweat K4025 Navy',qte:1},{ref:'03-022637',nom:'Pantalon stretch été Noir',qte:1},{ref:'03-024846',nom:'Veste Softshell WK450',qte:1},{ref:'03-017207',nom:'Bodywarmer WK606 (sur demande)',qte:1},{ref:'643100',nom:'Ensemble pluie Robson 2 (sur demande)',qte:1}]
+};
+
+function appliquerPack(nom){
+  const items=PACKS[nom];if(!items)return;
+  epiLines=items.filter(item=>item.qte>0).map(item=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2),ref:item.ref,taille:'',qte:item.qte}));
+  renderEpiLines();
+  document.getElementById('epi-lines-container').scrollIntoView({behavior:'smooth',block:'start'});
+  showMsg('dotation-msg','✓ Pack appliqué — choisissez les tailles pour chaque article.','ok');
+}
+
+function addEpiLine(prefillRef){
+  epiLines.push({id:Date.now()+'_'+Math.random(),ref:prefillRef||'',taille:'',qte:1,search:''});
+  renderEpiLines();
+}
+
+function renderEpiLines(){
+  const c=document.getElementById('epi-lines-container');
+  if(!epiLines.length){c.innerHTML='<div class="empty">Aucun EPI ajouté — cliquez sur "+ Ajouter un EPI"</div>';return}
+  c.innerHTML=epiLines.map(line=>{
+    const art=CATALOGUE.find(x=>x.ref===line.ref);
+    const tailles=art?art.tailles:[];
+    const s=line.ref&&line.taille?getStock(line.ref,line.taille):null;
+    const badge=s?`<span class="badge ${s.qte<=0?'red':s.qte<=s.seuil?'yellow':'green'}" style="margin-left:4px">Stock: ${s.qte}</span>`:'';
+    const q=(line.search||'').toLowerCase();
+    const filteredOpts=CATS.map(cat=>{
+      const items=CATALOGUE.filter(x=>x.cat===cat&&(!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)||cat.toLowerCase().includes(q)));
+      if(!items.length)return '';
+      return `<optgroup label="${cat}">${items.map(x=>`<option value="${x.ref}" ${x.ref===line.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`;
+    }).join('');
+    const countMatch=CATALOGUE.filter(x=>!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)).length;
+    return `<div class="epi-line">
+      <div>
+        <label>Article</label>
+        <input type="text" placeholder="🔍 Rechercher un article…" value="${line.search||''}"
+          oninput="searchEpiLine('${line.id}',this.value)"
+          style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff"
+          autocomplete="off">
+        <select id="epi-sel-${line.id}" onchange="updateLine('${line.id}','ref',this.value)">
+          <option value="">— Choisir —</option>
+          ${filteredOpts}
+        </select>
+        ${q&&countMatch===0?`<div style="font-size:11px;color:#c53030;margin-top:3px">Aucun article trouvé pour "${line.search}"</div>`:''}
+        ${q&&countMatch>0?`<div style="font-size:10px;color:#555;margin-top:3px">${countMatch} article${countMatch>1?'s':''} trouvé${countMatch>1?'s':''}</div>`:''}
+      </div>
+      <div><label>Taille ${badge}</label>
+        <select onchange="updateLine('${line.id}','taille',this.value)">
+          <option value="">—</option>${tailles.map(t=>`<option value="${t}" ${t===line.taille?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Quantité</label>
+        <input type="number" min="1" value="${line.qte}" style="width:70px" onchange="updateLine('${line.id}','qte',parseInt(this.value)||1)">
+      </div>
+      <div><button class="btn danger small" onclick="removeLine('${line.id}')" style="margin-top:18px">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+function searchEpiLine(id, val){
+  const l=epiLines.find(x=>x.id===id);if(!l)return;
+  l.search=val;
+  // Rebuild only the select options (no full re-render → no focus loss)
+  const sel=document.getElementById('epi-sel-'+id);
+  if(!sel)return;
+  const q=val.toLowerCase();
+  const filteredOpts=CATS.map(cat=>{
+    const items=CATALOGUE.filter(x=>x.cat===cat&&(!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)||cat.toLowerCase().includes(q)));
+    if(!items.length)return '';
+    return `<optgroup label="${cat}">${items.map(x=>`<option value="${x.ref}" ${x.ref===l.ref?'selected':''}>${x.ref} — ${x.nom}</option>`).join('')}</optgroup>`;
+  }).join('');
+  sel.innerHTML=`<option value="">— Choisir —</option>${filteredOpts}`;
+  // Feedback sous le champ
+  const countMatch=CATALOGUE.filter(x=>!q||x.ref.toLowerCase().includes(q)||x.nom.toLowerCase().includes(q)).length;
+  const hint=sel.nextElementSibling;
+  if(hint&&hint.tagName!=='SELECT'){
+    if(q&&countMatch===0)hint.textContent=`Aucun article trouvé pour "${val}"`;
+    else if(q&&countMatch>0)hint.textContent=`${countMatch} article${countMatch>1?'s':''} trouvé${countMatch>1?'s':''}`;
+    else hint.textContent='';
+  }
+}
+
+function searchMobLine(type, id, val){
+  // Met à jour le champ search et refiltre le select sans re-render complet
+  let lines, renderFn, selLookup;
+  if(type==='tel'){
+    lines=telLines; renderFn=renderTelLines;
+    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  } else if(type==='tab'){
+    lines=tabLines; renderFn=renderTabLines;
+    selLookup=(pool,q)=>pool.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  } else {
+    lines=badgeLines; renderFn=renderBadgeLines;
+    const tl={acces:'Acces',watchdoc:'WatchDoc',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
+    selLookup=(pool,q)=>pool.filter(d=>(d.numero||'').toLowerCase().includes(q)||(d.type_badge||'').toLowerCase().includes(q)||(d.notes||'').toLowerCase().includes(q));
+  }
+  const l=lines.find(x=>x.id===id);
+  if(!l)return;
+  l.search=val;
+  // Re-render complet pour le type (focus sur l'input de recherche, pas sur le select)
+  renderFn();
+  // Redonner le focus sur le bon champ de recherche après re-render
+  const inputs=document.querySelectorAll(`input[oninput*="searchMobLine('${type}','${id}"]`);
+  if(inputs.length){
+    const inp=inputs[0];
+    inp.focus();
+    inp.setSelectionRange(val.length,val.length);
+  }
+}
+
+function updateLine(id,field,val){const l=epiLines.find(x=>x.id===id);if(!l)return;l[field]=val;if(field==='ref')l.taille='';renderEpiLines();}
+function removeLine(id){epiLines=epiLines.filter(x=>x.id!==id);renderEpiLines()}
+
+function resetDotation(){
+  ['d-nom','d-prenom','d-matricule','d-motif'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('d-site').value='';
+  document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('d-type').value='dotation';
+  epiLines=[];renderEpiLines();telLines=[];renderTelLines();tabLines=[];renderTabLines();badgeLines=[];renderBadgeLines();
+  document.getElementById('dotation-msg').innerHTML='';
+  document.getElementById('bon-container').style.display='none';
+}
+
+async function validerDotation(){
+  const nom=document.getElementById('d-nom').value.trim();
+  const prenom=document.getElementById('d-prenom').value.trim();
+  if(!nom){showMsg('dotation-msg','Saisissez le nom du collaborateur.','err');return}
+  // Au moins un élément renseigné (EPI, téléphone, tablette ou badge)
+  const aBadge=badgeLines.some(l=>l.deviceId);
+  const aTel=telLines.some(l=>l.deviceId);
+  const aTab=tabLines.some(l=>l.deviceId);
+  const aEpi=epiLines.length>0;
+  if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
+  if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
   if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
   const type=document.getElementById('d-type').value;
   const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);

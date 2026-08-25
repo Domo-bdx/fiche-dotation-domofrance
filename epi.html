@@ -2538,7 +2538,108 @@ function renderPapeterieAlertes(){}
 function updateAlerteBadge(){}
 function renderAlertes(){}
 function renderPEAlertes(){}
-function renderAttentesAlertes(){}
+let attentesCache = [];
+
+async function loadAttentes(){
+  try{ attentesCache = (await ghRead('data/attentes.json') || []).filter(a=>a.statut==='en_attente'); }
+  catch(e){ attentesCache = []; }
+}
+
+async function saveAttentes(){
+  // Relire pour ne pas écraser d'autres entrées (ex: déjà envoyées)
+  try{
+    const all = await ghRead('data/attentes.json') || [];
+    // Mettre à jour les entrées existantes du cache
+    attentesCache.forEach(a=>{
+      const idx = all.findIndex(x=>x.id===a.id);
+      if(idx>=0) all[idx]=a; else all.unshift(a);
+    });
+    await ghWrite('data/attentes.json', all);
+  }catch(e){ console.error('saveAttentes:', e); throw e; }
+}
+
+async function ajouterAttente(data){
+  const entry = {
+    ...data,
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+    statut: 'en_attente',
+    createdAt: new Date().toISOString()
+  };
+  attentesCache.unshift(entry);
+  // Écrire directement dans le fichier
+  try{
+    const all = await ghRead('data/attentes.json') || [];
+    all.unshift(entry);
+    await ghWrite('data/attentes.json', all);
+  }catch(e){ console.error('ajouterAttente:', e); throw e; }
+}
+
+async function marquerAttenteEnvoyee(id){
+  try{
+    const all = await ghRead('data/attentes.json') || [];
+    const idx = all.findIndex(x=>x.id===id);
+    if(idx>=0){
+      all[idx].statut = 'envoye';
+      all[idx].date_envoi = new Date().toISOString().slice(0,10);
+      await ghWrite('data/attentes.json', all);
+    }
+    attentesCache = attentesCache.filter(x=>x.id!==id);
+    renderAttentesAlertes();
+    updateAlerteBadge();
+    showMsg('attentes-msg-'+id, '', 'ok'); // cleanup
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+// Retourne les attentes dont le stock est désormais suffisant
+function getAttentesDisponibles(){
+  return attentesCache.filter(a=>{
+    if(a.statut!=='en_attente') return false;
+    const s = getStock(a.ref, a.taille);
+    return s.qte >= a.qte;
+  });
+}
+
+// Retourne toutes les attentes en cours (stock insuffisant ou suffisant)
+function getToutesAttentes(){
+  return attentesCache.filter(a=>a.statut==='en_attente');
+}
+
+function renderAttentesAlertes(){
+  const el = document.getElementById('attentes-list');
+  if(!el) return;
+  const toutes = getToutesAttentes();
+  const dispos = getAttentesDisponibles();
+  if(!toutes.length){
+    el.innerHTML='<div class="empty">✓ Aucun article en attente de livraison</div>';
+    document.getElementById('card-attentes').style.borderColor='';
+    return;
+  }
+  // Surligner la carte si des articles sont disponibles
+  document.getElementById('card-attentes').style.borderColor = dispos.length>0?'#276749':'';
+
+  el.innerHTML = toutes.map(a=>{
+    const s = getStock(a.ref, a.taille);
+    const stockOk = s.qte >= a.qte;
+    const dateStr = a.date ? new Date(a.date+'T12:00:00').toLocaleDateString('fr-FR') : '—';
+    const createdStr = new Date(a.createdAt).toLocaleDateString('fr-FR');
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:${stockOk?'#f0fff4':'#f8f9fb'};border:1px solid ${stockOk?'#9ae6b4':'#dde'};border-radius:6px;margin-bottom:8px">
+      <div style="font-size:18px;flex-shrink:0;margin-top:2px">${stockOk?'🟢':'⏳'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12px">${a.designation||a.ref} — Taille ${a.taille} × ${a.qte}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">
+          👤 <strong>${a.prenom||''} ${a.nom||''}</strong>${a.matricule?' ('+a.matricule+')':''} — ${a.site||'—'}
+          &nbsp;·&nbsp; Dotation du ${dateStr}
+          &nbsp;·&nbsp; Mis en attente le ${createdStr}
+        </div>
+        ${stockOk
+          ? `<div style="font-size:11px;color:#276749;font-weight:600;margin-top:4px">✅ Stock disponible (${s.qte} en stock) — prêt à envoyer</div>`
+          : `<div style="font-size:11px;color:#c05621;margin-top:4px">Stock actuel : ${s.qte} / ${a.qte} nécessaire${s.qte>0?' — stock partiel':' — rupture'}</div>`
+        }
+      </div>
+      ${stockOk?`<button class="btn success small" style="flex-shrink:0" onclick="marquerAttenteEnvoyee('${a.id}')">✓ Envoyé</button>`:''}
+    </div>`;
+  }).join('');
+}
 function renderUsersList(){}
 function renderDashboard(){}
 function renderCatalogue(){

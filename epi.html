@@ -256,6 +256,8 @@ tr:hover td{background:#f8f9fb}
 .btn-gen-fiche{background:#1a3a5c;color:#fff;border:none;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
 .btn-gen-fiche:hover{background:#16304d}
 #fiches-empty{color:#999;font-size:12px;padding:20px 0;text-align:center;display:none}
+a.nav-btn{text-decoration:none;display:inline-flex;align-items:center;color:inherit}
+a.nav-btn:hover{color:#fff}
 </style>
 </head>
 <body>
@@ -315,20 +317,23 @@ tr:hover td{background:#f8f9fb}
 
 <div class="nav" id="main-nav">
   <button id="nav-close" onclick="toggleMobileNav()" aria-label="Fermer">✕</button>
-  <button class="nav-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
-  <button class="nav-btn" onclick="goTab('catalogue',this)">Catalogue</button>
-  <button class="nav-btn" onclick="goTab('stock',this)">Stock EPI</button>
-  <button class="nav-btn" onclick="goTab('mobilite',this)">Stock Mobilité</button>
-  <button class="nav-btn" id="btn-papeterie" onclick="goTab('papeterie',this)">📄 Papeterie</button>
-  <button class="nav-btn" id="btn-alertes" onclick="goTab('alertes',this)">Alertes</button>
-  <button class="nav-btn" onclick="goTab('reception',this)">Réception commande</button>
-  <button class="nav-btn" onclick="goTab('fiches',this)">📋 Fiches</button>
-<button class="nav-btn" onclick="goTab('historique',this)">Historique</button>
-  <button class="nav-btn" id="btn-dashboard" onclick="goTab('dashboard',this)">📊 Dashboard</button>
-  <button class="nav-btn" onclick="goTab('parametres',this)">⚙ Paramètres</button>
+<button class="nav-btn active" onclick="goTab('dotation',this)">🏠 Dotation / EPI</button>
+<a class="nav-btn" href="mobilite.html">📱 Mobilité</a>
+<a class="nav-btn" href="papeterie.html">📄 Papeterie</a>
+<a class="nav-btn" href="fiches.html">📋 Fiches</a>
+<a class="nav-btn" href="dashboard.html">📊 Dashboard</a>
+<a class="nav-btn" href="parametres.html">⚙ Paramètres</a>
 </div>
 
 <div class="content">
+<!-- Sous-navigation EPI -->
+<div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:0 20px;display:flex;gap:4px" id="epi-sub-nav">
+  <button type="button" id="subbtn-dotation" onclick="goTab('dotation',this)" style="padding:8px 16px;border:none;border-bottom:3px solid #1a3a5c;background:none;font-size:12px;font-weight:700;color:#1a3a5c;cursor:pointer">Nouvelle dotation</button>
+  <button type="button" id="subbtn-stock" onclick="goTab('stock',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Stock EPI</button>
+  <button type="button" id="subbtn-catalogue" onclick="goTab('catalogue',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Catalogue</button>
+  <button type="button" id="subbtn-reception" onclick="goTab('reception',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Réception commande</button>
+</div>
+
 <div id="global-banner"></div>
 <div id="conn-bar" style="margin:10px 20px 0;padding:10px 14px;background:#f8f9fb;border:1px solid #dde;border-radius:8px;display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap">
   <span style="font-weight:600;color:#1a3a5c">Connexion GitHub</span>
@@ -540,6 +545,20 @@ tr:hover td{background:#f8f9fb}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+let mobCache={tel:[],tab:[],badge:[]};
+
+let currentUser = null;
+let usersCache  = [];
+// ─── ÉTAT LOCAL ───────────────────────────────────────────────────────────────
+let stockCache={};
+let mouvementsCache=[];
+let epiLines=[];
+let telLines=[];
+let tabLines=[];
+let badgeLines=[];
+let activeStockCat='Tous';
+let activeCatCat='Tous';
+
 // ─── CONFIG GITHUB API ───────────────────────────────────────────────────────
 function getGHToken(){return localStorage.getItem('domo_gh_token')||'';}
 function getDataToken(){return localStorage.getItem('domo_data_token')||getGHToken();}
@@ -684,15 +703,6 @@ async function sbDelete(table,filter){
   await writeData(table,arr.filter(x=>x.id!==id));
 }
 
-// ─── ÉTAT LOCAL ───────────────────────────────────────────────────────────────
-let stockCache={};
-let mouvementsCache=[];
-let epiLines=[];
-let telLines=[];
-let tabLines=[];
-let badgeLines=[];
-let activeStockCat='Tous';
-let activeCatCat='Tous';
 
 // ─── CATALOGUE EPI ───────────────────────────────────────────────────────────
 const CATALOGUE=[
@@ -848,19 +858,20 @@ async function saveStockRow(ref,taille,fields){
 function goTab(t,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  if(t==='parametres'&&currentUser&&currentUser.role==='admin'&&usersCache.length>0){renderUsersList();}
-  if(t==='dashboard'){renderDashboard();}
   document.getElementById('tab-'+t).classList.add('active');
   if(btn)btn.classList.add('active');
   if(t==='stock'){if(Object.keys(stockCache).length===0){loadAllStock().then(()=>{renderStockStats();renderStock();});}else{renderStockStats();renderStock();}}
-  if(t==='historique'){loadAllMouvements().then(renderHistorique)}
-  if(t==='fiches'){loadAllMouvements().then(fichesRender);}
-  if(t==='alertes'){renderAlertes();renderPEAlertes();renderAttentesAlertes();buildMailPreview(getAlertes());}
   if(t==='catalogue')renderCatalogue();
-  if(t==='parametres'){loadConfigIntoForm();loadTokenInForm();}
   if(t==='reception'){document.getElementById('rec-date').value=new Date().toISOString().slice(0,10);renderRecHisto()}
-  if(t==='mobilite'){loadMobDevices().then(()=>{renderMobStats();renderMobTel();renderMobTab();renderMobBadge()})}
-  if(t==='papeterie'){renderPapeterieStats();renderPapeterieAlertes();}
+  // Mettre à jour la sous-navigation visuelle
+  ['dotation','stock','catalogue','reception'].forEach(tab=>{
+    const sb = document.getElementById('subbtn-'+tab);
+    if(sb){
+      sb.style.borderBottomColor = t===tab ? '#1a3a5c' : 'transparent';
+      sb.style.color = t===tab ? '#1a3a5c' : '#666';
+      sb.style.fontWeight = t===tab ? '700' : '600';
+    }
+  });
   closeMobileNav();
   setTimeout(applyResponsiveLabels,80);
 }
@@ -2262,8 +2273,6 @@ function renderRecHisto(){
 
 
 // ─── STOCK MOBILITÉ ───────────────────────────────────────────────────────────
-let mobCache={tel:[],tab:[],badge:[]};
-
 async function loadMobDevices(){
   setSyncStatus('syncing','Chargement mobilité…');
   try{
@@ -2554,8 +2563,6 @@ function loadTokenInForm(){
 // ─── MODULE AUTHENTIFICATION ───────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 
-let currentUser = null;
-let usersCache  = [];
 
 
 async function sha256(str){

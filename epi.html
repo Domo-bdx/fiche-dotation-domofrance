@@ -1028,12 +1028,6 @@ function renderTabLines(){
 }
 
 // ─── SUIVI PÉRIODE D'ESSAI ────────────────────────────────────────────────────
-let collabsCache=[];
-
-async function loadCollabs(){
-  try{const arr=await readData('collaborateurs');collabsCache=arr||[];}
-  catch(e){collabsCache=[];}
-}
 async function saveCollabs(){await writeData('collaborateurs',collabsCache);}
 
 function addCollab(nom,prenom,matricule,site,dateEmbauche){

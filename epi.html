@@ -1262,8 +1262,8 @@ async function validerDotation(){
   const aEpi=epiLines.length>0;
   if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
   if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
-  if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
   const type=document.getElementById('d-type').value;
+  if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
   const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
   const site=document.getElementById('d-site').value;
   const matricule=document.getElementById('d-matricule').value.trim();

@@ -2686,6 +2686,7 @@ async function initApp(){
       readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges')
     ]);
     mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[]};
+    await loadAttentes();
     renderStock();
     renderStockStats();
     setSyncStatus('ok', new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));

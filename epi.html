@@ -2529,12 +2529,10 @@ function renderAttentesAlertes(){
 
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-document.getElementById('header-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
-document.getElementById('pap-date').value=new Date().toISOString().slice(0,10);
+const _hd=document.getElementById('header-date'); if(_hd) _hd.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const _dd=document.getElementById('d-date'); if(_dd) _dd.value=new Date().toISOString().slice(0,10);
+const _rd=document.getElementById('rec-date'); if(_rd) _rd.value=new Date().toISOString().slice(0,10);
 renderEpiLines();
-renderPapeterieLines();
-renderPapRecLines();
 buildCatFilter('cat-filter-stock',activeStockCat,'setStockCat');
 buildCatFilter('cat-filter-cat',activeCatCat,'setCatCat');
 

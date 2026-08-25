@@ -1084,6 +1084,15 @@ async function marquerComplementEnvoye(id){
   }
 }
 
+function getAlertes(){
+  const out=[];
+  CATALOGUE.forEach(art=>art.tailles.forEach(t=>{
+    const s=getStock(art.ref,t);
+    if(s.qte<=s.seuil)out.push({ref:art.ref,nom:art.nom,cat:art.cat,taille:t,qte:s.qte,seuil:s.seuil});
+  }));
+  return out;
+}
+
 function getPEAlertes(){
   const today=new Date();today.setHours(0,0,0,0);
   return collabsCache.filter(co=>{

@@ -918,24 +918,55 @@ function buildMailPreview(alertesEpi, mode='tout'){
 
   // ── Section EPI ──────────────────────────────────────────────────────────────
   if(hasEpi){
-    const byCat={};alertesEpi.forEach(a=>{if(!byCat[a.cat])byCat[a.cat]=[];byCat[a.cat].push(a)});
+    const ruptures = alertesEpi.filter(a=>a.qte===0);
+    const stockBas = alertesEpi.filter(a=>a.qte>0);
     corps+=`ÉQUIPEMENTS DE PROTECTION INDIVIDUELLE (EPI)\n${'─'.repeat(52)}\n`;
-    Object.entries(byCat).forEach(([cat,items])=>{
-      corps+=`\n${cat.toUpperCase()}\n`;
-      items.forEach(a=>{corps+=`  • ${a.ref} — ${a.nom}\n    Taille ${a.taille} | Stock: ${a.qte} | Seuil: ${a.seuil} | ${a.qte===0?'⚠ RUPTURE':'↘ Stock bas'}\n`});
-    });
-    corps+=`\nNombre d'articles EPI concernés : ${alertesEpi.length}\n`;
+
+    if(ruptures.length){
+      const byCatR={};ruptures.forEach(a=>{if(!byCatR[a.cat])byCatR[a.cat]=[];byCatR[a.cat].push(a)});
+      corps+=`\n⛔ RUPTURES DE STOCK (${ruptures.length} article${ruptures.length>1?'s':''})\n`;
+      Object.entries(byCatR).forEach(([cat,items])=>{
+        corps+=`\n  ${cat.toUpperCase()}\n`;
+        items.forEach(a=>{corps+=`    • ${a.ref} — ${a.nom}\n      Taille ${a.taille} | Stock: 0 | Seuil: ${a.seuil}\n`});
+      });
+    }
+
+    if(stockBas.length){
+      const byCatB={};stockBas.forEach(a=>{if(!byCatB[a.cat])byCatB[a.cat]=[];byCatB[a.cat].push(a)});
+      corps+=`\n⚠ STOCK BAS (${stockBas.length} article${stockBas.length>1?'s':''})\n`;
+      Object.entries(byCatB).forEach(([cat,items])=>{
+        corps+=`\n  ${cat.toUpperCase()}\n`;
+        items.forEach(a=>{corps+=`    • ${a.ref} — ${a.nom}\n      Taille ${a.taille} | Stock: ${a.qte} | Seuil: ${a.seuil}\n`});
+      });
+    }
+
+    corps+=`\nNombre d'articles EPI concernés : ${alertesEpi.length} (${ruptures.length} rupture${ruptures.length>1?'s':''}, ${stockBas.length} en stock bas)\n`;
   }
 
   // ── Section Papeterie ─────────────────────────────────────────────────────────
   if(hasPap){
     if(hasEpi) corps+='\n';
+    const papRuptures = alertesPap.filter(a=>getPapeterieStock(a.id).stock_cartons===0);
+    const papStockBas = alertesPap.filter(a=>getPapeterieStock(a.id).stock_cartons>0);
     corps+=`PAPETERIE\n${'─'.repeat(52)}\n`;
-    alertesPap.forEach(a=>{
-      const s=getPapeterieStock(a.id);
-      corps+=`  • ${a.designation}\n    Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} | Seuil: ${s.seuil} | ${s.stock_cartons===0?'⚠ RUPTURE':'↘ Stock bas'}\n`;
-    });
-    corps+=`\nNombre d'articles papeterie concernés : ${alertesPap.length}\n`;
+
+    if(papRuptures.length){
+      corps+=`\n⛔ RUPTURES DE STOCK (${papRuptures.length} article${papRuptures.length>1?'s':''})\n`;
+      papRuptures.forEach(a=>{
+        const s=getPapeterieStock(a.id);
+        corps+=`  • ${a.designation}\n    Stock: 0 carton | Seuil: ${s.seuil}\n`;
+      });
+    }
+
+    if(papStockBas.length){
+      corps+=`\n⚠ STOCK BAS (${papStockBas.length} article${papStockBas.length>1?'s':''})\n`;
+      papStockBas.forEach(a=>{
+        const s=getPapeterieStock(a.id);
+        corps+=`  • ${a.designation}\n    Stock: ${s.stock_cartons} carton${s.stock_cartons>1?'s':''} | Seuil: ${s.seuil}\n`;
+      });
+    }
+
+    corps+=`\nNombre d'articles papeterie concernés : ${alertesPap.length} (${papRuptures.length} rupture${papRuptures.length>1?'s':''}, ${papStockBas.length} en stock bas)\n`;
   }
 
   corps += `\n${'─'.repeat(52)}\nRécapitulatif généré le ${date}\n\n${sign}`;

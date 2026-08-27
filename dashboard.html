@@ -639,10 +639,9 @@ function getStock(ref, taille){
   return stockCache[k] || {qte:0, seuil:0, attribues:0};
 }
 function getPEAlertes(){ return []; }
-function getAttentesDisponibles(){ return []; }
+
 function getPapeterieAlertes(){ return []; }
 function renderPapeterieAlertes(){}
-function renderAttentesAlertes(){}
 function updateAlerteBadge(){}
 
 // ─── ONGLETS LOCAUX ──────────────────────────────────────────────────────────
@@ -1141,6 +1140,7 @@ async function initDashboard(){
   setSyncStatus('syncing','Chargement…');
   try{
     await loadAllMouvements();
+    await loadAttentes();
     const [tels,tabs,badges,stockObj] = await Promise.all([
       readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges'),
       readObj('stock')

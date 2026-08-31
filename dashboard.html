@@ -679,16 +679,50 @@ async function marquerAttenteEnvoyee(id){
   try{
     const all = await ghRead('data/attentes.json') || [];
     const idx = all.findIndex(x=>x.id===id);
-    if(idx>=0){
-      all[idx].statut = 'envoye';
-      all[idx].date_envoi = new Date().toISOString().slice(0,10);
-      await ghWrite('data/attentes.json', all);
-    }
+    if(idx<0){ alert('Attente introuvable.'); return; }
+    const a = all[idx];
+
+    // 1. Déduire le stock de la quantité envoyée
+    const stockObj = await readObj('stock');
+    const k = a.ref+'__'+a.taille;
+    const existing = stockObj[k] || {qte:0, seuil:2, attribues:0};
+    const nouvelleQte = Math.max(0, (existing.qte||0) - a.qte);
+    stockObj[k] = {...existing, qte: nouvelleQte, attribues: (existing.attribues||0) + a.qte};
+    await writeData('stock', stockObj);
+    stockCache[k] = {...stockObj[k], ref:a.ref, taille:a.taille, id:k};
+
+    // 2. Créer le mouvement de dotation correspondant
+    const mouvements = await readData('mouvements') || [];
+    mouvements.unshift({
+      date: a.date,
+      type: 'dotation',
+      nom: a.nom,
+      prenom: a.prenom,
+      matricule: a.matricule||'',
+      site: a.site,
+      motif: 'Complément — article en attente envoyé',
+      designation: a.designation,
+      ref: a.ref,
+      taille: a.taille,
+      qte: a.qte,
+      id: 'attente-'+id,
+      createdAt: new Date().toISOString()
+    });
+    await writeData('mouvements', mouvements);
+
+    // 3. Marquer l'attente comme envoyée
+    all[idx].statut = 'envoye';
+    all[idx].date_envoi = new Date().toISOString().slice(0,10);
+    await ghWrite('data/attentes.json', all);
+
     attentesCache = attentesCache.filter(x=>x.id!==id);
     renderAttentesAlertes();
-    updateAlerteBadge();
-    showMsg('attentes-msg-'+id, '', 'ok'); // cleanup
-  }catch(e){ alert('Erreur : '+e.message); }
+    renderStockStats();
+    alert('✓ Envoi enregistré — stock déduit et mouvement ajouté à l\'historique.');
+  }catch(e){
+    console.error('marquerAttenteEnvoyee:', e);
+    alert('Erreur : '+e.message);
+  }
 }
 
 // Retourne les attentes dont le stock est désormais suffisant

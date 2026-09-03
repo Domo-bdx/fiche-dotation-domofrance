@@ -1327,7 +1327,7 @@ async function validerDotation(){
       await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);
       const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);
       if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};
-      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_tel':'attribution_tel',nom,prenom,matricule,site,motif,designation:`${tDev.marque||''} ${tDev.modele||''}`.trim()||'Téléphone',imei:tDev.imei||'',ref:line.deviceId,taille:null,qte:null});
+      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_tel':'attribution_tel',nom,prenom,matricule,site,motif,designation:`${tDev.marque||''} ${tDev.modele||''}`.trim()||'Téléphone',imei:tDev.imei||'',numero:line.numero||tDev.numero||'',ref:line.deviceId,taille:null,qte:null});
     }
     for(const line of tabLines){
       if(!line.deviceId)continue;

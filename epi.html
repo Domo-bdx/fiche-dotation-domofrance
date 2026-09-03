@@ -2100,9 +2100,9 @@ async function genererBon(){
   let telSection='';
   const telOk=telLines.filter(l=>l.deviceId);
   if(telOk.length){
-    let tr=telOk.map(l=>{const d=mobCache.tel.find(x=>x.id===l.deviceId)||{};return`<tr><td>${d.marque||'—'} ${d.modele||''}</td><td><code>${d.imei||'—'}</code></td><td>${l.pin||'—'}</td><td>${l.deverouillage||'—'}</td><td>${l.puk||'—'}</td></tr>`;}).join('');
+    let tr=telOk.map(l=>{const d=mobCache.tel.find(x=>x.id===l.deviceId)||{};return`<tr><td>${d.marque||'—'} ${d.modele||''}</td><td><code>${d.imei||'—'}</code></td><td>${l.numero||d.numero||'—'}</td><td>${l.pin||'—'}</td><td>${l.deverouillage||'—'}</td><td>${l.puk||'—'}</td></tr>`;}).join('');
     telSection=`<div class="section-title">📱 Téléphones attribués</div>
-<table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>${tr}</tbody></table>
+<table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>N° de ligne</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>${tr}</tbody></table>
 <div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>`;
   }
 

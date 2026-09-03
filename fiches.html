@@ -981,9 +981,9 @@ async function fichesGenerer(idx){
   if(telMovs.length){
     var rows = telMovs.map(function(m){
       var d = mobCache.tel.find(function(x){ return x.id===m.ref; })||{};
-      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>—</td><td>—</td><td>—</td></tr>';
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>'+(m.numero||d.numero||'—')+'</td><td>—</td><td>—</td><td>—</td></tr>';
     }).join('');
-    telSection = '<div class="section-title">📱 Téléphones attribués</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
+    telSection = '<div class="section-title">📱 Téléphones attribués</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>N° de ligne</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
   }
 
   var tabMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tab'; });

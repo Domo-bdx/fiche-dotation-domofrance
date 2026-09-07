@@ -690,27 +690,38 @@ function getPEAlertes(){
   });
 }
 
+function getToutesPE(){
+  return collabsCache.filter(co=>!co.complement_envoye && co.date_embauche);
+}
+
 function renderPEAlertes(){
-  const alertes=getPEAlertes();
+  const toutes = getToutesPE();
   const today=new Date();today.setHours(0,0,0,0);
   const el=document.getElementById('pe-alertes-list');if(!el)return;
-  if(!alertes.length){el.innerHTML='<div class="empty">Aucune fin de période d\'essai en attente</div>';return;}
-  el.innerHTML=alertes.map(co=>{
+  if(!toutes.length){el.innerHTML='<div class="empty">Aucune fin de période d\'essai en attente</div>';return;}
+  el.innerHTML=toutes.map(co=>{
     const embauche=new Date(co.date_embauche);
-    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);
+    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);finPE.setHours(0,0,0,0);
+    const pret = finPE<=today;
     const joursDepuis=Math.floor((today-finPE)/(1000*60*60*24));
-    const urgent=joursDepuis>7;
+    const urgent=pret&&joursDepuis>7;
     const dateStr=finPE.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
-    return `<div class="pe-alert ${urgent?'urgent':''}">
-      <div style="font-size:18px">${urgent?'🔴':'🟢'}</div>
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:${pret?'#f0fff4':'#f8f9fb'};border:1px solid ${pret?(urgent?'#c53030':'#9ae6b4'):'#dde'};border-radius:6px;margin-bottom:8px">
+      <div style="font-size:18px;flex-shrink:0;margin-top:2px">${pret?(urgent?'🔴':'🟢'):'⏳'}</div>
       <div style="flex:1">
-        <div style="font-weight:600">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
-        <div style="font-size:11px;color:#555">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}${joursDepuis>0?' · <span style="color:#c53030;font-weight:600">En retard de '+joursDepuis+' jour(s)</span>':' · <span style="color:#276749;font-weight:600">Aujourd\'hui</span>'}</div>
+        <div style="font-weight:600;font-size:12px">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}</div>
+        ${pret
+          ? `<div style="font-size:11px;color:${urgent?'#c53030':'#276749'};font-weight:600;margin-top:4px">${urgent?'🔴 En retard de '+joursDepuis+' jour'+(joursDepuis>1?'s':''):'✅ Prêt à envoyer'}</div>`
+          : `<div style="font-size:11px;color:#c05621;margin-top:4px">Encore en période d'essai — actif le ${dateStr}</div>`
+        }
       </div>
-      <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>
+      ${pret?`<button class="btn success small" style="flex-shrink:0" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>`:''}
     </div>`;
   }).join('');
 }
+
+
 let attentesCache = [];
 
 async function loadAttentes(){

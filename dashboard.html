@@ -638,7 +638,79 @@ function getStock(ref, taille){
   const k = ref+'__'+(taille||'Unique');
   return stockCache[k] || {qte:0, seuil:0, attribues:0};
 }
-function getPEAlertes(){ return []; }
+let collabsCache = [];
+
+async function loadCollabs(){
+  try{const arr=await readData('collaborateurs');collabsCache=arr||[];}
+  catch(e){collabsCache=[];}
+}
+async function saveCollabs(){await writeData('collaborateurs',collabsCache);}
+
+function addCollab(nom,prenom,matricule,site,dateEmbauche){
+  const existing=collabsCache.findIndex(c=>c.nom===nom&&c.prenom===prenom&&c.matricule===matricule);
+  if(existing>=0){
+    // Déjà enregistré — on ne réinitialise pas le compteur de période d'essai
+    return;
+  }
+  const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2),nom,prenom,matricule,site,date_embauche:dateEmbauche,complement_envoye:false,date_complement:null};
+  collabsCache.unshift(entry);
+  saveCollabs();
+}
+
+async function marquerComplementEnvoye(id){
+  const idx=collabsCache.findIndex(c=>c.id===id);
+  if(idx>=0){
+    collabsCache[idx].complement_envoye=true;
+    collabsCache[idx].date_complement=new Date().toISOString().slice(0,10);
+    await saveCollabs();renderPEAlertes();updateAlerteBadge();
+  }
+}
+
+function updateAlerteBadge(){
+  // Badge d'alerte géré sur Dashboard — pas d'affichage dans epi.html
+}
+
+function getAlertes(){
+  const out=[];
+  CATALOGUE.forEach(art=>art.tailles.forEach(t=>{
+    const s=getStock(art.ref,t);
+    if(s.qte<=s.seuil)out.push({ref:art.ref,nom:art.nom,cat:art.cat,taille:t,qte:s.qte,seuil:s.seuil});
+  }));
+  return out;
+}
+
+function getPEAlertes(){
+  const today=new Date();today.setHours(0,0,0,0);
+  return collabsCache.filter(co=>{
+    if(co.complement_envoye)return false;
+    if(!co.date_embauche)return false;
+    const embauche=new Date(co.date_embauche);
+    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);finPE.setHours(0,0,0,0);
+    return finPE<=today;
+  });
+}
+
+function renderPEAlertes(){
+  const alertes=getPEAlertes();
+  const today=new Date();today.setHours(0,0,0,0);
+  const el=document.getElementById('pe-alertes-list');if(!el)return;
+  if(!alertes.length){el.innerHTML='<div class="empty">Aucune fin de période d\'essai en attente</div>';return;}
+  el.innerHTML=alertes.map(co=>{
+    const embauche=new Date(co.date_embauche);
+    const finPE=new Date(embauche);finPE.setMonth(finPE.getMonth()+3);
+    const joursDepuis=Math.floor((today-finPE)/(1000*60*60*24));
+    const urgent=joursDepuis>7;
+    const dateStr=finPE.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+    return `<div class="pe-alert ${urgent?'urgent':''}">
+      <div style="font-size:18px">${urgent?'🔴':'🟢'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${co.prenom} ${co.nom} ${co.matricule?'('+co.matricule+')':''}</div>
+        <div style="font-size:11px;color:#555">Site : ${co.site||'—'} · Embauché le ${new Date(co.date_embauche).toLocaleDateString('fr-FR')} · Fin PE : ${dateStr}${joursDepuis>0?' · <span style="color:#c53030;font-weight:600">En retard de '+joursDepuis+' jour(s)</span>':' · <span style="color:#276749;font-weight:600">Aujourd\'hui</span>'}</div>
+      </div>
+      <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>
+    </div>`;
+  }).join('');
+}
 let attentesCache = [];
 
 async function loadAttentes(){
@@ -1307,6 +1379,7 @@ async function initDashboard(){
   setSyncStatus('syncing','Chargement…');
   try{
     await loadAllMouvements();
+    await loadCollabs();
     await loadAttentes();
     const [tels,tabs,badges,stockObj] = await Promise.all([
       readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges'),

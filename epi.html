@@ -1069,9 +1069,12 @@ async function saveCollabs(){await writeData('collaborateurs',collabsCache);}
 
 function addCollab(nom,prenom,matricule,site,dateEmbauche){
   const existing=collabsCache.findIndex(c=>c.nom===nom&&c.prenom===prenom&&c.matricule===matricule);
+  if(existing>=0){
+    // Déjà enregistré — on ne réinitialise pas le compteur de période d'essai
+    return;
+  }
   const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2),nom,prenom,matricule,site,date_embauche:dateEmbauche,complement_envoye:false,date_complement:null};
-  if(existing>=0){collabsCache[existing]={...collabsCache[existing],...entry,id:collabsCache[existing].id};}
-  else{collabsCache.unshift(entry);}
+  collabsCache.unshift(entry);
   saveCollabs();
 }
 
@@ -1339,8 +1342,7 @@ async function validerDotation(){
       if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};
       await sbPost('mouvements',{date,type:type==='restitution'?'restitution_tab':'attribution_tab',nom,prenom,matricule,site,motif,designation:`${tabDev.marque||''} ${tabDev.modele||''}`.trim()||'Tablette',imei:tabDev.imei||'',ref:line.deviceId,taille:null,qte:null});
     }
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(type==='dotation'&&isPackEmbauche&&nom){addCollab(nom,prenom,matricule,site,date);}
+    if(type==='dotation'&&epiLines.length>0&&nom){addCollab(nom,prenom,matricule,site,date);}
     updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
@@ -1380,8 +1382,7 @@ async function _confirmerDotationPartielle(){
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
     for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    const isPackEmbauche=epiLines.some(l=>l.ref==='0TOPK677');
-    if(isPackEmbauche&&nom)addCollab(nom,prenom,matricule,site,date);
+    if(type==='dotation'&&epiLines.length>0&&nom)addCollab(nom,prenom,matricule,site,date);
     updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`

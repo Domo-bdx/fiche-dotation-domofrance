@@ -262,6 +262,21 @@ tr:hover td{background:#f8f9fb}
 .inter-nav a:hover{background:#1a3a5c;color:#fff}
 .inter-nav a.active{background:#1a3a5c;color:#fff}
 </style>
+
+<style>
+#btn-top{
+  position:fixed;bottom:24px;right:24px;
+  width:42px;height:42px;border-radius:50%;
+  background:#1a3a5c;color:#fff;border:none;
+  font-size:20px;font-weight:700;cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
+  opacity:0;transition:opacity .25s;
+  z-index:999;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+#btn-top:hover{background:#2a4f7a;}
+#btn-top.visible{opacity:1;}
+</style>
 </head>
 <body>
 
@@ -890,6 +905,14 @@ async function doLogin(){
   }
   initMobilite();
 })();
+
+window.addEventListener('scroll',function(){
+  const b=document.getElementById('btn-top');
+  if(b) b.classList.toggle('visible', window.scrollY > 300);
+});
 </script>
+
+<!-- Bouton retour en haut -->
+<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
 </body>
 </html>

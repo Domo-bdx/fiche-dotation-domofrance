@@ -1351,7 +1351,8 @@ async function validerDotation(){
       if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};
       await sbPost('mouvements',{date,type:type==='restitution'?'restitution_tab':'attribution_tab',nom,prenom,matricule,site,motif,designation:`${tabDev.marque||''} ${tabDev.modele||''}`.trim()||'Tablette',imei:tabDev.imei||'',ref:line.deviceId,taille:null,qte:null});
     }
-    if(type==='dotation'&&epiLines.length>0&&nom){addCollab(nom,prenom,matricule,site,date);}
+    const isPackEmbauche1=epiLines.some(l=>l.ref==='0TOPK677');
+    if(type==='dotation'&&isPackEmbauche1&&nom){addCollab(nom,prenom,matricule,site,date);}
     updateAlerteBadge();
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
@@ -1391,7 +1392,8 @@ async function _confirmerDotationPartielle(){
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
     for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
-    if(type==='dotation'&&epiLines.length>0&&nom)addCollab(nom,prenom,matricule,site,date);
+    const isPackEmbauche2=epiLines.some(l=>l.ref==='0TOPK677');
+    if(type==='dotation'&&isPackEmbauche2&&nom)addCollab(nom,prenom,matricule,site,date);
     updateAlerteBadge();
     const msg=dispos.length>0
       ?`✓ ${dispos.length} article(s) attribué(s) — ${manquants.length} article(s) mis en attente (alerte quand stock reconstitué).`

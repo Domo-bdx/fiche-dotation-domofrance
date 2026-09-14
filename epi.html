@@ -2658,7 +2658,7 @@ function loginSuccess(){
   document.getElementById('user-name').textContent=currentUser.nom;
   document.getElementById('user-role-badge').textContent=currentUser.role==='admin'?'⚙ Admin':'✏ Gestionnaire';
   badge.style.display='flex';
-  if(currentUser.role==='admin')document.getElementById('section-gestion-comptes').style.display='block';
+  const sgc=document.getElementById('section-gestion-comptes');if(currentUser.role==='admin'&&sgc)sgc.style.display='block';
   const mci=document.getElementById('mon-compte-info');
   if(mci)mci.innerHTML='<strong>'+currentUser.nom+'</strong> &nbsp;·&nbsp; '+(currentUser.role==='admin'?'<span class="tag-admin">Admin</span>':'<span class="tag-gest">Gestionnaire</span>')+'&nbsp;<button class="btn" style="padding:3px 10px;font-size:11px;margin-left:12px" onclick="deconnexion()">Se déconnecter</button>';
   initApp();

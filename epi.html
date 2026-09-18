@@ -14,7 +14,7 @@ body{font-family:Arial,sans-serif;font-size:13px;background:#f4f5f7;color:#222}
 .sync-dot.syncing{background:#fbbf24;animation:pulse 1s infinite}
 .sync-dot.error{background:#f87171}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.nav{background:#fff;border-bottom:2px solid #1a3a5c;display:flex;gap:0;flex-wrap:wrap}
+.nav{background:#fff;border-bottom:1px solid #e0e4ea;display:flex;gap:6px;flex-wrap:wrap;padding:8px 20px}
 .nav button{padding:10px 16px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#555;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
 .nav button.active{color:#1a3a5c;border-bottom-color:#1a3a5c}
 .nav button.alert-badge::after{content:attr(data-count);background:#e53e3e;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:middle}
@@ -256,8 +256,11 @@ tr:hover td{background:#f8f9fb}
 .btn-gen-fiche{background:#1a3a5c;color:#fff;border:none;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
 .btn-gen-fiche:hover{background:#16304d}
 #fiches-empty{color:#999;font-size:12px;padding:20px 0;text-align:center;display:none}
-a.nav-btn{text-decoration:none;display:inline-flex;align-items:center;color:inherit}
-a.nav-btn:hover{color:#fff}
+
+
+#main-nav .nav-btn{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;color:#1a3a5c;background:#f0f4fa;border:1px solid #d0d8e8;cursor:pointer;display:inline-flex;align-items:center;margin:0}
+#main-nav .nav-btn:hover{background:#1a3a5c;color:#fff}
+#main-nav .nav-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
 </style>
 </head>
 <body>

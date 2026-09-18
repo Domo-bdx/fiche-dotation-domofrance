@@ -303,7 +303,7 @@ tr:hover td{background:#f8f9fb}
       <h1>GESTOCK</h1>
     </div>
   </div>
-  <div id="user-badge" onclick="goTab('parametres',document.getElementById('btn-parametres'))" title="Mon compte" style="display:none">
+  <div id="user-badge" onclick="window.location.href='parametres.html'" title="Mon compte" style="display:none">
     <div id="user-avatar">?</div>
     <div>
       <div id="user-name">—</div>
@@ -2768,8 +2768,7 @@ localStorage.setItem('domo_gh_token',['ghp_ewfptd7m5b52bwv','RPa1TLrxvqGy2y41GhS
   if(raw){
     try{
       currentUser = JSON.parse(raw);
-      document.getElementById('login-overlay').style.display='none';
-      initApp();
+      loginSuccess();
     }catch(e){
       localStorage.removeItem('gestock_user');
       document.getElementById('login-overlay').style.display='flex';

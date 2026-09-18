@@ -330,11 +330,11 @@ tr:hover td{background:#f8f9fb}
 
 <div class="content">
 <!-- Sous-navigation EPI -->
-<div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:0 20px;display:flex;gap:4px" id="epi-sub-nav">
-  <button type="button" id="subbtn-dotation" onclick="goTab('dotation',this)" style="padding:8px 16px;border:none;border-bottom:3px solid #1a3a5c;background:none;font-size:12px;font-weight:700;color:#1a3a5c;cursor:pointer">Nouvelle dotation</button>
-  <button type="button" id="subbtn-stock" onclick="goTab('stock',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Stock EPI</button>
-  <button type="button" id="subbtn-catalogue" onclick="goTab('catalogue',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Catalogue</button>
-  <button type="button" id="subbtn-reception" onclick="goTab('reception',this)" style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:none;font-size:12px;font-weight:600;color:#666;cursor:pointer">Réception commande</button>
+<div style="background:#fff;border-bottom:1px solid #e0e4ea;padding:10px 20px;display:flex;gap:8px" id="epi-sub-nav">
+  <button type="button" id="subbtn-dotation" class="cat-btn active" onclick="goTab('dotation',this)">Nouvelle dotation</button>
+  <button type="button" id="subbtn-stock" class="cat-btn" onclick="goTab('stock',this)">Stock EPI</button>
+  <button type="button" id="subbtn-catalogue" class="cat-btn" onclick="goTab('catalogue',this)">Catalogue</button>
+  <button type="button" id="subbtn-reception" class="cat-btn" onclick="goTab('reception',this)">Réception commande</button>
 </div>
 
 <div id="global-banner"></div>
@@ -869,11 +869,7 @@ function goTab(t,btn){
   // Mettre à jour la sous-navigation visuelle
   ['dotation','stock','catalogue','reception'].forEach(tab=>{
     const sb = document.getElementById('subbtn-'+tab);
-    if(sb){
-      sb.style.borderBottomColor = t===tab ? '#1a3a5c' : 'transparent';
-      sb.style.color = t===tab ? '#1a3a5c' : '#666';
-      sb.style.fontWeight = t===tab ? '700' : '600';
-    }
+    if(sb) sb.classList.toggle('active', t===tab);
   });
   closeMobileNav();
   setTimeout(applyResponsiveLabels,80);

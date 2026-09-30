@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock VAE — GESTOCK</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;background:#f4f5f7;color:#222}
+.header{background:#1a3a5c;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
+label{font-size:11px;font-weight:600;color:#444;display:block;margin-bottom:3px}
+input,select,textarea{width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:12px;background:#fff;color:#222}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a3a5c}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.btn{padding:7px 14px;border-radius:4px;border:1px solid #ccc;cursor:pointer;font-size:12px;font-weight:600;background:#fff;color:#222;transition:all .12s}
+.btn:hover{background:#f0f0f0}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.btn.primary:hover{background:#2a4f7a}
+.btn.success{background:#276749;color:#fff;border-color:#276749}
+.btn.danger{background:#c53030;color:#fff;border-color:#c53030}
+.btn.small{padding:4px 10px;font-size:11px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#f0f2f5;text-align:left;padding:7px 8px;font-size:10px;font-weight:700;color:#555;white-space:nowrap;border-bottom:1px solid #dde;text-transform:uppercase}
+td{padding:6px 8px;border-bottom:1px solid #eef;vertical-align:middle}
+tr:hover td{background:#f8f9fb}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge.green{background:#c6f6d5;color:#276749}.badge.red{background:#fed7d7;color:#c53030}
+.badge.yellow{background:#fef3c7;color:#92400e}.badge.blue{background:#dbeafe;color:#1e40af}
+.badge.gray{background:#e2e8f0;color:#4a5568}
+.card{background:#fff;border:1px solid #dde;border-radius:6px;padding:14px;margin-bottom:14px}
+.card h3{font-size:12px;font-weight:700;color:#1a3a5c;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:12px;text-align:center}
+.stat-n{font-size:26px;font-weight:700;color:#1a3a5c;line-height:1.1}
+.stat-n.warn{color:#c05621}.stat-n.ok{color:#276749}
+.stat-l{font-size:11px;color:#666;margin-top:4px;font-weight:600}
+.tbl-wrap{overflow-x:auto}
+.empty{color:#888;font-size:12px;text-align:center;padding:24px}
+.msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
+.msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
+.inter-nav{display:flex;gap:6px;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid #e0e4ea}
+.inter-nav a{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;color:#1a3a5c;background:#f0f4fa;border:1px solid #d0d8e8}
+.inter-nav a:hover{background:#1a3a5c;color:#fff}
+.inter-nav a.active{background:#1a3a5c;color:#fff}
+#btn-top{position:fixed;bottom:24px;right:24px;width:42px;height:42px;border-radius:50%;background:#1a3a5c;color:#fff;border:none;font-size:20px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;z-index:999;line-height:1;display:flex;align-items:center;justify-content:center}
+#btn-top:hover{background:#2a4f7a}
+#btn-top.visible{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:#1a2e4a;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:40px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <div style="font-size:22px;font-weight:800;color:#1a3a5c;margin-bottom:4px">GESTOCK</div>
+    <div style="font-size:11px;color:#888;margin-bottom:24px">Pôle Facilities — Domofrance</div>
+    <input id="login-user" type="text" placeholder="Identifiant" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box">
+    <input id="login-pwd" type="password" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box">
+    <button type="button" onclick="doLogin()" style="width:100%;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">Se connecter</button>
+    <div id="login-error" style="color:#c53030;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div style="background:#1a2e4a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div>
+      <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em">Pôle Facilities</div>
+      <div style="font-size:16px;font-weight:800;color:#fff">GESTOCK</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#48bb78;display:inline-block"></div>
+    <span id="sync-label" style="font-size:11px;color:rgba(255,255,255,.7)">Connexion…</span>
+    <span id="user-badge" style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff"></span>
+    <a href="epi.html" style="font-size:11px;color:rgba(255,255,255,.6);text-decoration:none">← Retour GESTOCK</a>
+  </div>
+</div>
+
+<!-- NAV INTER-PAGES -->
+<div class="inter-nav">
+  <a href="epi.html">🏠 Dotation / EPI</a>
+  <a href="mobilite.html">📱 Stock Mobilité</a>
+  <a href="vae.html" class="active">🚲 Stock VAE</a>
+  <a href="papeterie.html">📄 Papeterie</a>
+  <a href="fiches.html">📋 Fiches / Historique</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+  <a href="parametres.html">⚙ Paramètres</a>
+</div>
+
+<!-- CONTENU -->
+<div style="padding:16px 20px">
+  <div id="vae-msg"></div>
+
+  <div class="stats-row" id="vae-stats-bar"></div>
+
+  <div class="card">
+    <h3>Vélos à assistance électrique — Parc</h3>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="vae-search" placeholder="Rechercher n° série, accessoires, collaborateur…" oninput="renderVae()" style="max-width:320px">
+      <select id="vae-filter-statut" onchange="renderVae()" style="width:170px">
+        <option value="">Tous les statuts</option>
+        <option value="disponible">Disponible</option>
+        <option value="attribue">Attribué</option>
+        <option value="hors_service">Hors service</option>
+      </select>
+      <button class="btn primary small" onclick="openVaeForm()">+ Ajouter un vélo</button>
+      <button class="btn success small" style="margin-left:auto" onclick="exportVaeExcel()">📊 Export Excel</button>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>N° série</th><th>Accessoires</th><th>Statut</th><th>Collaborateur</th><th>Site</th><th>Date attrib.</th><th>Actions</th>
+      </tr></thead><tbody id="vae-body"></tbody></table>
+    </div>
+  </div>
+
+  <!-- FORMULAIRE AJOUT/EDIT -->
+  <div id="vae-form-card" class="card" style="display:none">
+    <h3 id="vae-form-title">Ajouter un vélo</h3>
+    <input type="hidden" id="vae-form-id">
+    <div class="form-row-3">
+      <div><label>N° de série *</label><input type="text" id="vae-f-numero" placeholder="Identifiant unique du vélo"></div>
+      <div><label>Statut</label>
+        <select id="vae-f-statut">
+          <option value="disponible">Disponible</option>
+          <option value="attribue">Attribué</option>
+          <option value="hors_service">Hors service</option>
+        </select>
+      </div>
+      <div><label>Date attribution</label><input type="date" id="vae-f-date"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Collaborateur (si attribué)</label><input type="text" id="vae-f-collab" placeholder="Nom Prénom"></div>
+      <div><label>Site</label><input type="text" id="vae-f-site" placeholder="Bordeaux, Talence…"></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label>Accessoires</label>
+      <input type="text" id="vae-f-accessoires" placeholder="Casque, antivol, sacoche…">
+    </div>
+    <div style="margin-bottom:10px">
+      <label>Notes</label>
+      <input type="text" id="vae-f-notes" placeholder="Notes complémentaires">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn primary" onclick="saveVae()">✓ Enregistrer</button>
+      <button class="btn" onclick="closeVaeForm()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+// ─── ÉTAT LOCAL VAE ───────────────────────────────────────────────────────────
+let vaeCache = [];
+
+// ─── DONNÉES ──────────────────────────────────────────────────────────────────
+async function loadVae(){
+  setSyncStatus('syncing','Chargement VAE…');
+  try{
+    const arr = await readData('mob_velos');
+    vaeCache = arr || [];
+    setSyncStatus('ok','Base synchronisée');
+  }catch(e){
+    setSyncStatus('error','Erreur connexion');
+    console.error(e);
+  }
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderVaeStats(){
+  const el = document.getElementById('vae-stats-bar');
+  if(!el) return;
+  const total = vaeCache.length;
+  const dispo = vaeCache.filter(v=>v.statut==='disponible').length;
+  const attrib = vaeCache.filter(v=>v.statut==='attribue').length;
+  const hs = vaeCache.filter(v=>v.statut==='hors_service').length;
+  el.innerHTML = `
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Total vélos</div></div>
+    <div class="stat"><div class="stat-n ok">${dispo}</div><div class="stat-l">Disponibles</div></div>
+    <div class="stat"><div class="stat-n warn">${attrib}</div><div class="stat-l">Attribués</div></div>
+    <div class="stat"><div class="stat-n" style="color:#c53030">${hs}</div><div class="stat-l">Hors service</div></div>
+  `;
+}
+
+// ─── STATUT BADGE ─────────────────────────────────────────────────────────────
+function statutVaeBadge(s){
+  if(s==='disponible') return '<span class="badge green">Disponible</span>';
+  if(s==='attribue') return '<span class="badge yellow">Attribué</span>';
+  if(s==='hors_service') return '<span class="badge red">Hors service</span>';
+  return '<span class="badge gray">'+(s||'—')+'</span>';
+}
+
+// ─── RENDER TABLE ─────────────────────────────────────────────────────────────
+function renderVae(){
+  const body = document.getElementById('vae-body');
+  if(!body) return;
+  const q = (document.getElementById('vae-search').value||'').toLowerCase();
+  const fStatut = document.getElementById('vae-filter-statut').value;
+
+  let rows = vaeCache.filter(v=>{
+    if(fStatut && v.statut!==fStatut) return false;
+    if(q){
+      const hay = ((v.numero_serie||'')+' '+(v.accessoires||'')+' '+(v.collaborateur||'')+' '+(v.site||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if(!rows.length){
+    body.innerHTML = '<tr><td colspan="7"><div class="empty">Aucun vélo trouvé</div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows.map(v => `
+    <tr>
+      <td><strong>${v.numero_serie||'—'}</strong></td>
+      <td>${v.accessoires||'—'}</td>
+      <td>${statutVaeBadge(v.statut)}</td>
+      <td>${v.collaborateur||'—'}</td>
+      <td>${v.site||'—'}</td>
+      <td>${v.date_attribution||'—'}</td>
+      <td>
+        <button class="btn small" onclick="editVae('${v.id}')">✎</button>
+        <button class="btn danger small" onclick="deleteVae('${v.id}')">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ─── FORMULAIRE ───────────────────────────────────────────────────────────────
+function openVaeForm(prefill){
+  document.getElementById('vae-form-title').textContent = 'Ajouter un vélo';
+  document.getElementById('vae-form-id').value = '';
+  document.getElementById('vae-f-numero').value = prefill?.numero_serie || '';
+  document.getElementById('vae-f-statut').value = 'disponible';
+  document.getElementById('vae-f-date').value = '';
+  document.getElementById('vae-f-collab').value = '';
+  document.getElementById('vae-f-site').value = '';
+  document.getElementById('vae-f-accessoires').value = '';
+  document.getElementById('vae-f-notes').value = '';
+  document.getElementById('vae-form-card').style.display = 'block';
+  document.getElementById('vae-form-card').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function editVae(id){
+  const v = vaeCache.find(x=>x.id===id);
+  if(!v) return;
+  document.getElementById('vae-form-title').textContent = 'Modifier le vélo';
+  document.getElementById('vae-form-id').value = v.id;
+  document.getElementById('vae-f-numero').value = v.numero_serie||'';
+  document.getElementById('vae-f-statut').value = v.statut||'disponible';
+  document.getElementById('vae-f-date').value = v.date_attribution||'';
+  document.getElementById('vae-f-collab').value = v.collaborateur||'';
+  document.getElementById('vae-f-site').value = v.site||'';
+  document.getElementById('vae-f-accessoires').value = v.accessoires||'';
+  document.getElementById('vae-f-notes').value = v.notes||'';
+  document.getElementById('vae-form-card').style.display = 'block';
+  document.getElementById('vae-form-card').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function closeVaeForm(){
+  document.getElementById('vae-form-card').style.display = 'none';
+}
+
+async function saveVae(){
+  const id = document.getElementById('vae-form-id').value;
+  const numero = document.getElementById('vae-f-numero').value.trim();
+  if(!numero){ showMsg('vae-msg','Le numéro de série est obligatoire.','err'); return; }
+
+  const payload = {
+    numero_serie: numero,
+    statut: document.getElementById('vae-f-statut').value,
+    date_attribution: document.getElementById('vae-f-date').value,
+    collaborateur: document.getElementById('vae-f-collab').value.trim(),
+    site: document.getElementById('vae-f-site').value.trim(),
+    accessoires: document.getElementById('vae-f-accessoires').value.trim(),
+    notes: document.getElementById('vae-f-notes').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  setSyncStatus('syncing','Sauvegarde…');
+  try{
+    if(id){
+      const idx = vaeCache.findIndex(x=>x.id===id);
+      if(idx>=0) vaeCache[idx] = {...vaeCache[idx], ...payload};
+    } else {
+      payload.id = 'velo_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      payload.createdAt = new Date().toISOString();
+      vaeCache.unshift(payload);
+    }
+    await writeData('mob_velos', vaeCache);
+    setSyncStatus('ok','Sauvegardé');
+    closeVaeForm();
+    renderVaeStats();
+    renderVae();
+    showMsg('vae-msg','✓ Vélo enregistré.','ok');
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    showMsg('vae-msg','Erreur : '+e.message,'err');
+  }
+}
+
+async function deleteVae(id){
+  if(!confirm('Supprimer ce vélo du parc ?')) return;
+  setSyncStatus('syncing','Suppression…');
+  try{
+    vaeCache = vaeCache.filter(x=>x.id!==id);
+    await writeData('mob_velos', vaeCache);
+    setSyncStatus('ok','Supprimé');
+    renderVaeStats();
+    renderVae();
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    showMsg('vae-msg','Erreur : '+e.message,'err');
+  }
+}
+
+// ─── EXPORT EXCEL ─────────────────────────────────────────────────────────────
+function exportVaeExcel(){
+  try{
+    const wb = XLSX.utils.book_new();
+    const rows = [['N° série','Accessoires','Statut','Collaborateur','Site','Date attribution','Notes']];
+    vaeCache.forEach(v=>{
+      rows.push([v.numero_serie||'',v.accessoires||'',v.statut||'',v.collaborateur||'',v.site||'',v.date_attribution||'',v.notes||'']);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:16},{wch:28},{wch:14},{wch:22},{wch:16},{wch:14},{wch:28}];
+    XLSX.utils.book_append_sheet(wb, ws, 'VAE');
+    const date = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, 'GESTOCK_Stock_VAE_'+date+'.xlsx');
+  }catch(e){ alert('Erreur export: '+e.message); }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function initVae(){
+  const loginOverlay = document.getElementById('login-overlay');
+
+  if(!localStorage.getItem('domo_gh_token')){
+    loginOverlay.style.display = 'flex';
+    return;
+  }
+  const raw = localStorage.getItem('gestock_user');
+  if(!raw){
+    loginOverlay.style.display = 'flex';
+    return;
+  }
+
+  loginOverlay.style.display = 'none';
+  const u = JSON.parse(raw);
+  currentUser = u;
+  const badge = document.getElementById('user-badge');
+  if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
+
+  setSyncStatus('syncing','Chargement VAE…');
+  try{
+    await loadVae();
+    setSyncStatus('ok','Base synchronisée');
+    renderVaeStats();
+    renderVae();
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    console.error('initVae error:', e);
+  }
+}
+
+async function doLogin(){
+  const login = document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd   = document.getElementById('login-pwd').value;
+  const errEl = document.getElementById('login-error');
+  if(!login||!pwd){errEl.textContent='Veuillez saisir votre identifiant et mot de passe.';return;}
+  errEl.textContent='';
+  try{
+    await loadUsers();
+    const user = usersCache.find(u=>u.login===login);
+    if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';return;}
+    const hash = await sha256(pwd);
+    if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
+    currentUser = {login:user.login,nom:user.nom,role:user.role};
+    localStorage.setItem('gestock_user', JSON.stringify(currentUser));
+    await initVae();
+  }catch(e){
+    errEl.textContent='Erreur connexion : '+e.message;
+    console.error(e);
+  }
+}
+
+(function(){
+  const raw = localStorage.getItem('gestock_user');
+  if(raw){
+    try{ currentUser = JSON.parse(raw); }
+    catch(e){ localStorage.removeItem('gestock_user'); }
+  }
+  initVae();
+})();
+
+window.addEventListener('scroll',function(){
+  const b=document.getElementById('btn-top');
+  if(b) b.classList.toggle('visible', window.scrollY > 300);
+});
+</script>
+
+<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
+</body>
+</html>

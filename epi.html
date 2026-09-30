@@ -422,6 +422,15 @@ tr:hover td{background:#f8f9fb}
     <div id="badge-lines-container"><div class="empty">Aucun badge ajouté</div></div>
     <button class="btn" style="margin-top:8px" onclick="addBadgeLine()">+ Ajouter un badge</button>
   </div>
+  <div class="card">
+    <h3>VAE attribué(s)</h3>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Seuls les vélos avec le statut <strong>Disponible</strong> dans le stock VAE sont proposés.</div>
+    <div id="vae-lines-container"><div class="empty">Aucun vélo ajouté</div></div>
+    <button class="btn" style="margin-top:8px" onclick="addVaeLine()">+ Ajouter un vélo</button>
+    <div id="vae-notice" style="display:none;margin-top:10px;padding:10px 12px;background:#fff8f0;border-left:3px solid #c05621;border-radius:4px;font-size:11px;color:#444;line-height:1.6">
+      ⚠ <strong>Rappel :</strong> le collaborateur doit utiliser les équipements de protection (casque, gilet, antivol…) présents en agence lors de l'utilisation du vélo à assistance électrique.
+    </div>
+  </div>
   <div class="card no-print">
     <h3>Actions</h3>
     <div class="btn-row">
@@ -550,6 +559,7 @@ tr:hover td{background:#f8f9fb}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 let mobCache={tel:[],tab:[],badge:[]};
+let vaeStockCache=[];
 
 let currentUser = null;
 let usersCache  = [];
@@ -560,6 +570,7 @@ let epiLines=[];
 let telLines=[];
 let tabLines=[];
 let badgeLines=[];
+let vaeLines=[];
 let activeStockCat='Tous';
 let activeCatCat='Tous';
 
@@ -965,6 +976,59 @@ function renderBadgeLines(){
   }).join('');
 }
 
+// ─── VAE (Vélos à assistance électrique) ─────────────────────────────────────
+async function loadVaeStock(){
+  try{ vaeStockCache = await readData('mob_velos') || []; }
+  catch(e){ vaeStockCache = []; console.error('loadVaeStock', e); }
+}
+function addVaeLine(){
+  vaeLines.push({id:Date.now()+'v',veloId:'',search:''});
+  renderVaeLines();
+}
+function removeVaeLine(id){vaeLines=vaeLines.filter(x=>x.id!==id);renderVaeLines()}
+function updateVaeLine(id,field,val){
+  const l=vaeLines.find(x=>x.id===id);if(!l)return;
+  l[field]=val;renderVaeLines();
+}
+function renderVaeLines(){
+  const c=document.getElementById('vae-lines-container');
+  if(!c)return;
+  if(!vaeLines.length){c.innerHTML='<div class="empty">Aucun vélo ajouté</div>';renderVaeNotice();return}
+  const type=document.getElementById('d-type').value;
+  const dispos=vaeStockCache.filter(x=>x.statut==='disponible');
+  const attribues=vaeStockCache.filter(x=>x.statut==='attribue');
+  c.innerHTML=vaeLines.map(l=>{
+    const sel=vaeStockCache.find(x=>x.id===l.veloId);
+    const basePool=type==='restitution'?attribues:dispos;
+    const q=(l.search||'').toLowerCase();
+    const pool=!q?basePool:basePool.filter(d=>((d.numero_serie||'')+' '+(d.accessoires||'')).toLowerCase().includes(q));
+    const opts=pool.map(d=>`<option value="${d.id}" ${d.id===l.veloId?'selected':''}>N° ${d.numero_serie||'?'} ${d.accessoires?'— '+d.accessoires:''}</option>`).join('');
+    const info=sel?`<div style="font-size:11px;color:#1a3a5c;margin-top:6px;padding:5px 8px;background:#eef2f7;border-radius:4px;font-weight:600">🚲 Vélo N° ${sel.numero_serie||'—'} ${sel.accessoires?'— '+sel.accessoires:''}</div>`:'';
+    const nbMatch=q?pool.length:basePool.length;
+    return `<div style="margin-bottom:10px;padding:10px;background:#f8f9fb;border-radius:6px;border:1px solid #eef">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start">
+        <div>
+          <label>Sélectionner un vélo ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
+          <input type="text" placeholder="🔍 Rechercher N° série, accessoires…" value="${l.search||''}"
+            oninput="updateVaeLine('${l.id}','search',this.value)"
+            style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
+          <select onchange="updateVaeLine('${l.id}','veloId',this.value)"><option value="">— Choisir —</option>${opts}</select>
+          ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} vélo${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
+          ${basePool.length===0?`<div style="font-size:11px;color:#c53030;margin-top:4px">⚠ Aucun vélo ${type==='restitution'?'attribué':'disponible'}</div>`:''}
+        </div>
+        <button class="btn danger small" onclick="removeVaeLine('${l.id}')" style="margin-top:20px">✕</button>
+      </div>${info}
+    </div>`;
+  }).join('');
+  renderVaeNotice();
+}
+function renderVaeNotice(){
+  const n=document.getElementById('vae-notice');
+  if(!n)return;
+  n.style.display = vaeLines.length>0 ? 'block' : 'none';
+}
+
+
 function addTelLine(){telLines.push({id:Date.now()+'t',marque:'',modele:'',imei:'',sim:'',numero:'',search:''});renderTelLines();}
 function addTabLine(){tabLines.push({id:Date.now()+'b',nom:'',modele:'',imei:'',sim:'',search:''});renderTabLines();}
 function removeTelLine(id){telLines=telLines.filter(x=>x.id!==id);renderTelLines()}
@@ -1262,7 +1326,7 @@ function resetDotation(){
   document.getElementById('d-site').value='';
   document.getElementById('d-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('d-type').value='dotation';
-  epiLines=[];renderEpiLines();telLines=[];renderTelLines();tabLines=[];renderTabLines();badgeLines=[];renderBadgeLines();
+  epiLines=[];renderEpiLines();telLines=[];renderTelLines();tabLines=[];renderTabLines();badgeLines=[];renderBadgeLines();vaeLines=[];renderVaeLines();
   document.getElementById('dotation-msg').innerHTML='';
   document.getElementById('bon-container').style.display='none';
 }
@@ -1330,6 +1394,21 @@ async function validerDotation(){
       const badgeNum=bDev.numero||'';
       await sbPost('mouvements',{date,type:type==='restitution'?'restitution_badge':'attribution_badge',nom,prenom,matricule,site,motif,designation:badgeNum?`Badge N° ${badgeNum}`:'Badge',numero:badgeNum,ref:line.deviceId,taille:null,qte:null});
     }
+    for(const line of vaeLines){
+      if(!line.veloId)continue;
+      const patch={statut:newTelStatut};
+      let vDev=vaeStockCache.find(x=>x.id===line.veloId);
+      if(!vDev){
+        const freshVae=await readData('mob_velos');
+        vDev=freshVae.find(x=>x.id===line.veloId)||{};
+      }
+      if(type==='dotation'){patch.collaborateur=collab;patch.site=site;patch.date_attribution=date;}else{patch.collaborateur='';patch.site='';}
+      await writeData('mob_velos', (function(){const arr=vaeStockCache.slice();const i=arr.findIndex(x=>x.id===line.veloId);if(i>=0)arr[i]={...arr[i],...patch};return arr;})());
+      const idx=vaeStockCache.findIndex(x=>x.id===line.veloId);
+      if(idx>=0)vaeStockCache[idx]={...vaeStockCache[idx],...patch};
+      const veloNum=vDev.numero_serie||'';
+      await sbPost('mouvements',{date,type:type==='restitution'?'restitution_vae':'attribution_vae',nom,prenom,matricule,site,motif,designation:veloNum?`Vélo N° ${veloNum}`:'VAE',numero:veloNum,ref:line.veloId,taille:null,qte:null});
+    }
     for(const line of telLines){
       if(!line.deviceId)continue;
       const patch={statut:newTelStatut};
@@ -1392,6 +1471,7 @@ async function _confirmerDotationPartielle(){
     for(const line of badgeLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site};await sbPatch('mob_badges','id=eq.'+line.deviceId,patch);const idx=mobCache.badge.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.badge[idx]={...mobCache.badge[idx],...patch};}
     for(const line of telLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};if(newTelStatut==='attribue'&&(line.numero||'').trim())patch.numero=line.numero.trim();await sbPatch('mob_telephones','id=eq.'+line.deviceId,patch);const idx=mobCache.tel.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tel[idx]={...mobCache.tel[idx],...patch};}
     for(const line of tabLines){if(!line.deviceId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};await sbPatch('mob_tablettes','id=eq.'+line.deviceId,patch);const idx=mobCache.tab.findIndex(x=>x.id===line.deviceId);if(idx>=0)mobCache.tab[idx]={...mobCache.tab[idx],...patch};}
+    for(const line of vaeLines){if(!line.veloId)continue;const patch={statut:newTelStatut,collaborateur:collab,site,date_attribution:date};const arrV=vaeStockCache.slice();const iV=arrV.findIndex(x=>x.id===line.veloId);if(iV>=0)arrV[iV]={...arrV[iV],...patch};await writeData('mob_velos',arrV);const idx=vaeStockCache.findIndex(x=>x.id===line.veloId);if(idx>=0)vaeStockCache[idx]={...vaeStockCache[idx],...patch};}
     const isPackEmbauche2=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche2&&nom)addCollab(nom,prenom,matricule,site,date);
     updateAlerteBadge();
@@ -2137,6 +2217,16 @@ async function genererBon(){
 <table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th><th>Code PUK Siege (WatchDoc)</th></tr></thead><tbody>${tr}</tbody></table>`;
   }
 
+  // VAE
+  let vaeSection='';
+  const vaeOk=vaeLines.filter(l=>l.veloId);
+  if(vaeOk.length){
+    let tr=vaeOk.map(l=>{const d=vaeStockCache.find(x=>x.id===l.veloId)||{};return`<tr><td><strong>${d.numero_serie||'—'}</strong></td><td>${d.accessoires||'—'}</td></tr>`;}).join('');
+    vaeSection=`<div class="section-title">🚲 Vélo à assistance électrique attribué</div>
+<table><thead><tr><th>N° série</th><th>Accessoires</th></tr></thead><tbody>${tr}</tbody></table>
+<div class="bon-note-knox" style="border-left-color:#c05621;background:#fff8f0">⚠ Le collaborateur doit utiliser les équipements de protection (casque, gilet, antivol…) présents en agence.</div>`;
+  }
+
   const bonHtml=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <title>Bon de ${typeLabels[type]||type} — ${nom} ${prenom}</title>
 <style>
@@ -2192,7 +2282,7 @@ tbody td{padding:6px 10px;border-bottom:1px solid #eee}
   <div><div class="lbl">Site / Agence</div><div class="val">${site||'—'}</div></div>
   <div><div class="lbl">Motif</div><div class="val">${motif||'—'}</div></div>
 </div></div>
-${epiSection}${telSection}${tabSection}${badgeSection}
+${epiSection}${telSection}${tabSection}${badgeSection}${vaeSection}
 <div class="sig-zone">
   <div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div>
   <div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">${nom.toUpperCase()} ${prenom}</div><div class="sig-line"></div></div>
@@ -2732,6 +2822,8 @@ async function initApp(){
     await loadAllStock();
     setSyncStatus('syncing','Chargement mobilité…');
     await loadMobDevices();
+    setSyncStatus('syncing','Chargement VAE…');
+    await loadVaeStock();
     setSyncStatus('syncing','Chargement historique…');
     await loadAllMouvements();
     await loadCollabs();

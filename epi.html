@@ -1010,7 +1010,7 @@ function renderVaeLines(){
         <div>
           <label>Sélectionner un vélo ${type==='restitution'?'(attribués)':'(disponibles)'}</label>
           <input type="text" placeholder="🔍 Rechercher N° série, accessoires…" value="${l.search||''}"
-            oninput="updateVaeLine('${l.id}','search',this.value)"
+            oninput="searchVaeLine('${l.id}',this.value)"
             style="margin-bottom:4px;border-color:#c5d5f0;background:#f0f4ff" autocomplete="off">
           <select onchange="updateVaeLine('${l.id}','veloId',this.value)"><option value="">— Choisir —</option>${opts}</select>
           ${q?`<div style="font-size:10px;color:#555;margin-top:3px">${nbMatch} vélo${nbMatch>1?'s':''} trouvé${nbMatch>1?'s':''}</div>`:''}
@@ -1026,6 +1026,18 @@ function renderVaeNotice(){
   const n=document.getElementById('vae-notice');
   if(!n)return;
   n.style.display = vaeLines.length>0 ? 'block' : 'none';
+}
+function searchVaeLine(id, val){
+  const l=vaeLines.find(x=>x.id===id);
+  if(!l)return;
+  l.search=val;
+  renderVaeLines();
+  const inputs=document.querySelectorAll(`input[oninput*="searchVaeLine('${id}"]`);
+  if(inputs.length){
+    const inp=inputs[0];
+    inp.focus();
+    inp.setSelectionRange(val.length,val.length);
+  }
 }
 
 

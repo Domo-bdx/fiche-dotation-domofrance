@@ -1339,8 +1339,9 @@ async function validerDotation(){
   const aBadge=badgeLines.some(l=>l.deviceId);
   const aTel=telLines.some(l=>l.deviceId);
   const aTab=tabLines.some(l=>l.deviceId);
+  const aVae=vaeLines.some(l=>l.veloId);
   const aEpi=epiLines.length>0;
-  if(!aEpi&&!aTel&&!aTab&&!aBadge){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette ou badge.','err');return}
+  if(!aEpi&&!aTel&&!aTab&&!aBadge&&!aVae){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette, badge ou vélo.','err');return}
   if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
   const type=document.getElementById('d-type').value;
   if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}

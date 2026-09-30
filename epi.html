@@ -428,7 +428,7 @@ tr:hover td{background:#f8f9fb}
     <div id="vae-lines-container"><div class="empty">Aucun vélo ajouté</div></div>
     <button class="btn" style="margin-top:8px" onclick="addVaeLine()">+ Ajouter un vélo</button>
     <div id="vae-notice" style="display:none;margin-top:10px;padding:10px 12px;background:#fff8f0;border-left:3px solid #c05621;border-radius:4px;font-size:11px;color:#444;line-height:1.6">
-      ⚠ <strong>Rappel :</strong> le collaborateur doit utiliser les équipements de protection (casque, gilet, antivol…) présents en agence lors de l'utilisation du vélo à assistance électrique.
+      ⚠ <strong>Rappel :</strong> Par la présente, le collaborateur s'engage à utiliser les équipements de sécurité comme le prévoit le règlement de Domofrance.
     </div>
   </div>
   <div class="card no-print">
@@ -1346,19 +1346,25 @@ function resetDotation(){
 async function validerDotation(){
   const nom=document.getElementById('d-nom').value.trim();
   const prenom=document.getElementById('d-prenom').value.trim();
-  if(!nom){showMsg('dotation-msg','Saisissez le nom du collaborateur.','err');return}
-  // Au moins un élément renseigné (EPI, téléphone, tablette ou badge)
+  const site=document.getElementById('d-site').value;
+  // Au moins un élément renseigné (EPI, téléphone, tablette, badge ou vélo)
   const aBadge=badgeLines.some(l=>l.deviceId);
   const aTel=telLines.some(l=>l.deviceId);
   const aTab=tabLines.some(l=>l.deviceId);
   const aVae=vaeLines.some(l=>l.veloId);
   const aEpi=epiLines.length>0;
   if(!aEpi&&!aTel&&!aTab&&!aBadge&&!aVae){showMsg('dotation-msg','Ajoutez au moins un EPI, téléphone, tablette, badge ou vélo.','err');return}
+  // VAE : dotation Pôle Facilities → Agence, pas de collaborateur nominatif requis. Seul le Site est obligatoire.
+  const vaeOnly = aVae && !aEpi && !aTel && !aTab && !aBadge;
+  if(vaeOnly){
+    if(!site){showMsg('dotation-msg','Sélectionnez le site / agence destinataire du vélo.','err');return}
+  } else {
+    if(!nom){showMsg('dotation-msg','Saisissez le nom du collaborateur.','err');return}
+  }
   if(aEpi&&epiLines.find(l=>!l.ref||!l.taille)){showMsg('dotation-msg','Tous les EPI doivent avoir un article et une taille.','err');return}
   const type=document.getElementById('d-type').value;
   if(aTel&&type!=='restitution'&&telLines.some(l=>l.deviceId&&!(l.numero||'').trim())){showMsg('dotation-msg','Le numéro de ligne est obligatoire pour chaque téléphone attribué.','err');return}
   const date=document.getElementById('d-date').value||new Date().toISOString().slice(0,10);
-  const site=document.getElementById('d-site').value;
   const matricule=document.getElementById('d-matricule').value.trim();
   const motif=document.getElementById('d-motif').value.trim();
   if(type==='dotation'){
@@ -2237,7 +2243,7 @@ async function genererBon(){
     let tr=vaeOk.map(l=>{const d=vaeStockCache.find(x=>x.id===l.veloId)||{};return`<tr><td><strong>${d.numero_serie||'—'}</strong></td><td>${d.accessoires||'—'}</td></tr>`;}).join('');
     vaeSection=`<div class="section-title">🚲 Vélo à assistance électrique attribué</div>
 <table><thead><tr><th>N° série</th><th>Accessoires</th></tr></thead><tbody>${tr}</tbody></table>
-<div class="bon-note-knox" style="border-left-color:#c05621;background:#fff8f0">⚠ Le collaborateur doit utiliser les équipements de protection (casque, gilet, antivol…) présents en agence.</div>`;
+<div class="bon-note-knox" style="border-left-color:#c05621;background:#fff8f0">⚠ Par la présente, le collaborateur s'engage à utiliser les équipements de sécurité comme le prévoit le règlement de Domofrance.</div>`;
   }
 
   const bonHtml=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">

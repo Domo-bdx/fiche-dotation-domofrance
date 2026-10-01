@@ -673,12 +673,23 @@ function addCollab(nom,prenom,matricule,site,dateEmbauche){
   saveCollabs();
 }
 
-async function marquerComplementEnvoye(id){
-  const idx=collabsCache.findIndex(c=>c.id===id);
-  if(idx>=0){
+async function marquerComplementEnvoye(id, btnEl){
+  // Garde-fou anti double-clic / double-traitement
+  if(btnEl){ if(btnEl.dataset.processing==='1')return; btnEl.dataset.processing='1'; btnEl.disabled=true; }
+  try{
+    const idx=collabsCache.findIndex(c=>c.id===id);
+    if(idx<0){ alert('Collaborateur introuvable.'); return; }
+    if(collabsCache[idx].complement_envoye){ alert('Ce complément a déjà été marqué comme envoyé.'); return; }
     collabsCache[idx].complement_envoye=true;
     collabsCache[idx].date_complement=new Date().toISOString().slice(0,10);
-    await saveCollabs();renderPEAlertes();updateAlerteBadge();
+    await saveCollabs();
+    renderPEAlertes();
+    alert('✓ Complément marqué comme envoyé.');
+  }catch(e){
+    console.error('marquerComplementEnvoye:', e);
+    alert('Erreur : '+e.message);
+  }finally{
+    if(btnEl){btnEl.dataset.processing='0';btnEl.disabled=false;}
   }
 }
 
@@ -732,7 +743,7 @@ function renderPEAlertes(){
           : `<div style="font-size:11px;color:#c05621;margin-top:4px">Encore en période d'essai — actif le ${dateStr}</div>`
         }
       </div>
-      ${pret?`<button class="btn success small" style="flex-shrink:0" onclick="marquerComplementEnvoye('${co.id}')">✓ Complément envoyé</button>`:''}
+      ${pret?`<button class="btn success small" style="flex-shrink:0" onclick="marquerComplementEnvoye('${co.id}',this)">✓ Complément envoyé</button>`:''}
     </div>`;
   }).join('');
 }

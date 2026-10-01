@@ -673,6 +673,18 @@ function addCollab(nom,prenom,matricule,site,dateEmbauche){
   saveCollabs();
 }
 
+function ouvrirDotationComplement(id){
+  const co = collabsCache.find(c=>c.id===id);
+  if(!co){ alert('Collaborateur introuvable.'); return; }
+  const prefill = {
+    nom: co.nom, prenom: co.prenom, matricule: co.matricule||'', site: co.site||'',
+    motif: 'Complément — après période d\'essai (3 mois)',
+    applyPack: 'complement', collabId: co.id
+  };
+  localStorage.setItem('gestock_dotation_prefill', JSON.stringify(prefill));
+  window.location.href = 'epi.html';
+}
+
 async function marquerComplementEnvoye(id, btnEl){
   // Garde-fou anti double-clic / double-traitement
   if(btnEl){ if(btnEl.dataset.processing==='1')return; btnEl.dataset.processing='1'; btnEl.disabled=true; }
@@ -743,7 +755,10 @@ function renderPEAlertes(){
           : `<div style="font-size:11px;color:#c05621;margin-top:4px">Encore en période d'essai — actif le ${dateStr}</div>`
         }
       </div>
-      ${pret?`<button class="btn success small" style="flex-shrink:0" onclick="marquerComplementEnvoye('${co.id}',this)">✓ Complément envoyé</button>`:''}
+      ${pret?`<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        <button class="btn primary small" onclick="ouvrirDotationComplement('${co.id}')">📋 Ouvrir la dotation</button>
+        <button class="btn success small" onclick="marquerComplementEnvoye('${co.id}',this)">✓ Complément envoyé</button>
+      </div>`:''}
     </div>`;
   }).join('');
 }

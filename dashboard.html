@@ -774,12 +774,15 @@ async function ajouterAttente(data){
   }catch(e){ console.error('ajouterAttente:', e); throw e; }
 }
 
-async function marquerAttenteEnvoyee(id){
+async function marquerAttenteEnvoyee(id, btnEl){
+  // Garde-fou anti double-clic / double-traitement
+  if(btnEl){ if(btnEl.dataset.processing==='1')return; btnEl.dataset.processing='1'; btnEl.disabled=true; }
   try{
     const all = await ghRead('data/attentes.json') || [];
     const idx = all.findIndex(x=>x.id===id);
-    if(idx<0){ alert('Attente introuvable.'); return; }
+    if(idx<0){ alert('Attente introuvable.'); if(btnEl){btnEl.dataset.processing='0';btnEl.disabled=false;} return; }
     const a = all[idx];
+    if(a.statut!=='en_attente'){ alert('Cette attente a déjà été traitée.'); if(btnEl){btnEl.dataset.processing='0';btnEl.disabled=false;} return; }
 
     // 1. Déduire le stock de la quantité envoyée
     const stockObj = await readObj('stock');
@@ -816,11 +819,12 @@ async function marquerAttenteEnvoyee(id){
 
     attentesCache = attentesCache.filter(x=>x.id!==id);
     renderAttentesAlertes();
-    renderStockStats();
     alert('✓ Envoi enregistré — stock déduit et mouvement ajouté à l\'historique.');
   }catch(e){
     console.error('marquerAttenteEnvoyee:', e);
     alert('Erreur : '+e.message);
+  }finally{
+    if(btnEl){btnEl.dataset.processing='0';btnEl.disabled=false;}
   }
 }
 
@@ -870,7 +874,7 @@ function renderAttentesAlertes(){
           : `<div style="font-size:11px;color:#c05621;margin-top:4px">Stock actuel : ${s.qte} / ${a.qte} nécessaire${s.qte>0?' — stock partiel':' — rupture'}</div>`
         }
       </div>
-      ${stockOk?`<button class="btn success small" style="flex-shrink:0" onclick="marquerAttenteEnvoyee('${a.id}')">✓ Envoyé</button>`:''}
+      ${stockOk?`<button class="btn success small" style="flex-shrink:0" onclick="marquerAttenteEnvoyee('${a.id}',this)">✓ Envoyé</button>`:''}
     </div>`;
   }).join('');
 }

@@ -1452,6 +1452,16 @@ async function validerDotation(){
     const isPackEmbauche1=epiLines.some(l=>l.ref==='0TOPK677');
     if(type==='dotation'&&isPackEmbauche1&&nom){addCollab(nom,prenom,matricule,site,date);}
     updateAlerteBadge();
+    // Si cette dotation vient du pré-remplissage "Pack Complément" (fin de période d'essai), marquer comme envoyé
+    if(window._prefillCollabId){
+      const ci=collabsCache.findIndex(c=>c.id===window._prefillCollabId);
+      if(ci>=0){
+        collabsCache[ci].complement_envoye=true;
+        collabsCache[ci].date_complement=new Date().toISOString().slice(0,10);
+        await saveCollabs();
+      }
+      window._prefillCollabId=null;
+    }
     showMsg('dotation-msg',`✓ ${type.charAt(0).toUpperCase()+type.slice(1)} validée pour ${prenom} ${nom} — stock mis à jour.`,'ok');
   }catch(e){showMsg('dotation-msg','Erreur lors de l\'enregistrement : '+e.message,'err');}
   btn.disabled=false;btn.textContent='Valider et déduire du stock';
@@ -2860,9 +2870,34 @@ async function initApp(){
     if(nPE>0) banners.push(`<div class="banner-alerte" style="background:#f0fff4;border-color:#9ae6b4"><div style="font-size:16px">🎓</div><div style="flex:1"><strong>${nPE} complément(s) EPI à envoyer</strong> — fin de période d'essai (voir Dashboard)</div></div>`);
     const gb=document.getElementById('global-banner');
     if(banners.length && gb) gb.innerHTML=banners.join('');
+    appliquerPrefillDotation();
   }catch(e){
     setSyncStatus('error','Erreur: '+e.message);console.error(e);
   }
+}
+
+// ─── PRÉ-REMPLISSAGE DOTATION (depuis Dashboard → alerte fin PE) ─────────────
+function appliquerPrefillDotation(){
+  const raw = localStorage.getItem('gestock_dotation_prefill');
+  if(!raw) return;
+  localStorage.removeItem('gestock_dotation_prefill');
+  let p;
+  try{ p = JSON.parse(raw); }catch(e){ return; }
+
+  goTab('dotation', document.getElementById('subbtn-dotation'));
+  const setVal=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  setVal('d-nom', p.nom);
+  setVal('d-prenom', p.prenom);
+  setVal('d-matricule', p.matricule);
+  setVal('d-motif', p.motif);
+  const siteSel=document.getElementById('d-site');
+  if(siteSel && p.site) siteSel.value=p.site;
+
+  if(p.applyPack) appliquerPack(p.applyPack);
+
+  if(p.collabId) window._prefillCollabId = p.collabId;
+
+  showMsg('dotation-msg', `✓ Formulaire pré-rempli pour ${p.prenom} ${p.nom} — Pack Complément. Choisissez les tailles puis validez.`, 'ok');
 }
 
 

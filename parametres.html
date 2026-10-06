@@ -920,6 +920,8 @@ async function initParametres(){
     const sg = document.getElementById('section-gestion-comptes');
     if(sg) sg.style.display = 'block';
     renderUsersList();
+    const sa = document.getElementById('section-archivage');
+    if(sa){ sa.style.display='block'; const anneePrec=new Date().getFullYear()-1; document.getElementById('archivage-annee').textContent=anneePrec; majStatutArchivage(); }
   }
 }
 

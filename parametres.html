@@ -393,6 +393,21 @@ Pôle Facilities — Domofrance</textarea>
     </div>
   </div>
 
+  <!-- Archivage mouvements (admin) -->
+  <div class="card" id="section-archivage" style="display:none">
+    <h3>🗄 Archivage des mouvements</h3>
+    <div style="font-size:12px;color:#555;margin-bottom:14px;line-height:1.7">
+      Le fichier <code>mouvements.json</code> grossit au fil du temps et peut devenir instable au-delà de 500 Ko.<br>
+      Cette opération <strong>archive les mouvements de l'année précédente</strong> dans un fichier séparé
+      (<code>mouvements_AAAA.json</code>) et allège le fichier courant en ne conservant que l'année en cours.
+    </div>
+    <div id="archivage-status" style="font-size:12px;color:#888;margin-bottom:12px"></div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="archiverMouvements()" id="btn-archiver">🗄 Archiver les mouvements <span id="archivage-annee"></span></button>
+    </div>
+    <div id="archivage-msg" style="margin-top:12px;font-size:13px"></div>
+  </div>
+
   <!-- Mon compte -->
   <div class="card" id="section-mon-compte">
     <h3>🔑 Mon compte</h3>
@@ -467,7 +482,14 @@ function loginSuccess(){
   document.getElementById('user-name').textContent=currentUser.nom;
   document.getElementById('user-role-badge').textContent=currentUser.role==='admin'?'⚙ Admin':'✏ Gestionnaire';
   badge.style.display='flex';
-  if(currentUser.role==='admin')document.getElementById('section-gestion-comptes').style.display='block';
+  if(currentUser.role==='admin'){
+    document.getElementById('section-gestion-comptes').style.display='block';
+    document.getElementById('section-archivage').style.display='block';
+    // Pré-remplir l'année à archiver
+    const anneePrec = new Date().getFullYear() - 1;
+    document.getElementById('archivage-annee').textContent = anneePrec;
+    majStatutArchivage();
+  }
   const mci=document.getElementById('mon-compte-info');
   if(mci)mci.innerHTML='<strong>'+currentUser.nom+'</strong> &nbsp;·&nbsp; '+(currentUser.role==='admin'?'<span class="tag-admin">Admin</span>':'<span class="tag-gest">Gestionnaire</span>')+'&nbsp;<button class="btn" style="padding:3px 10px;font-size:11px;margin-left:12px" onclick="deconnexion()">Se déconnecter</button>';
   initApp();
@@ -557,6 +579,63 @@ async function changerMonMotDePasse(){
   showMsg('mc-msg','Mot de passe modifié avec succès.','success');
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── ARCHIVAGE MOUVEMENTS ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+async function majStatutArchivage(){
+  const el = document.getElementById('archivage-status');
+  if(!el) return;
+  try {
+    const arr = await readData('mouvements');
+    const anneePrec = new Date().getFullYear() - 1;
+    const nb = arr.filter(m => m.date && m.date.startsWith(String(anneePrec))).length;
+    const ko = Math.round(JSON.stringify(arr).length / 1024);
+    el.innerHTML = `Fichier actuel : <strong>${ko} Ko</strong> — ${arr.length} mouvements au total, dont <strong>${nb} de ${anneePrec}</strong> archivables.`;
+  } catch(e) { el.textContent = 'Impossible de lire mouvements.json : ' + e.message; }
+}
+
+async function archiverMouvements(){
+  const anneePrec = new Date().getFullYear() - 1;
+  const msgEl = document.getElementById('archivage-msg');
+  const btn = document.getElementById('btn-archiver');
+  msgEl.textContent = '';
+  if(!confirm(`Archiver tous les mouvements de ${anneePrec} dans mouvements_${anneePrec}.json ?\n\nLe fichier courant sera allégé. Cette opération est irréversible (sauf à restaurer manuellement l'archive).`)) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Archivage en cours…';
+  try {
+    // 1. Lire mouvements.json complet
+    const arr = await readData('mouvements');
+    const aArchiver = arr.filter(m => m.date && m.date.startsWith(String(anneePrec)));
+    const aGarder  = arr.filter(m => !(m.date && m.date.startsWith(String(anneePrec))));
+    if(aArchiver.length === 0){
+      msgEl.innerHTML = `<span style="color:#e07b00">⚠ Aucun mouvement de ${anneePrec} trouvé — rien à archiver.</span>`;
+      btn.disabled=false; btn.innerHTML='🗄 Archiver les mouvements <span id="archivage-annee">'+anneePrec+'</span>';
+      return;
+    }
+    // 2. Vérifier si une archive existe déjà (lecture silencieuse)
+    let archiveExist = [];
+    try { archiveExist = await readData('mouvements_'+anneePrec); } catch(e){}
+    const archiveFinal = [...archiveExist, ...aArchiver];
+    // 3. Écrire l'archive
+    msgEl.textContent = `Écriture de mouvements_${anneePrec}.json (${archiveFinal.length} entrées)…`;
+    await writeData('mouvements_'+anneePrec, archiveFinal);
+    // 4. Réécrire mouvements.json allégé
+    msgEl.textContent = `Mise à jour de mouvements.json (${aGarder.length} entrées conservées)…`;
+    await writeData('mouvements', aGarder);
+    // 5. Résultat
+    const koAvant = Math.round(JSON.stringify(arr).length/1024);
+    const koApres = Math.round(JSON.stringify(aGarder).length/1024);
+    msgEl.innerHTML = `<span style="color:#276749">✅ Archivage terminé.<br>
+      ${aArchiver.length} mouvements de ${anneePrec} → <code>mouvements_${anneePrec}.json</code><br>
+      mouvements.json : ${koAvant} Ko → <strong>${koApres} Ko</strong> (${aGarder.length} entrées conservées)</span>`;
+    majStatutArchivage();
+  } catch(e) {
+    msgEl.innerHTML = `<span style="color:#c00">❌ Erreur : ${e.message}</span>`;
+  }
+  btn.disabled=false; btn.innerHTML='🗄 Archiver les mouvements <span id="archivage-annee">'+anneePrec+'</span>';
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // ─── EXPORT EXCEL ──────────────────────────────────────────────────────

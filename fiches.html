@@ -337,7 +337,8 @@ tr:hover td{background:#f8f9fb}
 
     <div style="display:flex;gap:0;margin-bottom:12px">
       <button id="btn-kind-dotation" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;background:#1a3a5c;color:#fff;font-size:12px;font-weight:600;cursor:pointer;border-radius:5px 0 0 5px;outline:none" onclick="fichesSwitchKind('dotation')">📦 Dotations</button>
-      <button id="btn-kind-restitution" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;border-left:none;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;border-radius:0 5px 5px 0;outline:none" onclick="fichesSwitchKind('restitution')">↩️ Restitutions</button>
+      <button id="btn-kind-restitution" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;border-left:none;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;border-radius:0;outline:none" onclick="fichesSwitchKind('restitution')">↩️ Restitutions</button>
+      <button id="btn-kind-remplacement" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;border-left:none;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;border-radius:0 5px 5px 0;outline:none" onclick="fichesSwitchKind('remplacement')">🔄 Remplacements</button>
     </div>
 
     <div style="display:flex;gap:0;margin-bottom:18px">
@@ -901,17 +902,20 @@ function fichesSwitchMode(mode){
 
 const FICHES_TYPES = {
   dotation:    {epi:'dotation',    tel:'attribution_tel', tab:'attribution_tab', badge:'attribution_badge', vae:'attribution_vae'},
-  restitution: {epi:'restitution', tel:'restitution_tel', tab:'restitution_tab', badge:'restitution_badge', vae:'restitution_vae'}
+  restitution: {epi:'restitution', tel:'restitution_tel', tab:'restitution_tab', badge:'restitution_badge', vae:'restitution_vae'},
+  remplacement:{epi:'remplacement', tel:'__none__', tab:'__none__', badge:'__none__', vae:'__none__'}
 };
 
 function fichesSwitchKind(kind){
   _fichesKind = kind;
   var bD = document.getElementById('btn-kind-dotation');
   var bR = document.getElementById('btn-kind-restitution');
-  if(bD){ bD.style.background = kind==='dotation'    ? '#1a3a5c' : '#fff'; bD.style.color = kind==='dotation'    ? '#fff' : '#1a3a5c'; }
-  if(bR){ bR.style.background = kind==='restitution' ? '#1a3a5c' : '#fff'; bR.style.color = kind==='restitution' ? '#fff' : '#1a3a5c'; }
+  var bP = document.getElementById('btn-kind-remplacement');
+  if(bD){ bD.style.background = kind==='dotation'     ? '#1a3a5c' : '#fff'; bD.style.color = kind==='dotation'     ? '#fff' : '#1a3a5c'; }
+  if(bR){ bR.style.background = kind==='restitution'  ? '#1a3a5c' : '#fff'; bR.style.color = kind==='restitution'  ? '#fff' : '#1a3a5c'; }
+  if(bP){ bP.style.background = kind==='remplacement' ? '#1a3a5c' : '#fff'; bP.style.color = kind==='remplacement' ? '#fff' : '#1a3a5c'; }
   var lbl = document.getElementById('fiches-date-label');
-  if(lbl) lbl.textContent = kind==='restitution' ? 'Date de restitution' : 'Date de dotation';
+  if(lbl) lbl.textContent = 'Date de ' + (kind==='restitution' ? 'restitution' : kind==='remplacement' ? 'remplacement' : 'dotation');
   fichesRender();
 }
 
@@ -969,7 +973,7 @@ function fichesRender(){
 
   if(!filtered.length){
     empty.style.display = '';
-    empty.textContent = _fichesKind==='restitution' ? 'Aucune restitution trouvée.' : 'Aucune dotation trouvée.';
+    empty.textContent = 'Aucun' + (_fichesKind==='dotation' ? 'e dotation' : _fichesKind==='restitution' ? 'e restitution' : ' remplacement') + ' trouvé' + (_fichesKind==='remplacement' ? '' : 'e') + '.';
     return;
   }
 
@@ -1008,8 +1012,8 @@ async function fichesGenerer(idx){
   var ref = 'BON-'+(s.date||'').replace(/-/g,'').slice(2)+'-'+s.nom.slice(0,3).toUpperCase();
   var R = s.kind==='restitution';
   var T = FICHES_TYPES[s.kind];
-  var bonLabel = R ? 'RESTITUTION' : 'DOTATION';
-  var verbe = R ? 'restitués' : 'attribués';
+  var bonLabel = R ? 'RESTITUTION' : s.kind==='remplacement' ? 'REMPLACEMENT' : 'DOTATION';
+  var verbe = R ? 'restitués' : s.kind==='remplacement' ? 'remplacés' : 'attribués';
   var verbeF = R ? 'restituées' : 'attribuées';
 
   var epiMovs = s.mouvements.filter(function(m){ return m.type===T.epi; });
@@ -1080,7 +1084,7 @@ async function fichesGenerer(idx){
     win.addEventListener('load', function(){ URL.revokeObjectURL(url); });
   } else {
     var a = document.createElement('a');
-    a.href = url; a.download = 'bon-'+(R ? 'restitution' : 'dotation')+'-'+ref+'.html';
+    a.href = url; a.download = 'bon-'+bonLabel.toLowerCase()+'-'+ref+'.html';
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   }

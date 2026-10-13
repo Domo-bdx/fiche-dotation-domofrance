@@ -332,8 +332,13 @@ tr:hover td{background:#f8f9fb}
   <!-- Panneau Fiches -->
 <div id="local-tab-fiches" style="display:block">
   <div class="card">
-    <h3>Régénérer une fiche de dotation</h3>
-    <p style="font-size:12px;color:#666;margin-bottom:14px">Retrouvez une dotation passée et régénérez la fiche regroupant tous les articles attribués lors de cette session.</p>
+    <h3>Régénérer un bon de dotation ou de restitution</h3>
+    <p style="font-size:12px;color:#666;margin-bottom:14px">Retrouvez une dotation ou une restitution passée et régénérez le bon regroupant tous les articles de cette session.</p>
+
+    <div style="display:flex;gap:0;margin-bottom:12px">
+      <button id="btn-kind-dotation" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;background:#1a3a5c;color:#fff;font-size:12px;font-weight:600;cursor:pointer;border-radius:5px 0 0 5px;outline:none" onclick="fichesSwitchKind('dotation')">📦 Dotations</button>
+      <button id="btn-kind-restitution" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;border-left:none;background:#fff;color:#1a3a5c;font-size:12px;font-weight:600;cursor:pointer;border-radius:0 5px 5px 0;outline:none" onclick="fichesSwitchKind('restitution')">↩️ Restitutions</button>
+    </div>
 
     <div style="display:flex;gap:0;margin-bottom:18px">
       <button id="btn-mode-collab" type="button" style="padding:8px 18px;border:1px solid #1a3a5c;background:#1a3a5c;color:#fff;font-size:12px;font-weight:600;cursor:pointer;border-radius:5px 0 0 5px;outline:none" onclick="fichesSwitchMode('collab')">👤 Par collaborateur</button>
@@ -346,7 +351,7 @@ tr:hover td{background:#f8f9fb}
     </div>
 
     <div id="fiches-search-date" style="display:none;margin-bottom:16px">
-      <label style="font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px">Date de dotation</label>
+      <label id="fiches-date-label" style="font-size:11px;font-weight:700;color:#1a3a5c;display:block;margin-bottom:4px">Date de dotation</label>
       <input type="date" id="fiches-input-date" oninput="fichesRender()" style="padding:7px 10px;border:1px solid #ccd;border-radius:5px;font-size:12px">
     </div>
 
@@ -619,6 +624,7 @@ const CATS=[...new Set(CATALOGUE.map(c=>c.cat))].sort();
 
 // ─── VARIABLES GLOBALES FICHES (v2) ────────────────────────────────────────────────
 let _fichesMode = 'collab';
+let _fichesKind = 'dotation';
 let _fichesSessions = [];
 
 // ─── STUB FONCTIONS EPI (non disponibles dans cette page) ────────────────────
@@ -893,8 +899,24 @@ function fichesSwitchMode(mode){
   fichesRender();
 }
 
+const FICHES_TYPES = {
+  dotation:    {epi:'dotation',    tel:'attribution_tel', tab:'attribution_tab', badge:'attribution_badge', vae:'attribution_vae'},
+  restitution: {epi:'restitution', tel:'restitution_tel', tab:'restitution_tab', badge:'restitution_badge', vae:'restitution_vae'}
+};
+
+function fichesSwitchKind(kind){
+  _fichesKind = kind;
+  var bD = document.getElementById('btn-kind-dotation');
+  var bR = document.getElementById('btn-kind-restitution');
+  if(bD){ bD.style.background = kind==='dotation'    ? '#1a3a5c' : '#fff'; bD.style.color = kind==='dotation'    ? '#fff' : '#1a3a5c'; }
+  if(bR){ bR.style.background = kind==='restitution' ? '#1a3a5c' : '#fff'; bR.style.color = kind==='restitution' ? '#fff' : '#1a3a5c'; }
+  var lbl = document.getElementById('fiches-date-label');
+  if(lbl) lbl.textContent = kind==='restitution' ? 'Date de restitution' : 'Date de dotation';
+  fichesRender();
+}
+
 function fichesGetSessions(){
-  const TYPES_DOT = new Set(['dotation','attribution_tel','attribution_tab','attribution_badge']);
+  const TYPES_DOT = new Set(Object.values(FICHES_TYPES[_fichesKind]));
   const map = {};
   mouvementsCache.forEach(function(m){
     if(!TYPES_DOT.has(m.type)) return;
@@ -908,6 +930,7 @@ function fichesGetSessions(){
         site: m.site||'',
         matricule: m.matricule||'',
         motif: m.motif||'',
+        kind: _fichesKind,
         mouvements: []
       };
     }
@@ -946,19 +969,21 @@ function fichesRender(){
 
   if(!filtered.length){
     empty.style.display = '';
-    empty.textContent = 'Aucune dotation trouvée.';
+    empty.textContent = _fichesKind==='restitution' ? 'Aucune restitution trouvée.' : 'Aucune dotation trouvée.';
     return;
   }
 
   _fichesSessions = filtered;
 
   filtered.forEach(function(s, idx){
+    var T = FICHES_TYPES[s.kind];
     var tags = new Set();
     s.mouvements.forEach(function(m){
-      if(m.type==='dotation')          tags.add('🦺 EPI');
-      if(m.type==='attribution_tel')   tags.add('📱 Téléphone');
-      if(m.type==='attribution_tab')   tags.add('📟 Tablette');
-      if(m.type==='attribution_badge') tags.add('🪪 Badge');
+      if(m.type===T.epi)   tags.add('🦺 EPI');
+      if(m.type===T.tel)   tags.add('📱 Téléphone');
+      if(m.type===T.tab)   tags.add('📟 Tablette');
+      if(m.type===T.badge) tags.add('🪪 Badge');
+      if(m.type===T.vae)   tags.add('🚲 VAE');
     });
     var tagsHtml = Array.from(tags).map(function(t){ return '<span class="frl-tag">'+t+'</span>'; }).join('');
     var dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
@@ -969,7 +994,7 @@ function fichesRender(){
         '<div class="frl-meta">'+dateStr+' · '+(s.site||'—')+' · '+(s.motif||'—')+'</div>' +
         '<div class="frl-tags">'+tagsHtml+'</div>' +
       '</div>' +
-      '<button class="btn-gen-fiche" onclick="fichesGenerer('+idx+')">📋 Générer la fiche</button>';
+      '<button class="btn-gen-fiche" onclick="fichesGenerer('+idx+')">📋 Générer le bon</button>';
     list.appendChild(li);
   });
 }
@@ -981,47 +1006,62 @@ async function fichesGenerer(idx){
   var badgeTypeLabels = {acces:'Acces',watchdoc:'WatchDoc',alarme:'Unaverse',autre:'Autre',telecommande_siege:'Acces Siege',castel:'Castel'};
   var dateStr = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
   var ref = 'BON-'+(s.date||'').replace(/-/g,'').slice(2)+'-'+s.nom.slice(0,3).toUpperCase();
+  var R = s.kind==='restitution';
+  var T = FICHES_TYPES[s.kind];
+  var bonLabel = R ? 'RESTITUTION' : 'DOTATION';
+  var verbe = R ? 'restitués' : 'attribués';
+  var verbeF = R ? 'restituées' : 'attribuées';
 
-  var epiMovs = s.mouvements.filter(function(m){ return m.type==='dotation'; });
+  var epiMovs = s.mouvements.filter(function(m){ return m.type===T.epi; });
   var epiSection = '';
   if(epiMovs.length){
     var rows = epiMovs.map(function(m){
       var cat = CATALOGUE.find(function(x){ return x.ref===m.ref; })||{};
       return '<tr><td>'+(m.ref||'—')+'</td><td>'+(cat.nom||m.designation||'—')+'</td><td style="text-align:center">'+(m.taille||'—')+'</td><td style="text-align:center">'+(m.qte||1)+'</td></tr>';
     }).join('');
-    epiSection = '<div class="section-title">🦺 EPI attribués</div><table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Unité</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-orange"><strong>Attestation :</strong> J\'atteste avoir été informé des principes généraux relatifs à l\'utilisation des EPI et je m\'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>';
+    epiSection = '<div class="section-title">🦺 EPI '+verbe+'</div><table><thead><tr><th>Référence</th><th>Désignation</th><th>Taille</th><th>Unité</th></tr></thead><tbody>'+rows+'</tbody></table>'+(R ? '' : '<div class="note-orange"><strong>Attestation :</strong> J\'atteste avoir été informé des principes généraux relatifs à l\'utilisation des EPI et je m\'engage à les porter chaque fois que la situation de travail le nécessite, conformément aux consignes de sécurité en vigueur.</div>');
   }
 
-  var telMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tel'; });
+  var telMovs = s.mouvements.filter(function(m){ return m.type===T.tel; });
   var telSection = '';
   if(telMovs.length){
     var rows = telMovs.map(function(m){
       var d = mobCache.tel.find(function(x){ return x.id===m.ref; })||{};
-      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>'+(m.numero||d.numero||'—')+'</td><td>—</td><td>—</td><td>—</td></tr>';
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>'+(m.numero||d.numero||'—')+'</td>'+(R ? '' : '<td>—</td><td>—</td><td>—</td>')+'</tr>';
     }).join('');
-    telSection = '<div class="section-title">📱 Téléphones attribués</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>N° de ligne</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
+    telSection = '<div class="section-title">📱 Téléphones '+verbe+'</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>N° de ligne</th>'+(R ? '' : '<th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th>')+'</tr></thead><tbody>'+rows+'</tbody></table>'+(R ? '' : '<div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>');
   }
 
-  var tabMovs = s.mouvements.filter(function(m){ return m.type==='attribution_tab'; });
+  var tabMovs = s.mouvements.filter(function(m){ return m.type===T.tab; });
   var tabSection = '';
   if(tabMovs.length){
     var rows = tabMovs.map(function(m){
       var d = mobCache.tab.find(function(x){ return x.id===m.ref; })||{};
-      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td><td>—</td><td>—</td><td>—</td></tr>';
+      return '<tr><td>'+(m.designation||((d.marque||'')+(d.modele?' '+d.modele:''))||'—')+'</td><td><code>'+(m.imei||d.imei||'—')+'</code></td>'+(R ? '' : '<td>—</td><td>—</td><td>—</td>')+'</tr>';
     }).join('');
-    tabSection = '<div class="section-title">📟 Tablettes attribuées</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th><th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>';
+    tabSection = '<div class="section-title">📟 Tablettes '+verbeF+'</div><table><thead><tr><th>Marque / Modèle</th><th>IMEI</th>'+(R ? '' : '<th>Code PIN</th><th>Code déverrouillage</th><th>Code PUK</th>')+'</tr></thead><tbody>'+rows+'</tbody></table>'+(R ? '' : '<div class="note-blue"><strong>Appareil enrôlé dans Samsung Knox MDM</strong> — Utilisation professionnelle uniquement.</div>');
   }
 
-  var badgeMovs = s.mouvements.filter(function(m){ return m.type==='attribution_badge'; });
+  var badgeMovs = s.mouvements.filter(function(m){ return m.type===T.badge; });
   var badgeSection = '';
   if(badgeMovs.length){
     var rows = badgeMovs.map(function(m){
       var d = mobCache.badge.find(function(x){ return x.id===m.ref; })||{};
       var num = m.numero||d.numero||'—';
       var type = badgeTypeLabels[d.type_badge]||d.type_badge||'—';
-      return '<tr><td><strong>'+num+'</strong></td><td>'+type+'</td><td>'+(d.notes||'—')+'</td><td style="font-family:monospace">—</td></tr>';
+      return '<tr><td><strong>'+num+'</strong></td><td>'+type+'</td><td>'+(d.notes||'—')+'</td>'+(R ? '' : '<td style="font-family:monospace">—</td>')+'</tr>';
     }).join('');
-    badgeSection = '<div class="section-title">🪪 Badges attribués</div><table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th><th>Code PUK Siege (WatchDoc)</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    badgeSection = '<div class="section-title">🪪 Badges '+verbe+'</div><table><thead><tr><th>N° Badge</th><th>Type</th><th>Notes</th>'+(R ? '' : '<th>Code PUK Siege (WatchDoc)</th>')+'</tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  var vaeMovs = s.mouvements.filter(function(m){ return m.type===T.vae; });
+  var vaeSection = '';
+  if(vaeMovs.length){
+    var rows = vaeMovs.map(function(m){
+      var d = mobCache.vae.find(function(x){ return x.id===m.ref; })||{};
+      return '<tr><td><strong>'+(m.numero||d.numero_serie||'—')+'</strong></td><td>'+(d.accessoires||'—')+'</td></tr>';
+    }).join('');
+    vaeSection = '<div class="section-title">🚲 Vélo à assistance électrique '+(R ? 'restitué' : 'attribué')+'</div><table><thead><tr><th>N° série</th><th>Accessoires</th></tr></thead><tbody>'+rows+'</tbody></table>'+(R ? '' : '<div class="note-orange">⚠ Par la présente, le collaborateur s\'engage à utiliser les équipements de sécurité comme le prévoit le règlement de Domofrance.</div>');
   }
 
   var logoB64 = '';
@@ -1031,7 +1071,7 @@ async function fichesGenerer(idx){
     logoB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(ab)));
   } catch(e) { logoB64 = ''; }
 
-  var bonHtml = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bon de DOTATION — '+s.nom+' '+s.prenom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}.header img{height:52px}.hr{text-align:right}.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}.bon-ref{font-size:10px;color:#888;margin-top:3px}.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}</style></head><body><div class="page"><div class="actions"><button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button><button class="btn-f" onclick="window.close()">✕ Fermer</button></div><div class="header"><img src="data:image/png;base64,'+logoB64+'" alt="Domofrance"><div class="hr"><div class="bon-title">BON DE DOTATION</div><div class="bon-ref">Réf. '+ref+' · '+dateStr+'</div><div class="bon-ref">Pôle Facilities — Domofrance</div></div></div><div class="info-block"><div class="bt">Informations collaborateur</div><div class="ig"><div><div class="lbl">Nom / Prénom</div><div class="val">'+s.nom+' '+s.prenom+'</div></div><div><div class="lbl">Identifiant</div><div class="val">'+(s.matricule||'—')+'</div></div><div><div class="lbl">Site / Agence</div><div class="val">'+(s.site||'—')+'</div></div><div><div class="lbl">Motif</div><div class="val">'+(s.motif||'—')+'</div></div></div></div>'+epiSection+telSection+tabSection+badgeSection+'<div class="sig-zone"><div class="sig-box"><div class="sig-lbl">Remis par — Pôle Facilities</div><div class="sig-line"></div></div><div class="sig-box"><div class="sig-lbl">Reçu par le collaborateur</div><div class="sig-name">'+s.nom+' '+s.prenom+'</div><div class="sig-line"></div></div></div><div class="footer">Document généré le '+new Date().toLocaleDateString('fr-FR')+' — Domofrance Pôle Facilities · Usage interne confidentiel</div></div></body></html>';
+  var bonHtml = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bon de '+bonLabel+' — '+s.nom+' '+s.prenom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#222;background:#f0f2f5;padding:24px}.page{background:#fff;max-width:800px;margin:0 auto;padding:28px 36px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.1)}.actions{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #eee;display:flex;gap:8px}.btn-p{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#1a2e4a;color:#fff}.btn-f{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#eee;color:#333}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #e8003d;margin-bottom:20px}.header img{height:52px}.hr{text-align:right}.bon-title{font-size:17px;font-weight:700;color:#1a2e4a}.bon-ref{font-size:10px;color:#888;margin-top:3px}.info-block{background:#f6f8fa;border:1px solid #e0e4ea;border-radius:5px;padding:12px 16px;margin-bottom:18px}.bt{font-size:9px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}.lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em}.val{font-size:12px;font-weight:600;color:#222;margin-top:1px}.section-title{font-size:10px;font-weight:700;color:#1a2e4a;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #e8003d;margin:16px 0 8px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}thead tr{background:#1a2e4a}thead th{color:#fff;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}tbody tr:nth-child(even){background:#f8f9fb}tbody td{padding:6px 10px;border-bottom:1px solid #eee}.note-orange{border-left:3px solid #c05621;background:#fff8f0;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px;line-height:1.6}.note-blue{border-left:3px solid #1a2e4a;background:#eef2ff;padding:7px 12px;font-size:10px;color:#444;border-radius:2px;margin-top:6px}.sig-zone{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.sig-box{border:1px solid #ccc;border-radius:4px;padding:10px 14px;min-height:90px}.sig-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}.sig-name{font-size:12px;font-weight:700;color:#1a2e4a}.sig-line{height:50px;border-top:1px solid #ddd;margin-top:8px}.footer{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#bbb;text-align:center}@media print{body{background:#fff;padding:0}.page{box-shadow:none;padding:16px 24px;max-width:100%}.actions{display:none!important}@page{margin:12mm}}</style></head><body><div class="page"><div class="actions"><button class="btn-p" onclick="window.print()">🖨 Imprimer / Exporter PDF</button><button class="btn-f" onclick="window.close()">✕ Fermer</button></div><div class="header"><img src="data:image/png;base64,'+logoB64+'" alt="Domofrance"><div class="hr"><div class="bon-title">BON DE '+bonLabel+'</div><div class="bon-ref">Réf. '+ref+' · '+dateStr+'</div><div class="bon-ref">Pôle Facilities — Domofrance</div></div></div><div class="info-block"><div class="bt">Informations collaborateur</div><div class="ig"><div><div class="lbl">Nom / Prénom</div><div class="val">'+s.nom+' '+s.prenom+'</div></div><div><div class="lbl">Identifiant</div><div class="val">'+(s.matricule||'—')+'</div></div><div><div class="lbl">Site / Agence</div><div class="val">'+(s.site||'—')+'</div></div><div><div class="lbl">Motif</div><div class="val">'+(s.motif||'—')+'</div></div></div></div>'+epiSection+telSection+tabSection+badgeSection+vaeSection+'<div class="sig-zone"><div class="sig-box"><div class="sig-lbl">'+(R ? 'Repris par' : 'Remis par')+' — Pôle Facilities</div><div class="sig-line"></div></div><div class="sig-box"><div class="sig-lbl">'+(R ? 'Restitué par' : 'Reçu par')+' le collaborateur</div><div class="sig-name">'+s.nom+' '+s.prenom+'</div><div class="sig-line"></div></div></div><div class="footer">Document généré le '+new Date().toLocaleDateString('fr-FR')+' — Domofrance Pôle Facilities · Usage interne confidentiel</div></div></body></html>';
 
   var blob = new Blob([bonHtml], {type:'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
@@ -1040,7 +1080,7 @@ async function fichesGenerer(idx){
     win.addEventListener('load', function(){ URL.revokeObjectURL(url); });
   } else {
     var a = document.createElement('a');
-    a.href = url; a.download = 'bon-dotation-'+ref+'.html';
+    a.href = url; a.download = 'bon-'+(R ? 'restitution' : 'dotation')+'-'+ref+'.html';
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   }
@@ -1063,11 +1103,11 @@ async function initFiches(){
   try{
     await loadAllMouvements();
     // Charger mobCache pour fichesGenerer
-    const [tels,tabs,badges,stockObj] = await Promise.all([
+    const [tels,tabs,badges,stockObj,velos] = await Promise.all([
       readData('mob_telephones'), readData('mob_tablettes'), readData('mob_badges'),
-      readObj('stock')
+      readObj('stock'), readData('mob_velos').catch(function(){ return []; })
     ]);
-    mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[]};
+    mobCache = {tel:tels||[], tab:tabs||[], badge:badges||[], vae:velos||[]};
     // Alimenter stockCache pour getStock()
     Object.entries(stockObj||{}).forEach(([k,v])=>{
       const sep=k.lastIndexOf('__');

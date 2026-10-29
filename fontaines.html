@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fontaines à eau — GESTOCK</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;background:#f4f5f7;color:#222}
+.header{background:#1a3a5c;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
+label{font-size:11px;font-weight:600;color:#444;display:block;margin-bottom:3px}
+input,select,textarea{width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:12px;background:#fff;color:#222}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a3a5c}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.btn{padding:7px 14px;border-radius:4px;border:1px solid #ccc;cursor:pointer;font-size:12px;font-weight:600;background:#fff;color:#222;transition:all .12s}
+.btn:hover{background:#f0f0f0}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.btn.primary:hover{background:#2a4f7a}
+.btn.success{background:#276749;color:#fff;border-color:#276749}
+.btn.danger{background:#c53030;color:#fff;border-color:#c53030}
+.btn.small{padding:4px 10px;font-size:11px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#f0f2f5;text-align:left;padding:7px 8px;font-size:10px;font-weight:700;color:#555;white-space:nowrap;border-bottom:1px solid #dde;text-transform:uppercase}
+td{padding:6px 8px;border-bottom:1px solid #eef;vertical-align:middle}
+tr:hover td{background:#f8f9fb}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge.green{background:#c6f6d5;color:#276749}.badge.red{background:#fed7d7;color:#c53030}
+.badge.yellow{background:#fef3c7;color:#92400e}.badge.blue{background:#dbeafe;color:#1e40af}
+.badge.gray{background:#e2e8f0;color:#4a5568}
+.card{background:#fff;border:1px solid #dde;border-radius:6px;padding:14px;margin-bottom:14px}
+.card h3{font-size:12px;font-weight:700;color:#1a3a5c;margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid #dde;border-radius:6px;padding:12px;text-align:center}
+.stat-n{font-size:26px;font-weight:700;color:#1a3a5c;line-height:1.1}
+.stat-n.warn{color:#c05621}.stat-n.ok{color:#276749}
+.stat-l{font-size:11px;color:#666;margin-top:4px;font-weight:600}
+.tbl-wrap{overflow-x:auto}
+.empty{color:#888;font-size:12px;text-align:center;padding:24px}
+.msg{padding:8px 12px;border-radius:4px;font-size:12px;margin-top:6px}
+.msg.ok{background:#c6f6d5;color:#276749}.msg.err{background:#fed7d7;color:#c53030}.msg.info{background:#dbeafe;color:#1e40af}
+.inter-nav{display:flex;gap:6px;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid #e0e4ea}
+.inter-nav a{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;color:#1a3a5c;background:#f0f4fa;border:1px solid #d0d8e8}
+.inter-nav a:hover{background:#1a3a5c;color:#fff}
+.inter-nav a.active{background:#1a3a5c;color:#fff}
+#btn-top{position:fixed;bottom:24px;right:24px;width:42px;height:42px;border-radius:50%;background:#1a3a5c;color:#fff;border:none;font-size:20px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;z-index:999;line-height:1;display:flex;align-items:center;justify-content:center}
+#btn-top:hover{background:#2a4f7a}
+#btn-top.visible{opacity:1}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:2px solid #dde}
+.tab{padding:8px 16px;font-size:12px;font-weight:700;color:#555;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer}
+.tab:hover{color:#1a3a5c}.tab.active{color:#1a3a5c;border-bottom-color:#1a3a5c}
+.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.badge.orange{background:#feebc8;color:#c05621}
+.stats-row{grid-template-columns:repeat(5,1fr)}
+@media(max-width:800px){.stats-row{grid-template-columns:repeat(2,1fr)}.form-row,.form-row-3,.form-row-4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:#1a2e4a;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:40px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <div style="font-size:22px;font-weight:800;color:#1a3a5c;margin-bottom:4px">GESTOCK</div>
+    <div style="font-size:11px;color:#888;margin-bottom:24px">Pôle Facilities — Domofrance</div>
+    <input id="login-user" type="text" placeholder="Identifiant" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:10px;box-sizing:border-box">
+    <input id="login-pwd" type="password" placeholder="Mot de passe" style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;font-size:13px;margin-bottom:16px;box-sizing:border-box">
+    <button type="button" onclick="doLogin()" style="width:100%;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">Se connecter</button>
+    <div id="login-error" style="color:#c53030;font-size:12px;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div style="background:#1a2e4a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div>
+      <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em">Pôle Facilities</div>
+      <div style="font-size:16px;font-weight:800;color:#fff">GESTOCK</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#48bb78;display:inline-block"></div>
+    <span id="sync-label" style="font-size:11px;color:rgba(255,255,255,.7)">Connexion…</span>
+    <span id="user-badge" style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff"></span>
+    <a href="epi.html" style="font-size:11px;color:rgba(255,255,255,.6);text-decoration:none">← Retour GESTOCK</a>
+  </div>
+</div>
+
+<!-- NAV INTER-PAGES -->
+<div class="inter-nav">
+  <a href="epi.html">🏠 Dotation / EPI</a>
+  <a href="mobilite.html">📱 Stock Mobilité</a>
+  <a href="vae.html">🚲 Stock VAE</a>
+  <a href="fontaines.html" class="active">💧 Fontaines</a>
+  <a href="papeterie.html">📄 Papeterie</a>
+  <a href="fiches.html">📋 Fiches / Historique</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+  <a href="parametres.html">⚙ Paramètres</a>
+</div>
+
+<!-- CONTENU -->
+<div style="padding:16px 20px">
+  <div id="fnt-msg"></div>
+  <div class="stats-row" id="fnt-stats-bar"></div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-parc" onclick="goFntTab('parc')">💧 Parc</button>
+    <button class="tab" id="tab-contrats" onclick="goFntTab('contrats')">📄 Contrats</button>
+    <button class="tab" id="tab-maint" onclick="goFntTab('maint')">🔧 Maintenances</button>
+  </div>
+
+  <!-- ═════ PARC ═════ -->
+  <div id="pane-parc">
+    <div class="card">
+      <h3>Fontaines à eau — Parc</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="p-search" placeholder="Rechercher site, adresse, n° série, modèle…" oninput="renderParc()" style="max-width:320px">
+        <select id="p-filter-statut" onchange="renderParc()" style="width:170px">
+          <option value="">Tous les statuts</option>
+          <option value="active">Active</option>
+          <option value="hors_service">Hors service</option>
+          <option value="reprise">Reprise / retirée</option>
+          <option value="resiliee">Résiliée</option>
+        </select>
+        <button class="btn primary small" onclick="openParcForm()">+ Ajouter une fontaine</button>
+        <button class="btn success small" style="margin-left:auto" onclick="exportFntExcel()">📊 Export Excel</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Site</th><th>Adresse</th><th>Lieu</th><th>Modèle</th><th>N° série</th><th>Installée le</th><th>Statut</th><th>Contrat</th><th>Maintenance</th><th>Actions</th>
+      </tr></thead><tbody id="p-body"></tbody></table></div>
+    </div>
+    <div id="p-form-card" class="card" style="display:none">
+      <h3 id="p-form-title">Ajouter une fontaine</h3>
+      <input type="hidden" id="p-f-id">
+      <div class="form-row-3">
+        <div><label>Site *</label><input type="text" id="p-f-site" placeholder="Bordeaux, Mérignac…"></div>
+        <div><label>Adresse</label><input type="text" id="p-f-adresse"></div>
+        <div><label>Lieu d'installation</label><input type="text" id="p-f-lieu" placeholder="Accueil, Cuisine, Circulation…"></div>
+      </div>
+      <div class="form-row-4">
+        <div><label>Modèle</label><input type="text" id="p-f-modele" placeholder="Diane 500 FT…"></div>
+        <div><label>N° de série</label><input type="text" id="p-f-serie"></div>
+        <div><label>Date d'installation</label><input type="date" id="p-f-date"></div>
+        <div><label>Statut</label>
+          <select id="p-f-statut">
+            <option value="active">Active</option>
+            <option value="hors_service">Hors service</option>
+            <option value="reprise">Reprise / retirée</option>
+            <option value="resiliee">Résiliée</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px"><label>Notes</label><input type="text" id="p-f-notes"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="saveParc()">✓ Enregistrer</button>
+        <button class="btn" onclick="closeParcForm()">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ CONTRATS ═════ -->
+  <div id="pane-contrats" style="display:none">
+    <div class="card">
+      <h3>Contrats de location / entretien</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="c-search" placeholder="Rechercher fontaine, prestataire, n° contrat…" oninput="renderContrats()" style="max-width:320px">
+        <select id="c-filter-statut" onchange="renderContrats()" style="width:190px">
+          <option value="">Tous les contrats</option>
+          <option value="actif">En cours</option>
+          <option value="preavis">En période de préavis</option>
+          <option value="expire">Échus</option>
+          <option value="resilie">Résiliés</option>
+        </select>
+        <button class="btn primary small" onclick="openCtrForm()">+ Ajouter un contrat</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Fontaine</th><th>Prestataire</th><th>N° contrat</th><th>Début</th><th>Durée</th><th>Échéance</th><th>Tacite</th><th>Loyer / mois</th><th>Statut</th><th>Actions</th>
+      </tr></thead><tbody id="c-body"></tbody></table></div>
+    </div>
+    <div id="c-form-card" class="card" style="display:none">
+      <h3 id="c-form-title">Ajouter un contrat</h3>
+      <input type="hidden" id="c-f-id">
+      <div class="form-row-3">
+        <div><label>Fontaine *</label><select id="c-f-fontaine"></select></div>
+        <div><label>Prestataire</label><input type="text" id="c-f-prest"></div>
+        <div><label>N° de contrat / client</label><input type="text" id="c-f-numero"></div>
+      </div>
+      <div class="form-row-4">
+        <div><label>Date de début</label><input type="date" id="c-f-debut"></div>
+        <div><label>Durée (mois)</label><input type="number" id="c-f-duree" min="1" placeholder="36"></div>
+        <div><label>Échéance (vide = début + durée)</label><input type="date" id="c-f-echeance"></div>
+        <div><label>Préavis (jours)</label><input type="number" id="c-f-preavis" min="0" placeholder="90"></div>
+      </div>
+      <div class="form-row-3">
+        <div><label>Loyer mensuel (€)</label><input type="number" id="c-f-loyer" step="0.01" min="0"></div>
+        <div><label>Tacite reconduction</label>
+          <select id="c-f-tacite"><option value="oui">Oui</option><option value="non">Non</option></select>
+        </div>
+        <div><label>Statut</label>
+          <select id="c-f-statut"><option value="actif">En cours</option><option value="resilie">Résilié</option></select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px"><label>Notes</label><input type="text" id="c-f-notes"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="saveCtr()">✓ Enregistrer</button>
+        <button class="btn" onclick="closeCtrForm()">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ MAINTENANCES ═════ -->
+  <div id="pane-maint" style="display:none">
+    <div class="card">
+      <h3>Suivi des maintenances</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="m-search" placeholder="Rechercher fontaine, prestataire, commentaire…" oninput="renderMaint()" style="max-width:320px">
+        <select id="m-filter-type" onchange="renderMaint()" style="width:200px">
+          <option value="">Tous les types</option>
+        </select>
+        <button class="btn primary small" onclick="openMntForm()">+ Ajouter une intervention</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Date</th><th>Fontaine</th><th>Type</th><th>Prestataire</th><th>Commentaire</th><th>Actions</th>
+      </tr></thead><tbody id="m-body"></tbody></table></div>
+    </div>
+    <div id="m-form-card" class="card" style="display:none">
+      <h3 id="m-form-title">Ajouter une intervention</h3>
+      <input type="hidden" id="m-f-id">
+      <div class="form-row-4">
+        <div><label>Fontaine *</label><select id="m-f-fontaine"></select></div>
+        <div><label>Date *</label><input type="date" id="m-f-date"></div>
+        <div><label>Type</label><select id="m-f-type"></select></div>
+        <div><label>Prestataire</label><input type="text" id="m-f-prest"></div>
+      </div>
+      <div style="margin-bottom:10px"><label>Commentaire</label><input type="text" id="m-f-comm"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="saveMnt()">✓ Enregistrer</button>
+        <button class="btn" onclick="closeMntForm()">Annuler</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Échéances d'entretien par fontaine</h3>
+      <div style="font-size:11px;color:#666;margin-bottom:8px">Fréquence réglementaire : entretien complet du réseau avec désinfection, tous les trimestres. Seules les fontaines actives sont listées.</div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Fontaine</th><th>Dernier entretien</th><th>Prochaine échéance</th><th>État</th>
+      </tr></thead><tbody id="e-body"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+const FNT_FILE='fontaines', CTR_FILE='fontaines_contrats', MNT_FILE='fontaines_maintenances';
+const FREQ_ENTRETIEN_JOURS = 92;   // trimestriel (réglementaire)
+const PREAVIS_DEFAUT = 90;         // jours
+const MNT_TYPES = {
+  entretien:'Entretien réseau + désinfection',
+  filtre:'Changement de filtre',
+  curative:'Intervention curative',
+  installation:'Installation / reprise',
+  autre:'Autre'
+};
+const STATUT_PARC = {active:'Active',hors_service:'Hors service',reprise:'Reprise / retirée',resiliee:'Résiliée'};
+
+let fntCache=[], ctrCache=[], mntCache=[];
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function addMonths(iso,n){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00'); const day=d.getDate();
+  d.setMonth(d.getMonth()+n);
+  if(d.getDate()!==day) d.setDate(0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function addDays(iso,n){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(iso){ if(!iso) return '—'; const p=iso.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
+function newId(p){return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function fntLabel(id){
+  const f=fntCache.find(x=>x.id===id);
+  if(!f) return '(fontaine supprimée)';
+  return [f.site,f.lieu].filter(Boolean).join(' — ')+(f.numero_serie?' ['+f.numero_serie+']':'');
+}
+function fntOptions(selected){
+  const arr=fntCache.slice().sort((a,b)=>(a.site||'').localeCompare(b.site||'','fr'));
+  return '<option value="">— choisir —</option>'+arr.map(f=>'<option value="'+esc(f.id)+'"'+(f.id===selected?' selected':'')+'>'+esc(fntLabel(f.id))+'</option>').join('');
+}
+
+// ─── CALCULS CONTRATS / MAINTENANCES ─────────────────────────────────────────
+// Échéance effective : saisie, sinon début + durée ; en tacite reconduction, on avance par périodes jusqu'à une date future
+function ctrEcheance(c){
+  let e=c.date_echeance || (c.date_debut&&c.duree_mois ? addMonths(c.date_debut,Number(c.duree_mois)) : '');
+  let reconduit=false;
+  if(e && c.tacite!=='non' && c.statut!=='resilie' && Number(c.duree_mois)>0){
+    const t=todayISO(); let guard=0;
+    while(e<t && guard++<200){ e=addMonths(e,Number(c.duree_mois)); reconduit=true; }
+  }
+  return {date:e, reconduit};
+}
+function ctrEtat(c){
+  if(c.statut==='resilie') return 'resilie';
+  const {date}=ctrEcheance(c);
+  if(!date) return 'actif';
+  const t=todayISO();
+  if(date<t) return 'expire';
+  const preavis=Number(c.preavis_jours!==undefined&&c.preavis_jours!==''?c.preavis_jours:PREAVIS_DEFAUT);
+  if(t>=addDays(date,-preavis)) return 'preavis';
+  return 'actif';
+}
+function ctrBadge(etat){
+  return {actif:'<span class="badge green">En cours</span>',preavis:'<span class="badge orange">Préavis</span>',
+          expire:'<span class="badge red">Échu</span>',resilie:'<span class="badge gray">Résilié</span>'}[etat]||'';
+}
+function lastEntretien(fid){
+  const l=mntCache.filter(m=>m.fontaine_id===fid && m.type==='entretien' && m.date).map(m=>m.date).sort();
+  return l.length?l[l.length-1]:'';
+}
+function entretienEtat(f){
+  const last=lastEntretien(f.id);
+  if(!last) return {last:'',next:'',etat:'jamais'};
+  const next=addDays(last,FREQ_ENTRETIEN_JOURS);
+  const t=todayISO();
+  return {last,next,etat: next<t?'retard':(next<=addDays(t,15)?'bientot':'ok')};
+}
+function entBadge(etat){
+  return {ok:'<span class="badge green">À jour</span>',bientot:'<span class="badge yellow">Sous 15 jours</span>',
+          retard:'<span class="badge red">En retard</span>',jamais:'<span class="badge gray">Sans historique</span>'}[etat]||'';
+}
+
+// ─── DONNÉES ──────────────────────────────────────────────────────────────────
+async function loadFnt(){
+  setSyncStatus('syncing','Chargement fontaines…');
+  try{
+    const r=await Promise.all([readData(FNT_FILE),readData(CTR_FILE),readData(MNT_FILE)]);
+    fntCache=Array.isArray(r[0])?r[0]:[]; ctrCache=Array.isArray(r[1])?r[1]:[]; mntCache=Array.isArray(r[2])?r[2]:[];
+    setSyncStatus('ok','Base synchronisée');
+  }catch(e){ setSyncStatus('error','Erreur connexion'); console.error(e); throw e; }
+}
+async function persist(file,arr,okMsg){
+  setSyncStatus('syncing','Sauvegarde…');
+  try{
+    await writeData(file,arr);
+    setSyncStatus('ok','Sauvegardé');
+    if(okMsg) showMsg('fnt-msg',okMsg,'ok');
+    return true;
+  }catch(e){
+    setSyncStatus('error','Erreur: '+e.message);
+    showMsg('fnt-msg','Erreur : '+esc(e.message),'err');
+    return false;
+  }
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderFntStats(){
+  const el=document.getElementById('fnt-stats-bar'); if(!el) return;
+  const actives=fntCache.filter(f=>f.statut==='active');
+  const ctrAlert=ctrCache.filter(c=>{const e=ctrEtat(c);return e==='preavis'||e==='expire';}).length;
+  let retard=0, jamais=0;
+  actives.forEach(f=>{const s=entretienEtat(f).etat; if(s==='retard')retard++; if(s==='jamais')jamais++;});
+  const loyer=ctrCache.filter(c=>c.statut!=='resilie').reduce((s,c)=>s+(Number(c.loyer_mensuel)||0),0);
+  el.innerHTML=`
+    <div class="stat"><div class="stat-n">${fntCache.length}</div><div class="stat-l">Fontaines (${actives.length} actives)</div></div>
+    <div class="stat"><div class="stat-n ${ctrAlert?'warn':'ok'}">${ctrAlert}</div><div class="stat-l">Contrats en préavis / échus</div></div>
+    <div class="stat"><div class="stat-n" style="color:${retard?'#c53030':'#276749'}">${retard}</div><div class="stat-l">Entretiens en retard</div></div>
+    <div class="stat"><div class="stat-n" style="color:#718096">${jamais}</div><div class="stat-l">Sans historique d'entretien</div></div>
+    <div class="stat"><div class="stat-n">${loyer.toFixed(2).replace('.',',')} €</div><div class="stat-l">Loyers mensuels (contrats en cours)</div></div>`;
+}
+function renderAll(){ renderFntStats(); renderParc(); renderContrats(); renderMaint(); }
+
+// ─── ONGLETS ──────────────────────────────────────────────────────────────────
+function goFntTab(t){
+  ['parc','contrats','maint'].forEach(k=>{
+    document.getElementById('pane-'+k).style.display = k===t?'block':'none';
+    document.getElementById('tab-'+k).classList.toggle('active',k===t);
+  });
+  try{sessionStorage.setItem('fnt_tab',t);}catch(e){}
+}
+
+// ═════ PARC ═════
+function renderParc(){
+  const body=document.getElementById('p-body'); if(!body) return;
+  const q=(document.getElementById('p-search').value||'').toLowerCase();
+  const fs=document.getElementById('p-filter-statut').value;
+  const rows=fntCache.filter(f=>{
+    if(fs && f.statut!==fs) return false;
+    if(q){ const hay=[f.site,f.adresse,f.lieu,f.modele,f.numero_serie,f.notes].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(a.site||'').localeCompare(b.site||'','fr'));
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="10"><div class="empty">'+(fntCache.length?'Aucune fontaine trouvée':'Aucune fontaine enregistrée — cliquez sur « Ajouter une fontaine »')+'</div></td></tr>';
+    return;
+  }
+  body.innerHTML=rows.map(f=>{
+    const ctrs=ctrCache.filter(c=>c.fontaine_id===f.id && c.statut!=='resilie');
+    const ctrTxt=ctrs.length?ctrBadge(ctrEtat(ctrs[0])):'<span class="badge gray">Aucun</span>';
+    const ent=f.statut==='active'?entBadge(entretienEtat(f).etat):'—';
+    const st={active:'<span class="badge green">Active</span>',hors_service:'<span class="badge red">Hors service</span>',
+              reprise:'<span class="badge gray">Reprise / retirée</span>',resiliee:'<span class="badge gray">Résiliée</span>'}[f.statut]||esc(f.statut||'—');
+    return `<tr>
+      <td><strong>${esc(f.site)||'—'}</strong></td><td>${esc(f.adresse)||'—'}</td><td>${esc(f.lieu)||'—'}</td>
+      <td>${esc(f.modele)||'—'}</td><td>${esc(f.numero_serie)||'—'}</td><td>${fmtDate(f.date_installation)}</td>
+      <td>${st}</td><td>${ctrTxt}</td><td>${ent}</td>
+      <td><button class="btn small" onclick="editParc('${esc(f.id)}')">✎</button>
+          <button class="btn danger small" onclick="deleteParc('${esc(f.id)}')">✕</button></td></tr>`;
+  }).join('');
+}
+function openParcForm(){
+  document.getElementById('p-form-title').textContent='Ajouter une fontaine';
+  ['id','site','adresse','lieu','modele','serie','date','notes'].forEach(k=>document.getElementById('p-f-'+k).value='');
+  document.getElementById('p-f-statut').value='active';
+  const c=document.getElementById('p-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function editParc(id){
+  const f=fntCache.find(x=>x.id===id); if(!f) return;
+  document.getElementById('p-form-title').textContent='Modifier la fontaine';
+  document.getElementById('p-f-id').value=f.id;
+  document.getElementById('p-f-site').value=f.site||'';
+  document.getElementById('p-f-adresse').value=f.adresse||'';
+  document.getElementById('p-f-lieu').value=f.lieu||'';
+  document.getElementById('p-f-modele').value=f.modele||'';
+  document.getElementById('p-f-serie').value=f.numero_serie||'';
+  document.getElementById('p-f-date').value=f.date_installation||'';
+  document.getElementById('p-f-statut').value=f.statut||'active';
+  document.getElementById('p-f-notes').value=f.notes||'';
+  const c=document.getElementById('p-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeParcForm(){ document.getElementById('p-form-card').style.display='none'; }
+async function saveParc(){
+  const id=document.getElementById('p-f-id').value;
+  const site=document.getElementById('p-f-site').value.trim();
+  if(!site){ showMsg('fnt-msg','Le site est obligatoire.','err'); return; }
+  const serie=document.getElementById('p-f-serie').value.trim();
+  if(serie && fntCache.some(x=>x.id!==id && (x.numero_serie||'').toLowerCase()===serie.toLowerCase())){
+    showMsg('fnt-msg','Ce n° de série existe déjà dans le parc.','err'); return;
+  }
+  const payload={
+    site, adresse:document.getElementById('p-f-adresse').value.trim(),
+    lieu:document.getElementById('p-f-lieu').value.trim(), modele:document.getElementById('p-f-modele').value.trim(),
+    numero_serie:serie, date_installation:document.getElementById('p-f-date').value,
+    statut:document.getElementById('p-f-statut').value, notes:document.getElementById('p-f-notes').value.trim(),
+    updatedAt:new Date().toISOString()
+  };
+  const backup=fntCache.slice();
+  if(id){ const i=fntCache.findIndex(x=>x.id===id); if(i>=0) fntCache[i]={...fntCache[i],...payload}; }
+  else { payload.id=newId('font'); payload.createdAt=new Date().toISOString(); fntCache.unshift(payload); }
+  if(await persist(FNT_FILE,fntCache,'✓ Fontaine enregistrée.')){ closeParcForm(); renderAll(); }
+  else fntCache=backup;
+}
+async function deleteParc(id){
+  const nC=ctrCache.filter(c=>c.fontaine_id===id).length, nM=mntCache.filter(m=>m.fontaine_id===id).length;
+  let msg='Supprimer cette fontaine du parc ?';
+  if(nC||nM) msg+='\n\nSeront aussi supprimés : '+nC+' contrat(s) et '+nM+' intervention(s) liés.\n(Pour conserver l\'historique, passez plutôt la fontaine en « Reprise / retirée ».)';
+  if(!confirm(msg)) return;
+  const b=[fntCache,ctrCache,mntCache];
+  fntCache=fntCache.filter(x=>x.id!==id);
+  let ok=await persist(FNT_FILE,fntCache);
+  if(ok && nC){ ctrCache=ctrCache.filter(c=>c.fontaine_id!==id); ok=await persist(CTR_FILE,ctrCache); }
+  if(ok && nM){ mntCache=mntCache.filter(m=>m.fontaine_id!==id); ok=await persist(MNT_FILE,mntCache); }
+  if(ok) showMsg('fnt-msg','✓ Fontaine supprimée.','ok'); else { [fntCache,ctrCache,mntCache]=b; }
+  renderAll();
+}
+
+// ═════ CONTRATS ═════
+function renderContrats(){
+  const body=document.getElementById('c-body'); if(!body) return;
+  const q=(document.getElementById('c-search').value||'').toLowerCase();
+  const fs=document.getElementById('c-filter-statut').value;
+  const rows=ctrCache.map(c=>({c,etat:ctrEtat(c),ech:ctrEcheance(c)})).filter(r=>{
+    if(fs && r.etat!==fs) return false;
+    if(q){ const hay=[fntLabel(r.c.fontaine_id),r.c.prestataire,r.c.numero_contrat,r.c.notes].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(a.ech.date||'9999').localeCompare(b.ech.date||'9999'));
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="10"><div class="empty">'+(ctrCache.length?'Aucun contrat trouvé':'Aucun contrat enregistré')+'</div></td></tr>';
+    return;
+  }
+  body.innerHTML=rows.map(({c,etat,ech})=>`<tr>
+    <td><strong>${esc(fntLabel(c.fontaine_id))}</strong></td><td>${esc(c.prestataire)||'—'}</td><td>${esc(c.numero_contrat)||'—'}</td>
+    <td>${fmtDate(c.date_debut)}</td><td>${c.duree_mois?esc(c.duree_mois)+' mois':'—'}</td>
+    <td>${fmtDate(ech.date)}${ech.reconduit?' <span class="badge blue" title="Échéance de la période en cours après reconduction tacite">reconduit</span>':''}</td>
+    <td>${c.tacite==='non'?'Non':'Oui'}</td>
+    <td>${c.loyer_mensuel!==undefined&&c.loyer_mensuel!==''?Number(c.loyer_mensuel).toFixed(2).replace('.',',')+' €':'—'}</td>
+    <td>${ctrBadge(etat)}</td>
+    <td><button class="btn small" onclick="editCtr('${esc(c.id)}')">✎</button>
+        <button class="btn danger small" onclick="deleteCtr('${esc(c.id)}')">✕</button></td></tr>`).join('');
+}
+function openCtrForm(){
+  document.getElementById('c-form-title').textContent='Ajouter un contrat';
+  document.getElementById('c-f-id').value='';
+  document.getElementById('c-f-fontaine').innerHTML=fntOptions('');
+  ['prest','numero','debut','duree','echeance','preavis','loyer','notes'].forEach(k=>document.getElementById('c-f-'+k).value='');
+  document.getElementById('c-f-tacite').value='oui'; document.getElementById('c-f-statut').value='actif';
+  const c=document.getElementById('c-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function editCtr(id){
+  const c=ctrCache.find(x=>x.id===id); if(!c) return;
+  document.getElementById('c-form-title').textContent='Modifier le contrat';
+  document.getElementById('c-f-id').value=c.id;
+  document.getElementById('c-f-fontaine').innerHTML=fntOptions(c.fontaine_id);
+  document.getElementById('c-f-prest').value=c.prestataire||'';
+  document.getElementById('c-f-numero').value=c.numero_contrat||'';
+  document.getElementById('c-f-debut').value=c.date_debut||'';
+  document.getElementById('c-f-duree').value=c.duree_mois||'';
+  document.getElementById('c-f-echeance').value=c.date_echeance||'';
+  document.getElementById('c-f-preavis').value=c.preavis_jours!==undefined?c.preavis_jours:'';
+  document.getElementById('c-f-loyer').value=c.loyer_mensuel!==undefined?c.loyer_mensuel:'';
+  document.getElementById('c-f-tacite').value=c.tacite||'oui';
+  document.getElementById('c-f-statut').value=c.statut||'actif';
+  document.getElementById('c-f-notes').value=c.notes||'';
+  const f=document.getElementById('c-form-card'); f.style.display='block'; f.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeCtrForm(){ document.getElementById('c-form-card').style.display='none'; }
+async function saveCtr(){
+  const id=document.getElementById('c-f-id').value;
+  const fid=document.getElementById('c-f-fontaine').value;
+  if(!fid){ showMsg('fnt-msg','Sélectionnez la fontaine concernée.','err'); return; }
+  const loyerRaw=document.getElementById('c-f-loyer').value, preRaw=document.getElementById('c-f-preavis').value;
+  const payload={
+    fontaine_id:fid, prestataire:document.getElementById('c-f-prest').value.trim(),
+    numero_contrat:document.getElementById('c-f-numero').value.trim(),
+    date_debut:document.getElementById('c-f-debut').value,
+    duree_mois:document.getElementById('c-f-duree').value?Number(document.getElementById('c-f-duree').value):'',
+    date_echeance:document.getElementById('c-f-echeance').value,
+    preavis_jours:preRaw!==''?Number(preRaw):'',
+    loyer_mensuel:loyerRaw!==''?Number(loyerRaw):'',
+    tacite:document.getElementById('c-f-tacite').value, statut:document.getElementById('c-f-statut').value,
+    notes:document.getElementById('c-f-notes').value.trim(), updatedAt:new Date().toISOString()
+  };
+  const backup=ctrCache.slice();
+  if(id){ const i=ctrCache.findIndex(x=>x.id===id); if(i>=0) ctrCache[i]={...ctrCache[i],...payload}; }
+  else { payload.id=newId('ctr'); payload.createdAt=new Date().toISOString(); ctrCache.unshift(payload); }
+  if(await persist(CTR_FILE,ctrCache,'✓ Contrat enregistré.')){ closeCtrForm(); renderAll(); }
+  else ctrCache=backup;
+}
+async function deleteCtr(id){
+  if(!confirm('Supprimer ce contrat ?')) return;
+  const backup=ctrCache.slice();
+  ctrCache=ctrCache.filter(x=>x.id!==id);
+  if(await persist(CTR_FILE,ctrCache,'✓ Contrat supprimé.')) renderAll(); else ctrCache=backup;
+}
+
+// ═════ MAINTENANCES ═════
+function renderMaint(){
+  const body=document.getElementById('m-body'); if(!body) return;
+  const q=(document.getElementById('m-search').value||'').toLowerCase();
+  const ft=document.getElementById('m-filter-type').value;
+  const rows=mntCache.filter(m=>{
+    if(ft && m.type!==ft) return false;
+    if(q){ const hay=[fntLabel(m.fontaine_id),m.prestataire,m.commentaire].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  body.innerHTML=rows.length?rows.map(m=>`<tr>
+    <td>${fmtDate(m.date)}</td><td><strong>${esc(fntLabel(m.fontaine_id))}</strong></td>
+    <td><span class="badge blue">${esc(MNT_TYPES[m.type]||m.type||'—')}</span></td>
+    <td>${esc(m.prestataire)||'—'}</td><td>${esc(m.commentaire)||'—'}</td>
+    <td><button class="btn small" onclick="editMnt('${esc(m.id)}')">✎</button>
+        <button class="btn danger small" onclick="deleteMnt('${esc(m.id)}')">✕</button></td></tr>`).join('')
+    :'<tr><td colspan="6"><div class="empty">'+(mntCache.length?'Aucune intervention trouvée':'Aucune intervention enregistrée')+'</div></td></tr>';
+
+  const eb=document.getElementById('e-body');
+  const act=fntCache.filter(f=>f.statut==='active').map(f=>({f,e:entretienEtat(f)}))
+    .sort((a,b)=>(a.e.next||'0000').localeCompare(b.e.next||'0000'));
+  eb.innerHTML=act.length?act.map(({f,e})=>`<tr>
+    <td><strong>${esc(fntLabel(f.id))}</strong></td><td>${fmtDate(e.last)}</td><td>${fmtDate(e.next)}</td><td>${entBadge(e.etat)}</td></tr>`).join('')
+    :'<tr><td colspan="4"><div class="empty">Aucune fontaine active</div></td></tr>';
+}
+function fillMntTypes(){
+  const opts=Object.entries(MNT_TYPES).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('');
+  document.getElementById('m-f-type').innerHTML=opts;
+  document.getElementById('m-filter-type').innerHTML='<option value="">Tous les types</option>'+opts;
+}
+function openMntForm(){
+  document.getElementById('m-form-title').textContent='Ajouter une intervention';
+  document.getElementById('m-f-id').value='';
+  document.getElementById('m-f-fontaine').innerHTML=fntOptions('');
+  document.getElementById('m-f-date').value=todayISO();
+  document.getElementById('m-f-type').value='entretien';
+  document.getElementById('m-f-prest').value=''; document.getElementById('m-f-comm').value='';
+  const c=document.getElementById('m-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function editMnt(id){
+  const m=mntCache.find(x=>x.id===id); if(!m) return;
+  document.getElementById('m-form-title').textContent='Modifier l\'intervention';
+  document.getElementById('m-f-id').value=m.id;
+  document.getElementById('m-f-fontaine').innerHTML=fntOptions(m.fontaine_id);
+  document.getElementById('m-f-date').value=m.date||'';
+  document.getElementById('m-f-type').value=m.type||'entretien';
+  document.getElementById('m-f-prest').value=m.prestataire||'';
+  document.getElementById('m-f-comm').value=m.commentaire||'';
+  const c=document.getElementById('m-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeMntForm(){ document.getElementById('m-form-card').style.display='none'; }
+async function saveMnt(){
+  const id=document.getElementById('m-f-id').value;
+  const fid=document.getElementById('m-f-fontaine').value, date=document.getElementById('m-f-date').value;
+  if(!fid||!date){ showMsg('fnt-msg','Fontaine et date sont obligatoires.','err'); return; }
+  const payload={fontaine_id:fid,date,type:document.getElementById('m-f-type').value,
+    prestataire:document.getElementById('m-f-prest').value.trim(),commentaire:document.getElementById('m-f-comm').value.trim(),
+    updatedAt:new Date().toISOString()};
+  const backup=mntCache.slice();
+  if(id){ const i=mntCache.findIndex(x=>x.id===id); if(i>=0) mntCache[i]={...mntCache[i],...payload}; }
+  else { payload.id=newId('mnt'); payload.createdAt=new Date().toISOString(); mntCache.unshift(payload); }
+  if(await persist(MNT_FILE,mntCache,'✓ Intervention enregistrée.')){ closeMntForm(); renderAll(); }
+  else mntCache=backup;
+}
+async function deleteMnt(id){
+  if(!confirm('Supprimer cette intervention ?')) return;
+  const backup=mntCache.slice();
+  mntCache=mntCache.filter(x=>x.id!==id);
+  if(await persist(MNT_FILE,mntCache,'✓ Intervention supprimée.')) renderAll(); else mntCache=backup;
+}
+
+// ─── EXPORT EXCEL ─────────────────────────────────────────────────────────────
+function exportFntExcel(){
+  try{
+    const wb=XLSX.utils.book_new();
+    const p=[['Site','Adresse','Lieu','Modèle','N° série','Date installation','Statut','Dernier entretien','Prochain entretien','Notes']];
+    fntCache.forEach(f=>{const e=entretienEtat(f);p.push([f.site||'',f.adresse||'',f.lieu||'',f.modele||'',f.numero_serie||'',f.date_installation||'',STATUT_PARC[f.statut]||f.statut||'',e.last,e.next,f.notes||'']);});
+    const ws1=XLSX.utils.aoa_to_sheet(p); ws1['!cols']=[{wch:18},{wch:30},{wch:18},{wch:16},{wch:22},{wch:14},{wch:16},{wch:16},{wch:16},{wch:28}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Parc');
+    const c=[['Fontaine','Prestataire','N° contrat','Début','Durée (mois)','Échéance','Tacite','Préavis (j)','Loyer mensuel','Statut','Notes']];
+    ctrCache.forEach(x=>c.push([fntLabel(x.fontaine_id),x.prestataire||'',x.numero_contrat||'',x.date_debut||'',x.duree_mois||'',ctrEcheance(x).date,x.tacite==='non'?'Non':'Oui',x.preavis_jours!==undefined?x.preavis_jours:'',x.loyer_mensuel!==undefined?x.loyer_mensuel:'',ctrEtat(x),x.notes||'']));
+    const ws2=XLSX.utils.aoa_to_sheet(c); ws2['!cols']=[{wch:34},{wch:18},{wch:16},{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:14},{wch:10},{wch:28}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Contrats');
+    const m=[['Date','Fontaine','Type','Prestataire','Commentaire']];
+    mntCache.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(x=>m.push([x.date||'',fntLabel(x.fontaine_id),MNT_TYPES[x.type]||x.type||'',x.prestataire||'',x.commentaire||'']));
+    const ws3=XLSX.utils.aoa_to_sheet(m); ws3['!cols']=[{wch:12},{wch:34},{wch:30},{wch:18},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,ws3,'Maintenances');
+    XLSX.writeFile(wb,'GESTOCK_Fontaines_'+todayISO()+'.xlsx');
+  }catch(e){ alert('Erreur export: '+e.message); }
+}
+
+// ─── INIT / LOGIN ─────────────────────────────────────────────────────────────
+async function initFnt(){
+  const loginOverlay=document.getElementById('login-overlay');
+  if(!localStorage.getItem('domo_gh_token') || !localStorage.getItem('gestock_user')){
+    loginOverlay.style.display='flex'; return;
+  }
+  loginOverlay.style.display='none';
+  const u=JSON.parse(localStorage.getItem('gestock_user'));
+  currentUser=u;
+  const badge=document.getElementById('user-badge');
+  if(badge) badge.textContent=u.nom+(u.role==='admin'?' · Admin':'');
+  fillMntTypes();
+  try{
+    await loadFnt();
+    renderAll();
+    let t='parc'; try{t=sessionStorage.getItem('fnt_tab')||'parc';}catch(e){}
+    goFntTab(t);
+  }catch(e){ showMsg('fnt-msg','Erreur de chargement : '+esc(e.message),'err'); }
+}
+async function doLogin(){
+  const login=document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd=document.getElementById('login-pwd').value;
+  const errEl=document.getElementById('login-error');
+  if(!login||!pwd){errEl.textContent='Veuillez saisir votre identifiant et mot de passe.';return;}
+  errEl.textContent='';
+  try{
+    await loadUsers();
+    const user=usersCache.find(u=>u.login===login);
+    if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';return;}
+    const hash=await sha256(pwd);
+    if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
+    currentUser={login:user.login,nom:user.nom,role:user.role};
+    localStorage.setItem('gestock_user',JSON.stringify(currentUser));
+    await initFnt();
+  }catch(e){ errEl.textContent='Erreur connexion : '+e.message; console.error(e); }
+}
+(function(){
+  const raw=localStorage.getItem('gestock_user');
+  if(raw){ try{ currentUser=JSON.parse(raw); }catch(e){ localStorage.removeItem('gestock_user'); } }
+  initFnt();
+})();
+window.addEventListener('scroll',function(){
+  const b=document.getElementById('btn-top');
+  if(b) b.classList.toggle('visible',window.scrollY>300);
+});
+</script>
+
+<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut">↑</button>
+</body>
+</html>

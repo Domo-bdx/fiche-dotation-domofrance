@@ -47,6 +47,13 @@ tr:hover td{background:#f8f9fb}
 #btn-top{position:fixed;bottom:24px;right:24px;width:42px;height:42px;border-radius:50%;background:#1a3a5c;color:#fff;border:none;font-size:20px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;z-index:999;line-height:1;display:flex;align-items:center;justify-content:center}
 #btn-top:hover{background:#2a4f7a}
 #btn-top.visible{opacity:1}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:2px solid #dde}
+.tab{padding:8px 16px;font-size:12px;font-weight:700;color:#555;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer}
+.tab:hover{color:#1a3a5c}.tab.active{color:#1a3a5c;border-bottom-color:#1a3a5c}
+.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.badge.orange{background:#feebc8;color:#c05621}
+.stats-row{grid-template-columns:repeat(5,1fr)}
+@media(max-width:800px){.stats-row{grid-template-columns:repeat(2,1fr)}.form-row,.form-row-3,.form-row-4{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -84,6 +91,7 @@ tr:hover td{background:#f8f9fb}
   <a href="epi.html">🏠 Dotation / EPI</a>
   <a href="mobilite.html">📱 Stock Mobilité</a>
   <a href="vae.html" class="active">🚲 Stock VAE</a>
+  <a href="fontaines.html">💧 Fontaines</a>
   <a href="papeterie.html">📄 Papeterie</a>
   <a href="fiches.html">📋 Fiches / Historique</a>
   <a href="dashboard.html">📊 Dashboard</a>
@@ -93,311 +101,625 @@ tr:hover td{background:#f8f9fb}
 <!-- CONTENU -->
 <div style="padding:16px 20px">
   <div id="vae-msg"></div>
-
   <div class="stats-row" id="vae-stats-bar"></div>
 
-  <div class="card">
-    <h3>Vélos à assistance électrique — Parc</h3>
-    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-      <input type="text" id="vae-search" placeholder="Rechercher n° série, accessoires, collaborateur…" oninput="renderVae()" style="max-width:320px">
-      <select id="vae-filter-statut" onchange="renderVae()" style="width:170px">
-        <option value="">Tous les statuts</option>
-        <option value="disponible">Disponible</option>
-        <option value="attribue">Attribué</option>
-        <option value="hors_service">Hors service</option>
-      </select>
-      <button class="btn primary small" onclick="openVaeForm()">+ Ajouter un vélo</button>
-      <button class="btn success small" style="margin-left:auto" onclick="exportVaeExcel()">📊 Export Excel</button>
-    </div>
-    <div class="tbl-wrap">
-      <table><thead><tr>
-        <th>N° série</th><th>Accessoires</th><th>Statut</th><th>Collaborateur</th><th>Site</th><th>Date attrib.</th><th>Actions</th>
-      </tr></thead><tbody id="vae-body"></tbody></table>
-    </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-parc" onclick="goVaeTab('parc')">🚲 VAE</button>
+    <button class="tab" id="tab-contrats" onclick="goVaeTab('contrats')">📄 Contrat</button>
+    <button class="tab" id="tab-maint" onclick="goVaeTab('maint')">🔧 Maintenance</button>
   </div>
 
-  <!-- FORMULAIRE AJOUT/EDIT -->
-  <div id="vae-form-card" class="card" style="display:none">
-    <h3 id="vae-form-title">Ajouter un vélo</h3>
-    <input type="hidden" id="vae-form-id">
-    <div class="form-row-3">
-      <div><label>N° de série *</label><input type="text" id="vae-f-numero" placeholder="Identifiant unique du vélo"></div>
-      <div><label>Statut</label>
-        <select id="vae-f-statut">
+  <!-- ═════ VAE ═════ -->
+  <div id="pane-parc">
+    <div class="card">
+      <h3>Vélos à assistance électrique — Parc</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="p-search" placeholder="Rechercher n° série, marque, collaborateur, site…" oninput="renderParc()" style="max-width:320px">
+        <select id="p-filter-statut" onchange="renderParc()" style="width:170px">
+          <option value="">Tous les statuts</option>
           <option value="disponible">Disponible</option>
           <option value="attribue">Attribué</option>
           <option value="hors_service">Hors service</option>
         </select>
+        <button class="btn primary small" onclick="openParcForm()">+ Ajouter un vélo</button>
+        <button class="btn success small" style="margin-left:auto" onclick="exportVaeExcel()">📊 Export Excel</button>
       </div>
-      <div><label>Date attribution</label><input type="date" id="vae-f-date"></div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>N° série (Bicycode)</th><th>N° vélo</th><th>Marque / Modèle</th><th>Statut</th><th>Collaborateur</th><th>Site</th><th>Date attrib.</th><th>Km</th><th>Contrat</th><th>Entretien</th><th>Actions</th>
+      </tr></thead><tbody id="p-body"></tbody></table></div>
     </div>
-    <div class="form-row">
-      <div><label>Collaborateur (si attribué)</label><input type="text" id="vae-f-collab" placeholder="Nom Prénom"></div>
-      <div><label>Site</label><input type="text" id="vae-f-site" placeholder="Bordeaux, Talence…"></div>
+    <div id="p-form-card" class="card" style="display:none">
+      <h3 id="p-form-title">Ajouter un vélo</h3>
+      <input type="hidden" id="p-f-id">
+      <div class="form-row-4">
+        <div><label>N° de série (Bicycode) *</label><input type="text" id="p-f-serie" placeholder="Identifiant unique du vélo"></div>
+        <div><label>N° vélo (suivi VAE)</label><input type="text" id="p-f-numvelo" placeholder="1, 2, 3…"></div>
+        <div><label>Statut</label>
+          <select id="p-f-statut">
+            <option value="disponible">Disponible</option>
+            <option value="attribue">Attribué</option>
+            <option value="hors_service">Hors service</option>
+          </select>
+        </div>
+        <div><label>Date attribution</label><input type="date" id="p-f-date"></div>
+      </div>
+      <div class="form-row-3">
+        <div><label>Collaborateur (si attribué)</label><input type="text" id="p-f-collab" placeholder="Prénom NOM"></div>
+        <div><label>Site</label><input type="text" id="p-f-site" placeholder="Agence Bordeaux, Agence Talence…"></div>
+        <div><label>Téléphone du contact</label><input type="text" id="p-f-tel"></div>
+      </div>
+      <div class="form-row-4">
+        <div><label>Marque</label><input type="text" id="p-f-marque" placeholder="Neomouv"></div>
+        <div><label>Modèle</label><input type="text" id="p-f-modele" placeholder="Carlina"></div>
+        <div><label>Kilométrage</label><input type="number" id="p-f-km" min="0" step="0.1"></div>
+        <div><label>Accessoires</label><input type="text" id="p-f-acc" placeholder="Casque, antivol…"></div>
+      </div>
+      <div class="form-row">
+        <div><label>Adresse</label><input type="text" id="p-f-adresse"></div>
+        <div><label>Notes</label><input type="text" id="p-f-notes"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="saveParc()">✓ Enregistrer</button>
+        <button class="btn" onclick="closeParcForm()">Annuler</button>
+      </div>
     </div>
-    <div style="margin-bottom:10px">
-      <label>Accessoires</label>
-      <input type="text" id="vae-f-accessoires" placeholder="Casque, antivol, sacoche…">
+  </div>
+
+  <!-- ═════ CONTRAT ═════ -->
+  <div id="pane-contrats" style="display:none">
+    <div class="card">
+      <h3>Contrats de location (prestataire Tandem)</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="c-search" placeholder="Rechercher vélo, prestataire, n° contrat…" oninput="renderContrats()" style="max-width:320px">
+        <select id="c-filter-statut" onchange="renderContrats()" style="width:190px">
+          <option value="">Tous les contrats</option>
+          <option value="actif">En cours</option>
+          <option value="preavis">En période de préavis</option>
+          <option value="expire">Échus</option>
+          <option value="resilie">Résiliés</option>
+        </select>
+        <button class="btn primary small" onclick="openCtrForm()">+ Ajouter un contrat</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Vélo</th><th>Prestataire</th><th>N° contrat</th><th>Début</th><th>Durée</th><th>Échéance</th><th>Tacite</th><th>Loyer / mois</th><th>Statut</th><th>Actions</th>
+      </tr></thead><tbody id="c-body"></tbody></table></div>
     </div>
-    <div style="margin-bottom:10px">
-      <label>Notes</label>
-      <input type="text" id="vae-f-notes" placeholder="Notes complémentaires">
+    <div id="c-form-card" class="card" style="display:none">
+      <h3 id="c-form-title">Ajouter un contrat</h3>
+      <input type="hidden" id="c-f-id">
+      <div class="form-row-3">
+        <div><label>Vélo *</label><select id="c-f-velo"></select></div>
+        <div><label>Prestataire</label><input type="text" id="c-f-prest"></div>
+        <div><label>N° de contrat</label><input type="text" id="c-f-numero"></div>
+      </div>
+      <div class="form-row-4">
+        <div><label>Date de début</label><input type="date" id="c-f-debut"></div>
+        <div><label>Durée (mois)</label><input type="number" id="c-f-duree" min="1" placeholder="36"></div>
+        <div><label>Échéance (vide = début + durée)</label><input type="date" id="c-f-echeance"></div>
+        <div><label>Préavis (jours)</label><input type="number" id="c-f-preavis" min="0" placeholder="90"></div>
+      </div>
+      <div class="form-row-3">
+        <div><label>Loyer mensuel (€)</label><input type="number" id="c-f-loyer" step="0.01" min="0"></div>
+        <div><label>Tacite reconduction</label>
+          <select id="c-f-tacite"><option value="oui">Oui</option><option value="non">Non</option></select>
+        </div>
+        <div><label>Statut</label>
+          <select id="c-f-statut"><option value="actif">En cours</option><option value="resilie">Résilié</option></select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px"><label>Notes</label><input type="text" id="c-f-notes"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="saveCtr()">✓ Enregistrer</button>
+        <button class="btn" onclick="closeCtrForm()">Annuler</button>
+      </div>
     </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn primary" onclick="saveVae()">✓ Enregistrer</button>
-      <button class="btn" onclick="closeVaeForm()">Annuler</button>
+  </div>
+
+  <!-- ═════ MAINTENANCE ═════ -->
+  <div id="pane-maint" style="display:none">
+    <div class="card">
+      <h3>Suivi de la maintenance</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="m-search" placeholder="Rechercher vélo, prestataire, commentaire…" oninput="renderMaint()" style="max-width:320px">
+        <select id="m-filter-type" onchange="renderMaint()" style="width:200px">
+          <option value="">Tous les types</option>
+        </select>
+        <button class="btn primary small" onclick="openMntForm()">+ Ajouter une intervention</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Date</th><th>Vélo</th><th>Type</th><th>Prestataire</th><th>Commentaire</th><th>Coût TTC</th><th>Actions</th>
+      </tr></thead><tbody id="m-body"></tbody></table></div>
+    </div>
+    <div id="m-form-card" class="card" style="display:none">
+      <h3 id="m-form-title">Ajouter une intervention</h3>
+      <input type="hidden" id="m-f-id">
+      <div class="form-row-4">
+        <div><label>Vélo *</label><select id="m-f-velo"></select></div>
+        <div><label>Date *</label><input type="date" id="m-f-date"></div>
+        <div><label>Type</label><select id="m-f-type"></select></div>
+        <div><label>Prestataire</label><input type="text" id="m-f-prest"></div>
+      </div>
+      <div class="form-row-3">
+        <div><label>Coût HT (€)</label><input type="number" id="m-f-ht" step="0.01" min="0"></div>
+        <div><label>Coût TTC (€)</label><input type="number" id="m-f-ttc" step="0.01" min="0"></div>
+        <div><label>Commentaire</label><input type="text" id="m-f-comm"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" onclick="saveMnt()">✓ Enregistrer</button>
+        <button class="btn" onclick="closeMntForm()">Annuler</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Échéances d'entretien par vélo</h3>
+      <div style="font-size:11px;color:#666;margin-bottom:8px">Fréquence retenue : un entretien par an (à ajuster selon le contrat Tandem). Les vélos hors service ne sont pas listés.</div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Vélo</th><th>Site</th><th>Dernier entretien</th><th>Prochaine échéance</th><th>État</th>
+      </tr></thead><tbody id="e-body"></tbody></table></div>
     </div>
   </div>
 </div>
 
 <script src="common.js"></script>
 <script>
-// ─── ÉTAT LOCAL VAE ───────────────────────────────────────────────────────────
-let vaeCache = [];
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+const VEL_FILE='mob_velos', CTR_FILE='mob_velos_contrats', MNT_FILE='mob_velos_maintenances';
+const FREQ_ENTRETIEN_JOURS = 365;  // annuel (à ajuster selon le contrat)
+const PREAVIS_DEFAUT = 90;         // jours
+const MNT_TYPES = {
+  entretien:'Entretien périodique',
+  reparation:'Réparation',
+  sinistre:'Vol / sinistre',
+  autre:'Autre'
+};
+
+let velCache=[], ctrCache=[], mntCache=[];
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function addMonths(iso,n){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00'); const day=d.getDate();
+  d.setMonth(d.getMonth()+n);
+  if(d.getDate()!==day) d.setDate(0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function addDays(iso,n){
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(iso){ if(!iso) return '—'; const p=iso.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso; }
+function fmtEuro(n){ return (n===''||n==null||isNaN(Number(n)))?'—':Number(n).toFixed(2).replace('.',',')+' €'; }
+function newId(p){return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function velLabel(id){
+  const v=velCache.find(x=>x.id===id);
+  if(!v) return '(vélo supprimé)';
+  return (v.numero_serie||'?')+(v.site?' — '+v.site:'');
+}
+function velOptions(selected){
+  const arr=velCache.slice().sort((a,b)=>(a.site||'').localeCompare(b.site||'','fr')||(a.numero_serie||'').localeCompare(b.numero_serie||''));
+  return '<option value="">— choisir —</option>'+arr.map(v=>'<option value="'+esc(v.id)+'"'+(v.id===selected?' selected':'')+'>'+esc(velLabel(v.id))+'</option>').join('');
+}
+
+// ─── CALCULS CONTRATS / MAINTENANCES ─────────────────────────────────────────
+// Échéance effective : saisie, sinon début + durée ; en tacite reconduction, on avance par périodes jusqu'à une date future
+function ctrEcheance(c){
+  let e=c.date_echeance || (c.date_debut&&c.duree_mois ? addMonths(c.date_debut,Number(c.duree_mois)) : '');
+  let reconduit=false;
+  if(e && c.tacite!=='non' && c.statut!=='resilie' && Number(c.duree_mois)>0){
+    const t=todayISO(); let guard=0;
+    while(e<t && guard++<200){ e=addMonths(e,Number(c.duree_mois)); reconduit=true; }
+  }
+  return {date:e, reconduit};
+}
+function ctrEtat(c){
+  if(c.statut==='resilie') return 'resilie';
+  const {date}=ctrEcheance(c);
+  if(!date) return 'actif';
+  const t=todayISO();
+  if(date<t) return 'expire';
+  const preavis=Number(c.preavis_jours!==undefined&&c.preavis_jours!==''?c.preavis_jours:PREAVIS_DEFAUT);
+  if(t>=addDays(date,-preavis)) return 'preavis';
+  return 'actif';
+}
+function ctrBadge(etat){
+  return {actif:'<span class="badge green">En cours</span>',preavis:'<span class="badge orange">Préavis</span>',
+          expire:'<span class="badge red">Échu</span>',resilie:'<span class="badge gray">Résilié</span>'}[etat]||'';
+}
+function lastEntretien(vid){
+  const l=mntCache.filter(m=>m.velo_id===vid && m.type==='entretien' && m.date).map(m=>m.date).sort();
+  return l.length?l[l.length-1]:'';
+}
+function entretienEtat(v){
+  const last=lastEntretien(v.id);
+  if(!last) return {last:'',next:'',etat:'jamais'};
+  const next=addDays(last,FREQ_ENTRETIEN_JOURS);
+  const t=todayISO();
+  return {last,next,etat: next<t?'retard':(next<=addDays(t,30)?'bientot':'ok')};
+}
+function entBadge(etat){
+  return {ok:'<span class="badge green">À jour</span>',bientot:'<span class="badge yellow">Sous 30 jours</span>',
+          retard:'<span class="badge red">En retard</span>',jamais:'<span class="badge gray">Sans historique</span>'}[etat]||'';
+}
+function statutVaeBadge(s){
+  if(s==='disponible') return '<span class="badge green">Disponible</span>';
+  if(s==='attribue') return '<span class="badge yellow">Attribué</span>';
+  if(s==='hors_service') return '<span class="badge red">Hors service</span>';
+  return '<span class="badge gray">'+esc(s||'—')+'</span>';
+}
 
 // ─── DONNÉES ──────────────────────────────────────────────────────────────────
 async function loadVae(){
   setSyncStatus('syncing','Chargement VAE…');
   try{
-    const arr = await readData('mob_velos');
-    vaeCache = arr || [];
+    const r=await Promise.all([readData(VEL_FILE),readData(CTR_FILE),readData(MNT_FILE)]);
+    velCache=Array.isArray(r[0])?r[0]:[]; ctrCache=Array.isArray(r[1])?r[1]:[]; mntCache=Array.isArray(r[2])?r[2]:[];
     setSyncStatus('ok','Base synchronisée');
+  }catch(e){ setSyncStatus('error','Erreur connexion'); console.error(e); throw e; }
+}
+async function persist(file,arr,okMsg){
+  setSyncStatus('syncing','Sauvegarde…');
+  try{
+    await writeData(file,arr);
+    setSyncStatus('ok','Sauvegardé');
+    if(okMsg) showMsg('vae-msg',okMsg,'ok');
+    return true;
   }catch(e){
-    setSyncStatus('error','Erreur connexion');
-    console.error(e);
+    setSyncStatus('error','Erreur: '+e.message);
+    showMsg('vae-msg','Erreur : '+esc(e.message),'err');
+    return false;
   }
 }
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
 function renderVaeStats(){
-  const el = document.getElementById('vae-stats-bar');
-  if(!el) return;
-  const total = vaeCache.length;
-  const dispo = vaeCache.filter(v=>v.statut==='disponible').length;
-  const attrib = vaeCache.filter(v=>v.statut==='attribue').length;
-  const hs = vaeCache.filter(v=>v.statut==='hors_service').length;
-  el.innerHTML = `
-    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Total vélos</div></div>
-    <div class="stat"><div class="stat-n ok">${dispo}</div><div class="stat-l">Disponibles</div></div>
-    <div class="stat"><div class="stat-n warn">${attrib}</div><div class="stat-l">Attribués</div></div>
-    <div class="stat"><div class="stat-n" style="color:#c53030">${hs}</div><div class="stat-l">Hors service</div></div>
-  `;
+  const el=document.getElementById('vae-stats-bar'); if(!el) return;
+  const enService=velCache.filter(v=>v.statut!=='hors_service');
+  const attrib=velCache.filter(v=>v.statut==='attribue').length;
+  const ctrAlert=ctrCache.filter(c=>{const e=ctrEtat(c);return e==='preavis'||e==='expire';}).length;
+  let retard=0, jamais=0;
+  enService.forEach(v=>{const s=entretienEtat(v).etat; if(s==='retard')retard++; if(s==='jamais')jamais++;});
+  const loyer=ctrCache.filter(c=>c.statut!=='resilie').reduce((s,c)=>s+(Number(c.loyer_mensuel)||0),0);
+  el.innerHTML=`
+    <div class="stat"><div class="stat-n">${velCache.length}</div><div class="stat-l">Vélos (${attrib} attribués)</div></div>
+    <div class="stat"><div class="stat-n ${ctrAlert?'warn':'ok'}">${ctrAlert}</div><div class="stat-l">Contrats en préavis / échus</div></div>
+    <div class="stat"><div class="stat-n" style="color:${retard?'#c53030':'#276749'}">${retard}</div><div class="stat-l">Entretiens en retard</div></div>
+    <div class="stat"><div class="stat-n" style="color:#718096">${jamais}</div><div class="stat-l">Sans historique d'entretien</div></div>
+    <div class="stat"><div class="stat-n">${loyer.toFixed(2).replace('.',',')} €</div><div class="stat-l">Loyers mensuels (contrats en cours)</div></div>`;
 }
+function renderAll(){ renderVaeStats(); renderParc(); renderContrats(); renderMaint(); }
 
-// ─── STATUT BADGE ─────────────────────────────────────────────────────────────
-function statutVaeBadge(s){
-  if(s==='disponible') return '<span class="badge green">Disponible</span>';
-  if(s==='attribue') return '<span class="badge yellow">Attribué</span>';
-  if(s==='hors_service') return '<span class="badge red">Hors service</span>';
-  return '<span class="badge gray">'+(s||'—')+'</span>';
-}
-
-// ─── RENDER TABLE ─────────────────────────────────────────────────────────────
-function renderVae(){
-  const body = document.getElementById('vae-body');
-  if(!body) return;
-  const q = (document.getElementById('vae-search').value||'').toLowerCase();
-  const fStatut = document.getElementById('vae-filter-statut').value;
-
-  let rows = vaeCache.filter(v=>{
-    if(fStatut && v.statut!==fStatut) return false;
-    if(q){
-      const hay = ((v.numero_serie||'')+' '+(v.accessoires||'')+' '+(v.collaborateur||'')+' '+(v.site||'')).toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
-    return true;
+// ─── ONGLETS ──────────────────────────────────────────────────────────────────
+function goVaeTab(t){
+  ['parc','contrats','maint'].forEach(k=>{
+    document.getElementById('pane-'+k).style.display = k===t?'block':'none';
+    document.getElementById('tab-'+k).classList.toggle('active',k===t);
   });
+  try{sessionStorage.setItem('vae_tab',t);}catch(e){}
+}
 
+// ═════ VAE ═════
+function renderParc(){
+  const body=document.getElementById('p-body'); if(!body) return;
+  const q=(document.getElementById('p-search').value||'').toLowerCase();
+  const fs=document.getElementById('p-filter-statut').value;
+  const rows=velCache.filter(v=>{
+    if(fs && v.statut!==fs) return false;
+    if(q){ const hay=[v.numero_serie,v.numero_velo,v.marque,v.modele,v.id_kim,v.collaborateur,v.site,v.accessoires,v.notes].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(a.site||'').localeCompare(b.site||'','fr')||(a.numero_serie||'').localeCompare(b.numero_serie||''));
   if(!rows.length){
-    body.innerHTML = '<tr><td colspan="7"><div class="empty">Aucun vélo trouvé</div></td></tr>';
+    body.innerHTML='<tr><td colspan="11"><div class="empty">'+(velCache.length?'Aucun vélo trouvé':'Aucun vélo enregistré — cliquez sur « Ajouter un vélo »')+'</div></td></tr>';
     return;
   }
-
-  body.innerHTML = rows.map(v => `
-    <tr>
-      <td><strong>${v.numero_serie||'—'}</strong></td>
-      <td>${v.accessoires||'—'}</td>
+  body.innerHTML=rows.map(v=>{
+    const ctrs=ctrCache.filter(c=>c.velo_id===v.id && c.statut!=='resilie');
+    const ctrTxt=ctrs.length?ctrBadge(ctrEtat(ctrs[0])):'<span class="badge gray">Aucun</span>';
+    const ent=v.statut!=='hors_service'?entBadge(entretienEtat(v).etat):'—';
+    const mm=esc([v.marque,v.modele].filter(Boolean).join(' '))||'—';
+    const sub=[v.prestataire,v.id_kim?'KIM '+v.id_kim:''].filter(Boolean).join(' · ');
+    const noteTip=v.notes?' title="'+esc(v.notes)+'"':'';
+    return `<tr>
+      <td${noteTip}><strong>${esc(v.numero_serie)||'—'}</strong>${sub?'<div style="font-size:10px;color:#888">'+esc(sub)+'</div>':''}${v.notes?'<div style="font-size:10px;color:#c05621">'+esc(v.notes)+'</div>':''}</td>
+      <td>${v.numero_velo!==undefined&&v.numero_velo!==''?esc(v.numero_velo):'—'}</td>
+      <td>${mm}${v.accessoires?'<div style="font-size:10px;color:#888">'+esc(v.accessoires)+'</div>':''}</td>
       <td>${statutVaeBadge(v.statut)}</td>
-      <td>${v.collaborateur||'—'}</td>
-      <td>${v.site||'—'}</td>
-      <td>${v.date_attribution||'—'}</td>
-      <td>
-        <button class="btn small" onclick="editVae('${v.id}')">✎</button>
-        <button class="btn danger small" onclick="deleteVae('${v.id}')">✕</button>
-      </td>
-    </tr>
-  `).join('');
+      <td>${esc(v.collaborateur)||'—'}${v.telephone?'<div style="font-size:10px;color:#888">'+esc(v.telephone)+'</div>':''}</td>
+      <td>${esc(v.site)||'—'}</td><td>${fmtDate(v.date_attribution)}</td>
+      <td>${(v.km!==undefined&&v.km!==''&&v.km!==null)?Number(v.km).toLocaleString('fr-FR'):'—'}</td>
+      <td>${ctrTxt}</td><td>${ent}</td>
+      <td style="white-space:nowrap"><button class="btn small" onclick="editParc('${esc(v.id)}')">✎</button>
+          <button class="btn danger small" onclick="deleteParc('${esc(v.id)}')">✕</button></td></tr>`;
+  }).join('');
 }
-
-// ─── FORMULAIRE ───────────────────────────────────────────────────────────────
-function openVaeForm(prefill){
-  document.getElementById('vae-form-title').textContent = 'Ajouter un vélo';
-  document.getElementById('vae-form-id').value = '';
-  document.getElementById('vae-f-numero').value = prefill?.numero_serie || '';
-  document.getElementById('vae-f-statut').value = 'disponible';
-  document.getElementById('vae-f-date').value = '';
-  document.getElementById('vae-f-collab').value = '';
-  document.getElementById('vae-f-site').value = '';
-  document.getElementById('vae-f-accessoires').value = '';
-  document.getElementById('vae-f-notes').value = '';
-  document.getElementById('vae-form-card').style.display = 'block';
-  document.getElementById('vae-form-card').scrollIntoView({behavior:'smooth', block:'center'});
+function openParcForm(){
+  document.getElementById('p-form-title').textContent='Ajouter un vélo';
+  ['id','serie','numvelo','date','collab','site','tel','marque','modele','km','acc','adresse','notes'].forEach(k=>document.getElementById('p-f-'+k).value='');
+  document.getElementById('p-f-statut').value='disponible';
+  const c=document.getElementById('p-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
 }
-
-function editVae(id){
-  const v = vaeCache.find(x=>x.id===id);
-  if(!v) return;
-  document.getElementById('vae-form-title').textContent = 'Modifier le vélo';
-  document.getElementById('vae-form-id').value = v.id;
-  document.getElementById('vae-f-numero').value = v.numero_serie||'';
-  document.getElementById('vae-f-statut').value = v.statut||'disponible';
-  document.getElementById('vae-f-date').value = v.date_attribution||'';
-  document.getElementById('vae-f-collab').value = v.collaborateur||'';
-  document.getElementById('vae-f-site').value = v.site||'';
-  document.getElementById('vae-f-accessoires').value = v.accessoires||'';
-  document.getElementById('vae-f-notes').value = v.notes||'';
-  document.getElementById('vae-form-card').style.display = 'block';
-  document.getElementById('vae-form-card').scrollIntoView({behavior:'smooth', block:'center'});
+function editParc(id){
+  const v=velCache.find(x=>x.id===id); if(!v) return;
+  document.getElementById('p-form-title').textContent='Modifier le vélo';
+  document.getElementById('p-f-id').value=v.id;
+  document.getElementById('p-f-serie').value=v.numero_serie||'';
+  document.getElementById('p-f-numvelo').value=v.numero_velo||'';
+  document.getElementById('p-f-statut').value=v.statut||'disponible';
+  document.getElementById('p-f-date').value=v.date_attribution||'';
+  document.getElementById('p-f-collab').value=v.collaborateur||'';
+  document.getElementById('p-f-site').value=v.site||'';
+  document.getElementById('p-f-tel').value=v.telephone||'';
+  document.getElementById('p-f-marque').value=v.marque||'';
+  document.getElementById('p-f-modele').value=v.modele||'';
+  document.getElementById('p-f-km').value=(v.km!==undefined&&v.km!==null)?v.km:'';
+  document.getElementById('p-f-acc').value=v.accessoires||'';
+  document.getElementById('p-f-adresse').value=v.adresse||'';
+  document.getElementById('p-f-notes').value=v.notes||'';
+  const c=document.getElementById('p-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
 }
-
-function closeVaeForm(){
-  document.getElementById('vae-form-card').style.display = 'none';
-}
-
-async function saveVae(){
-  const id = document.getElementById('vae-form-id').value;
-  const numero = document.getElementById('vae-f-numero').value.trim();
-  if(!numero){ showMsg('vae-msg','Le numéro de série est obligatoire.','err'); return; }
-
-  const payload = {
-    numero_serie: numero,
-    statut: document.getElementById('vae-f-statut').value,
-    date_attribution: document.getElementById('vae-f-date').value,
-    collaborateur: document.getElementById('vae-f-collab').value.trim(),
-    site: document.getElementById('vae-f-site').value.trim(),
-    accessoires: document.getElementById('vae-f-accessoires').value.trim(),
-    notes: document.getElementById('vae-f-notes').value.trim(),
-    updatedAt: new Date().toISOString()
+function closeParcForm(){ document.getElementById('p-form-card').style.display='none'; }
+async function saveParc(){
+  const id=document.getElementById('p-f-id').value;
+  const serie=document.getElementById('p-f-serie').value.trim();
+  if(!serie){ showMsg('vae-msg','Le numéro de série est obligatoire.','err'); return; }
+  if(velCache.some(x=>x.id!==id && (x.numero_serie||'').toLowerCase()===serie.toLowerCase())){
+    showMsg('vae-msg','Ce n° de série existe déjà dans le parc.','err'); return;
+  }
+  const kmRaw=document.getElementById('p-f-km').value;
+  const payload={
+    numero_serie:serie, numero_velo:document.getElementById('p-f-numvelo').value.trim(), statut:document.getElementById('p-f-statut').value,
+    date_attribution:document.getElementById('p-f-date').value,
+    collaborateur:document.getElementById('p-f-collab').value.trim(),
+    site:document.getElementById('p-f-site').value.trim(),
+    telephone:document.getElementById('p-f-tel').value.trim(),
+    marque:document.getElementById('p-f-marque').value.trim(), modele:document.getElementById('p-f-modele').value.trim(),
+    km:kmRaw!==''?Number(kmRaw):'',
+    accessoires:document.getElementById('p-f-acc').value.trim(),
+    adresse:document.getElementById('p-f-adresse').value.trim(),
+    notes:document.getElementById('p-f-notes').value.trim(),
+    updatedAt:new Date().toISOString()
   };
-
-  setSyncStatus('syncing','Sauvegarde…');
-  try{
-    if(id){
-      const idx = vaeCache.findIndex(x=>x.id===id);
-      if(idx>=0) vaeCache[idx] = {...vaeCache[idx], ...payload};
-    } else {
-      payload.id = 'velo_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-      payload.createdAt = new Date().toISOString();
-      vaeCache.unshift(payload);
-    }
-    await writeData('mob_velos', vaeCache);
-    setSyncStatus('ok','Sauvegardé');
-    closeVaeForm();
-    renderVaeStats();
-    renderVae();
-    showMsg('vae-msg','✓ Vélo enregistré.','ok');
-  }catch(e){
-    setSyncStatus('error','Erreur: '+e.message);
-    showMsg('vae-msg','Erreur : '+e.message,'err');
-  }
+  const backup=velCache.slice();
+  if(id){ const i=velCache.findIndex(x=>x.id===id); if(i>=0) velCache[i]={...velCache[i],...payload}; }   // conserve les champs Tandem (KIM, filiale…)
+  else { payload.id=newId('velo'); payload.createdAt=new Date().toISOString(); velCache.unshift(payload); }
+  if(await persist(VEL_FILE,velCache,'✓ Vélo enregistré.')){ closeParcForm(); renderAll(); }
+  else velCache=backup;
+}
+async function deleteParc(id){
+  const nC=ctrCache.filter(c=>c.velo_id===id).length, nM=mntCache.filter(m=>m.velo_id===id).length;
+  let msg='Supprimer ce vélo du parc ?';
+  if(nC||nM) msg+='\n\nSeront aussi supprimés : '+nC+' contrat(s) et '+nM+' intervention(s) liés.\n(Pour conserver l\'historique, passez plutôt le vélo en « Hors service ».)';
+  if(!confirm(msg)) return;
+  const b=[velCache,ctrCache,mntCache];
+  velCache=velCache.filter(x=>x.id!==id);
+  let ok=await persist(VEL_FILE,velCache);
+  if(ok && nC){ ctrCache=ctrCache.filter(c=>c.velo_id!==id); ok=await persist(CTR_FILE,ctrCache); }
+  if(ok && nM){ mntCache=mntCache.filter(m=>m.velo_id!==id); ok=await persist(MNT_FILE,mntCache); }
+  if(ok) showMsg('vae-msg','✓ Vélo supprimé.','ok'); else { [velCache,ctrCache,mntCache]=b; }
+  renderAll();
 }
 
-async function deleteVae(id){
-  if(!confirm('Supprimer ce vélo du parc ?')) return;
-  setSyncStatus('syncing','Suppression…');
-  try{
-    vaeCache = vaeCache.filter(x=>x.id!==id);
-    await writeData('mob_velos', vaeCache);
-    setSyncStatus('ok','Supprimé');
-    renderVaeStats();
-    renderVae();
-  }catch(e){
-    setSyncStatus('error','Erreur: '+e.message);
-    showMsg('vae-msg','Erreur : '+e.message,'err');
+// ═════ CONTRAT ═════
+function renderContrats(){
+  const body=document.getElementById('c-body'); if(!body) return;
+  const q=(document.getElementById('c-search').value||'').toLowerCase();
+  const fs=document.getElementById('c-filter-statut').value;
+  const rows=ctrCache.map(c=>({c,etat:ctrEtat(c),ech:ctrEcheance(c)})).filter(r=>{
+    if(fs && r.etat!==fs) return false;
+    if(q){ const hay=[velLabel(r.c.velo_id),r.c.prestataire,r.c.numero_contrat,r.c.notes].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(a.ech.date||'9999').localeCompare(b.ech.date||'9999'));
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="10"><div class="empty">'+(ctrCache.length?'Aucun contrat trouvé':'Aucun contrat enregistré')+'</div></td></tr>';
+    return;
   }
+  body.innerHTML=rows.map(({c,etat,ech})=>`<tr>
+    <td><strong>${esc(velLabel(c.velo_id))}</strong></td><td>${esc(c.prestataire)||'—'}</td><td>${esc(c.numero_contrat)||'—'}</td>
+    <td>${fmtDate(c.date_debut)}</td><td>${c.duree_mois?esc(c.duree_mois)+' mois':'—'}</td>
+    <td>${fmtDate(ech.date)}${ech.reconduit?' <span class="badge blue" title="Échéance de la période en cours après reconduction tacite">reconduit</span>':''}</td>
+    <td>${c.tacite==='non'?'Non':'Oui'}</td>
+    <td>${fmtEuro(c.loyer_mensuel)}</td>
+    <td>${ctrBadge(etat)}</td>
+    <td style="white-space:nowrap"><button class="btn small" onclick="editCtr('${esc(c.id)}')">✎</button>
+        <button class="btn danger small" onclick="deleteCtr('${esc(c.id)}')">✕</button></td></tr>`).join('');
+}
+function openCtrForm(){
+  document.getElementById('c-form-title').textContent='Ajouter un contrat';
+  document.getElementById('c-f-id').value='';
+  document.getElementById('c-f-velo').innerHTML=velOptions('');
+  ['numero','debut','duree','echeance','preavis','loyer','notes'].forEach(k=>document.getElementById('c-f-'+k).value='');
+  document.getElementById('c-f-prest').value='Tandem';
+  document.getElementById('c-f-tacite').value='oui'; document.getElementById('c-f-statut').value='actif';
+  const c=document.getElementById('c-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function editCtr(id){
+  const c=ctrCache.find(x=>x.id===id); if(!c) return;
+  document.getElementById('c-form-title').textContent='Modifier le contrat';
+  document.getElementById('c-f-id').value=c.id;
+  document.getElementById('c-f-velo').innerHTML=velOptions(c.velo_id);
+  document.getElementById('c-f-prest').value=c.prestataire||'';
+  document.getElementById('c-f-numero').value=c.numero_contrat||'';
+  document.getElementById('c-f-debut').value=c.date_debut||'';
+  document.getElementById('c-f-duree').value=c.duree_mois||'';
+  document.getElementById('c-f-echeance').value=c.date_echeance||'';
+  document.getElementById('c-f-preavis').value=c.preavis_jours!==undefined?c.preavis_jours:'';
+  document.getElementById('c-f-loyer').value=c.loyer_mensuel!==undefined?c.loyer_mensuel:'';
+  document.getElementById('c-f-tacite').value=c.tacite||'oui';
+  document.getElementById('c-f-statut').value=c.statut||'actif';
+  document.getElementById('c-f-notes').value=c.notes||'';
+  const f=document.getElementById('c-form-card'); f.style.display='block'; f.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeCtrForm(){ document.getElementById('c-form-card').style.display='none'; }
+async function saveCtr(){
+  const id=document.getElementById('c-f-id').value;
+  const vid=document.getElementById('c-f-velo').value;
+  if(!vid){ showMsg('vae-msg','Sélectionnez le vélo concerné.','err'); return; }
+  const loyerRaw=document.getElementById('c-f-loyer').value, preRaw=document.getElementById('c-f-preavis').value;
+  const payload={
+    velo_id:vid, prestataire:document.getElementById('c-f-prest').value.trim(),
+    numero_contrat:document.getElementById('c-f-numero').value.trim(),
+    date_debut:document.getElementById('c-f-debut').value,
+    duree_mois:document.getElementById('c-f-duree').value?Number(document.getElementById('c-f-duree').value):'',
+    date_echeance:document.getElementById('c-f-echeance').value,
+    preavis_jours:preRaw!==''?Number(preRaw):'',
+    loyer_mensuel:loyerRaw!==''?Number(loyerRaw):'',
+    tacite:document.getElementById('c-f-tacite').value, statut:document.getElementById('c-f-statut').value,
+    notes:document.getElementById('c-f-notes').value.trim(), updatedAt:new Date().toISOString()
+  };
+  const backup=ctrCache.slice();
+  if(id){ const i=ctrCache.findIndex(x=>x.id===id); if(i>=0) ctrCache[i]={...ctrCache[i],...payload}; }
+  else { payload.id=newId('ctr'); payload.createdAt=new Date().toISOString(); ctrCache.unshift(payload); }
+  if(await persist(CTR_FILE,ctrCache,'✓ Contrat enregistré.')){ closeCtrForm(); renderAll(); }
+  else ctrCache=backup;
+}
+async function deleteCtr(id){
+  if(!confirm('Supprimer ce contrat ?')) return;
+  const backup=ctrCache.slice();
+  ctrCache=ctrCache.filter(x=>x.id!==id);
+  if(await persist(CTR_FILE,ctrCache,'✓ Contrat supprimé.')) renderAll(); else ctrCache=backup;
+}
+
+// ═════ MAINTENANCE ═════
+function renderMaint(){
+  const body=document.getElementById('m-body'); if(!body) return;
+  const q=(document.getElementById('m-search').value||'').toLowerCase();
+  const ft=document.getElementById('m-filter-type').value;
+  const rows=mntCache.filter(m=>{
+    if(ft && m.type!==ft) return false;
+    if(q){ const hay=[velLabel(m.velo_id),m.prestataire,m.commentaire].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  body.innerHTML=rows.length?rows.map(m=>`<tr>
+    <td>${fmtDate(m.date)}</td><td><strong>${esc(velLabel(m.velo_id))}</strong></td>
+    <td><span class="badge blue">${esc(MNT_TYPES[m.type]||m.type||'—')}</span></td>
+    <td>${esc(m.prestataire)||'—'}</td><td>${esc(m.commentaire)||'—'}</td><td>${fmtEuro(m.cout_ttc)}</td>
+    <td style="white-space:nowrap"><button class="btn small" onclick="editMnt('${esc(m.id)}')">✎</button>
+        <button class="btn danger small" onclick="deleteMnt('${esc(m.id)}')">✕</button></td></tr>`).join('')
+    :'<tr><td colspan="7"><div class="empty">'+(mntCache.length?'Aucune intervention trouvée':'Aucune intervention enregistrée')+'</div></td></tr>';
+
+  const eb=document.getElementById('e-body');
+  const act=velCache.filter(v=>v.statut!=='hors_service').map(v=>({v,e:entretienEtat(v)}))
+    .sort((a,b)=>(a.e.next||'0000').localeCompare(b.e.next||'0000'));
+  eb.innerHTML=act.length?act.map(({v,e})=>`<tr>
+    <td><strong>${esc(v.numero_serie)||'—'}</strong></td><td>${esc(v.site)||'—'}</td><td>${fmtDate(e.last)}</td><td>${fmtDate(e.next)}</td><td>${entBadge(e.etat)}</td></tr>`).join('')
+    :'<tr><td colspan="5"><div class="empty">Aucun vélo en service</div></td></tr>';
+}
+function fillMntTypes(){
+  const opts=Object.entries(MNT_TYPES).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('');
+  document.getElementById('m-f-type').innerHTML=opts;
+  document.getElementById('m-filter-type').innerHTML='<option value="">Tous les types</option>'+opts;
+}
+function openMntForm(){
+  document.getElementById('m-form-title').textContent='Ajouter une intervention';
+  document.getElementById('m-f-id').value='';
+  document.getElementById('m-f-velo').innerHTML=velOptions('');
+  document.getElementById('m-f-date').value=todayISO();
+  document.getElementById('m-f-type').value='entretien';
+  document.getElementById('m-f-prest').value='Tandem'; document.getElementById('m-f-comm').value='';
+  document.getElementById('m-f-ht').value=''; document.getElementById('m-f-ttc').value='';
+  const c=document.getElementById('m-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function editMnt(id){
+  const m=mntCache.find(x=>x.id===id); if(!m) return;
+  document.getElementById('m-form-title').textContent='Modifier l\'intervention';
+  document.getElementById('m-f-id').value=m.id;
+  document.getElementById('m-f-velo').innerHTML=velOptions(m.velo_id);
+  document.getElementById('m-f-date').value=m.date||'';
+  document.getElementById('m-f-type').value=m.type||'entretien';
+  document.getElementById('m-f-prest').value=m.prestataire||'';
+  document.getElementById('m-f-comm').value=m.commentaire||'';
+  document.getElementById('m-f-ht').value=(m.cout_ht!==undefined&&m.cout_ht!==null)?m.cout_ht:'';
+  document.getElementById('m-f-ttc').value=(m.cout_ttc!==undefined&&m.cout_ttc!==null)?m.cout_ttc:'';
+  const c=document.getElementById('m-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeMntForm(){ document.getElementById('m-form-card').style.display='none'; }
+async function saveMnt(){
+  const id=document.getElementById('m-f-id').value;
+  const vid=document.getElementById('m-f-velo').value, date=document.getElementById('m-f-date').value;
+  if(!vid||!date){ showMsg('vae-msg','Vélo et date sont obligatoires.','err'); return; }
+  const htRaw=document.getElementById('m-f-ht').value, ttcRaw=document.getElementById('m-f-ttc').value;
+  const payload={velo_id:vid,date,type:document.getElementById('m-f-type').value,
+    prestataire:document.getElementById('m-f-prest').value.trim(),commentaire:document.getElementById('m-f-comm').value.trim(),
+    cout_ht:htRaw!==''?Number(htRaw):'', cout_ttc:ttcRaw!==''?Number(ttcRaw):'',
+    updatedAt:new Date().toISOString()};
+  const backup=mntCache.slice();
+  if(id){ const i=mntCache.findIndex(x=>x.id===id); if(i>=0) mntCache[i]={...mntCache[i],...payload}; }
+  else { payload.id=newId('mnt'); payload.createdAt=new Date().toISOString(); mntCache.unshift(payload); }
+  if(await persist(MNT_FILE,mntCache,'✓ Intervention enregistrée.')){ closeMntForm(); renderAll(); }
+  else mntCache=backup;
+}
+async function deleteMnt(id){
+  if(!confirm('Supprimer cette intervention ?')) return;
+  const backup=mntCache.slice();
+  mntCache=mntCache.filter(x=>x.id!==id);
+  if(await persist(MNT_FILE,mntCache,'✓ Intervention supprimée.')) renderAll(); else mntCache=backup;
 }
 
 // ─── EXPORT EXCEL ─────────────────────────────────────────────────────────────
 function exportVaeExcel(){
   try{
-    const wb = XLSX.utils.book_new();
-    const rows = [['N° série','Accessoires','Statut','Collaborateur','Site','Date attribution','Notes']];
-    vaeCache.forEach(v=>{
-      rows.push([v.numero_serie||'',v.accessoires||'',v.statut||'',v.collaborateur||'',v.site||'',v.date_attribution||'',v.notes||'']);
-    });
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{wch:16},{wch:28},{wch:14},{wch:22},{wch:16},{wch:14},{wch:28}];
-    XLSX.utils.book_append_sheet(wb, ws, 'VAE');
-    const date = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb, 'GESTOCK_Stock_VAE_'+date+'.xlsx');
+    const wb=XLSX.utils.book_new();
+    const p=[['N° série (Bicycode)','N° vélo','Marque','Modèle','Statut','Collaborateur','Téléphone','Site','Adresse','Date attribution','Km','Accessoires','Dernier entretien','Prochain entretien','Prestataire','ID KIM','Notes']];
+    velCache.forEach(v=>{const e=entretienEtat(v);p.push([v.numero_serie||'',v.numero_velo||'',v.marque||'',v.modele||'',v.statut||'',v.collaborateur||'',v.telephone||'',v.site||'',v.adresse||'',v.date_attribution||'',v.km!=null?v.km:'',v.accessoires||'',e.last,e.next,v.prestataire||'',v.id_kim||'',v.notes||'']);});
+    const ws1=XLSX.utils.aoa_to_sheet(p); ws1['!cols']=[{wch:16},{wch:8},{wch:12},{wch:16},{wch:14},{wch:24},{wch:16},{wch:28},{wch:34},{wch:14},{wch:8},{wch:18},{wch:16},{wch:16},{wch:12},{wch:8},{wch:34}];
+    XLSX.utils.book_append_sheet(wb,ws1,'VAE');
+    const c=[['Vélo','Prestataire','N° contrat','Début','Durée (mois)','Échéance','Tacite','Préavis (j)','Loyer mensuel','Statut','Notes']];
+    ctrCache.forEach(x=>c.push([velLabel(x.velo_id),x.prestataire||'',x.numero_contrat||'',x.date_debut||'',x.duree_mois||'',ctrEcheance(x).date,x.tacite==='non'?'Non':'Oui',x.preavis_jours!==undefined?x.preavis_jours:'',x.loyer_mensuel!==undefined?x.loyer_mensuel:'',ctrEtat(x),x.notes||'']));
+    const ws2=XLSX.utils.aoa_to_sheet(c); ws2['!cols']=[{wch:34},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:14},{wch:10},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Contrat');
+    const m=[['Date','Vélo','Type','Prestataire','Commentaire','Coût HT','Coût TTC']];
+    mntCache.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(x=>m.push([x.date||'',velLabel(x.velo_id),MNT_TYPES[x.type]||x.type||'',x.prestataire||'',x.commentaire||'',x.cout_ht!==undefined?x.cout_ht:'',x.cout_ttc!==undefined?x.cout_ttc:'']));
+    const ws3=XLSX.utils.aoa_to_sheet(m); ws3['!cols']=[{wch:12},{wch:34},{wch:22},{wch:14},{wch:44},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws3,'Maintenance');
+    XLSX.writeFile(wb,'GESTOCK_Stock_VAE_'+todayISO()+'.xlsx');
   }catch(e){ alert('Erreur export: '+e.message); }
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
+// ─── INIT / LOGIN ─────────────────────────────────────────────────────────────
 async function initVae(){
-  const loginOverlay = document.getElementById('login-overlay');
-
-  if(!localStorage.getItem('domo_gh_token')){
-    loginOverlay.style.display = 'flex';
-    return;
+  const loginOverlay=document.getElementById('login-overlay');
+  if(!localStorage.getItem('domo_gh_token') || !localStorage.getItem('gestock_user')){
+    loginOverlay.style.display='flex'; return;
   }
-  const raw = localStorage.getItem('gestock_user');
-  if(!raw){
-    loginOverlay.style.display = 'flex';
-    return;
-  }
-
-  loginOverlay.style.display = 'none';
-  const u = JSON.parse(raw);
-  currentUser = u;
-  const badge = document.getElementById('user-badge');
-  if(badge) badge.textContent = u.nom + (u.role==='admin' ? ' · Admin' : '');
-
-  setSyncStatus('syncing','Chargement VAE…');
+  loginOverlay.style.display='none';
+  const u=JSON.parse(localStorage.getItem('gestock_user'));
+  currentUser=u;
+  const badge=document.getElementById('user-badge');
+  if(badge) badge.textContent=u.nom+(u.role==='admin'?' · Admin':'');
+  fillMntTypes();
   try{
     await loadVae();
-    setSyncStatus('ok','Base synchronisée');
-    renderVaeStats();
-    renderVae();
-  }catch(e){
-    setSyncStatus('error','Erreur: '+e.message);
-    console.error('initVae error:', e);
-  }
+    renderAll();
+    let t='parc'; try{t=sessionStorage.getItem('vae_tab')||'parc';}catch(e){}
+    goVaeTab(t);
+  }catch(e){ showMsg('vae-msg','Erreur de chargement : '+esc(e.message),'err'); }
 }
-
 async function doLogin(){
-  const login = document.getElementById('login-user').value.trim().toLowerCase();
-  const pwd   = document.getElementById('login-pwd').value;
-  const errEl = document.getElementById('login-error');
+  const login=document.getElementById('login-user').value.trim().toLowerCase();
+  const pwd=document.getElementById('login-pwd').value;
+  const errEl=document.getElementById('login-error');
   if(!login||!pwd){errEl.textContent='Veuillez saisir votre identifiant et mot de passe.';return;}
   errEl.textContent='';
   try{
     await loadUsers();
-    const user = usersCache.find(u=>u.login===login);
+    const user=usersCache.find(u=>u.login===login);
     if(!user||!user.actif){errEl.textContent='Identifiant inconnu ou compte désactivé.';return;}
-    const hash = await sha256(pwd);
+    const hash=await sha256(pwd);
     if(hash!==user.hash){errEl.textContent='Mot de passe incorrect.';return;}
-    currentUser = {login:user.login,nom:user.nom,role:user.role};
-    localStorage.setItem('gestock_user', JSON.stringify(currentUser));
+    currentUser={login:user.login,nom:user.nom,role:user.role};
+    localStorage.setItem('gestock_user',JSON.stringify(currentUser));
     await initVae();
-  }catch(e){
-    errEl.textContent='Erreur connexion : '+e.message;
-    console.error(e);
-  }
+  }catch(e){ errEl.textContent='Erreur connexion : '+e.message; console.error(e); }
 }
-
 (function(){
-  const raw = localStorage.getItem('gestock_user');
-  if(raw){
-    try{ currentUser = JSON.parse(raw); }
-    catch(e){ localStorage.removeItem('gestock_user'); }
-  }
+  const raw=localStorage.getItem('gestock_user');
+  if(raw){ try{ currentUser=JSON.parse(raw); }catch(e){ localStorage.removeItem('gestock_user'); } }
   initVae();
 })();
-
 window.addEventListener('scroll',function(){
   const b=document.getElementById('btn-top');
-  if(b) b.classList.toggle('visible', window.scrollY > 300);
+  if(b) b.classList.toggle('visible',window.scrollY>300);
 });
 </script>
 

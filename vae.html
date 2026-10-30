@@ -125,15 +125,15 @@ tr:hover td{background:#f8f9fb}
         <button class="btn success small" style="margin-left:auto" onclick="exportVaeExcel()">📊 Export Excel</button>
       </div>
       <div class="tbl-wrap"><table><thead><tr>
-        <th>N° série (Bicycode)</th><th>N° vélo</th><th>Marque / Modèle</th><th>Statut</th><th>Collaborateur</th><th>Site</th><th>Date attrib.</th><th>Km</th><th>Contrat</th><th>Entretien</th><th>Actions</th>
+        <th>N° vélo</th><th>N° série (Bicycode)</th><th>Marque / Modèle</th><th>Statut</th><th>Collaborateur</th><th>Site</th><th>Date attrib.</th><th>Km</th><th>Contrat</th><th>Entretien</th><th>Actions</th>
       </tr></thead><tbody id="p-body"></tbody></table></div>
     </div>
     <div id="p-form-card" class="card" style="display:none">
       <h3 id="p-form-title">Ajouter un vélo</h3>
       <input type="hidden" id="p-f-id">
       <div class="form-row-4">
-        <div><label>N° de série (Bicycode) *</label><input type="text" id="p-f-serie" placeholder="Identifiant unique du vélo"></div>
         <div><label>N° vélo (suivi VAE)</label><input type="text" id="p-f-numvelo" placeholder="1, 2, 3…"></div>
+        <div><label>N° de série (Bicycode) *</label><input type="text" id="p-f-serie" placeholder="Identifiant unique du vélo"></div>
         <div><label>Statut</label>
           <select id="p-f-statut">
             <option value="disponible">Disponible</option>
@@ -421,8 +421,8 @@ function renderParc(){
     const sub=[v.prestataire,v.id_kim?'KIM '+v.id_kim:''].filter(Boolean).join(' · ');
     const noteTip=v.notes?' title="'+esc(v.notes)+'"':'';
     return `<tr>
-      <td${noteTip}><strong>${esc(v.numero_serie)||'—'}</strong>${sub?'<div style="font-size:10px;color:#888">'+esc(sub)+'</div>':''}${v.notes?'<div style="font-size:10px;color:#c05621">'+esc(v.notes)+'</div>':''}</td>
-      <td>${v.numero_velo!==undefined&&v.numero_velo!==''?esc(v.numero_velo):'—'}</td>
+      <td><strong>${v.numero_velo!==undefined&&v.numero_velo!==''?esc(v.numero_velo):'—'}</strong></td>
+      <td${noteTip}>${esc(v.numero_serie)||'—'}${sub?'<div style="font-size:10px;color:#888">'+esc(sub)+'</div>':''}${v.notes?'<div style="font-size:10px;color:#c05621">'+esc(v.notes)+'</div>':''}</td>
       <td>${mm}${v.accessoires?'<div style="font-size:10px;color:#888">'+esc(v.accessoires)+'</div>':''}</td>
       <td>${statutVaeBadge(v.statut)}</td>
       <td>${esc(v.collaborateur)||'—'}${v.telephone?'<div style="font-size:10px;color:#888">'+esc(v.telephone)+'</div>':''}</td>
@@ -660,9 +660,9 @@ async function deleteMnt(id){
 function exportVaeExcel(){
   try{
     const wb=XLSX.utils.book_new();
-    const p=[['N° série (Bicycode)','N° vélo','Marque','Modèle','Statut','Collaborateur','Téléphone','Site','Adresse','Date attribution','Km','Accessoires','Dernier entretien','Prochain entretien','Loueur','ID KIM','Notes']];
-    velCache.forEach(v=>{const e=entretienEtat(v);p.push([v.numero_serie||'',v.numero_velo||'',v.marque||'',v.modele||'',v.statut||'',v.collaborateur||'',v.telephone||'',v.site||'',v.adresse||'',v.date_attribution||'',v.km!=null?v.km:'',v.accessoires||'',e.last,e.next,v.prestataire||'',v.id_kim||'',v.notes||'']);});
-    const ws1=XLSX.utils.aoa_to_sheet(p); ws1['!cols']=[{wch:16},{wch:8},{wch:12},{wch:16},{wch:14},{wch:24},{wch:16},{wch:28},{wch:34},{wch:14},{wch:8},{wch:18},{wch:16},{wch:16},{wch:12},{wch:8},{wch:34}];
+    const p=[['N° vélo','N° série (Bicycode)','Marque','Modèle','Statut','Collaborateur','Téléphone','Site','Adresse','Date attribution','Km','Accessoires','Dernier entretien','Prochain entretien','Loueur','ID KIM','Notes']];
+    velCache.forEach(v=>{const e=entretienEtat(v);p.push([v.numero_velo||'',v.numero_serie||'',v.marque||'',v.modele||'',v.statut||'',v.collaborateur||'',v.telephone||'',v.site||'',v.adresse||'',v.date_attribution||'',v.km!=null?v.km:'',v.accessoires||'',e.last,e.next,v.prestataire||'',v.id_kim||'',v.notes||'']);});
+    const ws1=XLSX.utils.aoa_to_sheet(p); ws1['!cols']=[{wch:8},{wch:16},{wch:12},{wch:16},{wch:14},{wch:24},{wch:16},{wch:28},{wch:34},{wch:14},{wch:8},{wch:18},{wch:16},{wch:16},{wch:12},{wch:8},{wch:34}];
     XLSX.utils.book_append_sheet(wb,ws1,'VAE');
     const c=[['Vélo','Loueur','N° contrat','Début','Durée (mois)','Échéance','Tacite','Préavis (j)','Loyer mensuel','Statut','Notes']];
     ctrCache.forEach(x=>c.push([velLabel(x.velo_id),x.prestataire||'',x.numero_contrat||'',x.date_debut||'',x.duree_mois||'',ctrEcheance(x).date,x.tacite==='non'?'Non':'Oui',x.preavis_jours!==undefined?x.preavis_jours:'',x.loyer_mensuel!==undefined?x.loyer_mensuel:'',ctrEtat(x),x.notes||'']));

@@ -168,9 +168,9 @@ tr:hover td{background:#f8f9fb}
   <!-- ═════ CONTRAT ═════ -->
   <div id="pane-contrats" style="display:none">
     <div class="card">
-      <h3>Contrats de location (prestataire Tandem)</h3>
+      <h3>Contrats de location (loueur : Tandem)</h3>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="c-search" placeholder="Rechercher vélo, prestataire, n° contrat…" oninput="renderContrats()" style="max-width:320px">
+        <input type="text" id="c-search" placeholder="Rechercher vélo, loueur, n° contrat…" oninput="renderContrats()" style="max-width:320px">
         <select id="c-filter-statut" onchange="renderContrats()" style="width:190px">
           <option value="">Tous les contrats</option>
           <option value="actif">En cours</option>
@@ -181,7 +181,7 @@ tr:hover td{background:#f8f9fb}
         <button class="btn primary small" onclick="openCtrForm()">+ Ajouter un contrat</button>
       </div>
       <div class="tbl-wrap"><table><thead><tr>
-        <th>Vélo</th><th>Prestataire</th><th>N° contrat</th><th>Début</th><th>Durée</th><th>Échéance</th><th>Tacite</th><th>Loyer / mois</th><th>Statut</th><th>Actions</th>
+        <th>Vélo</th><th>Loueur</th><th>N° contrat</th><th>Début</th><th>Durée</th><th>Échéance</th><th>Tacite</th><th>Loyer / mois</th><th>Statut</th><th>Actions</th>
       </tr></thead><tbody id="c-body"></tbody></table></div>
     </div>
     <div id="c-form-card" class="card" style="display:none">
@@ -189,7 +189,7 @@ tr:hover td{background:#f8f9fb}
       <input type="hidden" id="c-f-id">
       <div class="form-row-3">
         <div><label>Vélo *</label><select id="c-f-velo"></select></div>
-        <div><label>Prestataire</label><input type="text" id="c-f-prest"></div>
+        <div><label>Loueur</label><input type="text" id="c-f-prest"></div>
         <div><label>N° de contrat</label><input type="text" id="c-f-numero"></div>
       </div>
       <div class="form-row-4">
@@ -251,7 +251,7 @@ tr:hover td{background:#f8f9fb}
     </div>
     <div class="card">
       <h3>Échéances d'entretien par vélo</h3>
-      <div style="font-size:11px;color:#666;margin-bottom:8px">Fréquence retenue : un entretien par an (à ajuster selon le contrat Tandem). Les vélos hors service ne sont pas listés.</div>
+      <div style="font-size:11px;color:#666;margin-bottom:8px">Fréquence retenue : un entretien par an (à ajuster). Les vélos hors service ne sont pas listés. Maintenance assurée par Tandem jusqu'en 2025 (historique), puis par MyBike France depuis 2026.</div>
       <div class="tbl-wrap"><table><thead><tr>
         <th>Vélo</th><th>Site</th><th>Dernier entretien</th><th>Prochaine échéance</th><th>État</th>
       </tr></thead><tbody id="e-body"></tbody></table></div>
@@ -616,7 +616,7 @@ function openMntForm(){
   document.getElementById('m-f-velo').innerHTML=velOptions('');
   document.getElementById('m-f-date').value=todayISO();
   document.getElementById('m-f-type').value='entretien';
-  document.getElementById('m-f-prest').value='Tandem'; document.getElementById('m-f-comm').value='';
+  document.getElementById('m-f-prest').value='MyBike France'; document.getElementById('m-f-comm').value='';
   document.getElementById('m-f-ht').value=''; document.getElementById('m-f-ttc').value='';
   const c=document.getElementById('m-form-card'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -660,11 +660,11 @@ async function deleteMnt(id){
 function exportVaeExcel(){
   try{
     const wb=XLSX.utils.book_new();
-    const p=[['N° série (Bicycode)','N° vélo','Marque','Modèle','Statut','Collaborateur','Téléphone','Site','Adresse','Date attribution','Km','Accessoires','Dernier entretien','Prochain entretien','Prestataire','ID KIM','Notes']];
+    const p=[['N° série (Bicycode)','N° vélo','Marque','Modèle','Statut','Collaborateur','Téléphone','Site','Adresse','Date attribution','Km','Accessoires','Dernier entretien','Prochain entretien','Loueur','ID KIM','Notes']];
     velCache.forEach(v=>{const e=entretienEtat(v);p.push([v.numero_serie||'',v.numero_velo||'',v.marque||'',v.modele||'',v.statut||'',v.collaborateur||'',v.telephone||'',v.site||'',v.adresse||'',v.date_attribution||'',v.km!=null?v.km:'',v.accessoires||'',e.last,e.next,v.prestataire||'',v.id_kim||'',v.notes||'']);});
     const ws1=XLSX.utils.aoa_to_sheet(p); ws1['!cols']=[{wch:16},{wch:8},{wch:12},{wch:16},{wch:14},{wch:24},{wch:16},{wch:28},{wch:34},{wch:14},{wch:8},{wch:18},{wch:16},{wch:16},{wch:12},{wch:8},{wch:34}];
     XLSX.utils.book_append_sheet(wb,ws1,'VAE');
-    const c=[['Vélo','Prestataire','N° contrat','Début','Durée (mois)','Échéance','Tacite','Préavis (j)','Loyer mensuel','Statut','Notes']];
+    const c=[['Vélo','Loueur','N° contrat','Début','Durée (mois)','Échéance','Tacite','Préavis (j)','Loyer mensuel','Statut','Notes']];
     ctrCache.forEach(x=>c.push([velLabel(x.velo_id),x.prestataire||'',x.numero_contrat||'',x.date_debut||'',x.duree_mois||'',ctrEcheance(x).date,x.tacite==='non'?'Non':'Oui',x.preavis_jours!==undefined?x.preavis_jours:'',x.loyer_mensuel!==undefined?x.loyer_mensuel:'',ctrEtat(x),x.notes||'']));
     const ws2=XLSX.utils.aoa_to_sheet(c); ws2['!cols']=[{wch:34},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:14},{wch:10},{wch:40}];
     XLSX.utils.book_append_sheet(wb,ws2,'Contrat');
